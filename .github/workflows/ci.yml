@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Build & test
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Swift version
+        run: swift --version
+
+      - name: Build
+        run: swift build -v
+
+      - name: Test
+        run: swift test
+
+      - name: Package app bundle
+        run: ./build.sh release
+
+      - name: Verify bundle
+        run: |
+          test -x build/Godmouse.app/Contents/MacOS/Godmouse
+          codesign --verify --verbose=1 build/Godmouse.app
