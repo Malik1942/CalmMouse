@@ -16,8 +16,16 @@ GODMOUSE_SIGN_IDENTITY="-" ./build.sh release
 
 mkdir -p "$OUT"
 rm -f "$OUT/Godmouse.zip"
-ditto -c -k --keepParent build/Godmouse.app "$OUT/Godmouse.zip"
+# --norsrc --noextattr matters: without them ditto stores xattrs as AppleDouble entries, and a
+# plain command-line `unzip` materialises them as ._Info.plist / ._PkgInfo files that invalidate
+# the code signature. Finder's Archive Utility copes; `unzip` does not.
+ditto -c -k --norsrc --noextattr --keepParent build/Godmouse.app "$OUT/Godmouse.zip"
 
 echo
 echo "✅ $OUT/Godmouse.zip  (v$VERSION, $(du -h "$OUT/Godmouse.zip" | cut -f1))"
-codesign -dv "$OUT/../build/Godmouse.app" 2>&1 | grep -E 'Signature|Identifier' || true
+# Prove the artifact users will actually download still validates after a plain unzip.
+TMP=$(mktemp -d)
+( cd "$TMP" && unzip -q "$OLDPWD/$OUT/Godmouse.zip" && codesign --verify --strict Godmouse.app ) \
+  && echo "   signature verifies after plain unzip ✅" \
+  || { echo "   ⚠️  signature broken after unzip"; exit 1; }
+rm -rf "$TMP"
