@@ -15,6 +15,10 @@ final class EventTap {
     var debugLogging = false
     var treatUnknownContinuousAsMagicMouse = false
 
+    /// Tap-to-click context feeds. Called on the tap's run loop (main) for Magic Mouse events.
+    var onMagicButton: ((_ isDown: Bool, _ t: TimeInterval) -> Void)?
+    var onMagicScroll: ((_ deltaMagnitude: Double, _ t: TimeInterval) -> Void)?
+
     /// Set when we've seen at least one Magic Mouse event — surfaced in the menu as a sanity check.
     private(set) var lastSeenDevice: String?
     private(set) var swallowedCount = 0
@@ -88,10 +92,18 @@ final class EventTap {
             return Unmanaged.passUnretained(event)
 
         case .leftMouseDown, .rightMouseDown, .otherMouseDown:
+            // Clicks Godmouse itself synthesized (tap-to-click) must not feed the blocker or
+            // the tap recognizer — they're consequences, not causes.
+            if event.getIntegerValueField(.eventSourceUserData) == TapController.syntheticTag {
+                return Unmanaged.passUnretained(event)
+            }
             handleButton(event, isDown: true)
             return Unmanaged.passUnretained(event)
 
         case .leftMouseUp, .rightMouseUp, .otherMouseUp:
+            if event.getIntegerValueField(.eventSourceUserData) == TapController.syntheticTag {
+                return Unmanaged.passUnretained(event)
+            }
             handleButton(event, isDown: false)
             return Unmanaged.passUnretained(event)
 
@@ -125,6 +137,7 @@ final class EventTap {
         guard magic else { return }
         let button = Int(event.getIntegerValueField(.mouseEventButtonNumber))
         blocker.magicMouseButton(button, isDown: isDown, at: seconds(event))
+        onMagicButton?(isDown, seconds(event))
         if debugLogging {
             log.debug("button \(button) \(isDown ? "down" : "up") blocking=\(self.blocker.isBlocking(at: self.seconds(event)))")
         }
@@ -152,6 +165,11 @@ final class EventTap {
             modifiers: Self.combo(from: event.flags)
         )
         let decision = blocker.handleScroll(e)
+        if magic {
+            // Feed tap-to-click regardless of the decision: physically, the finger IS moving,
+            // even when the scroll is being swallowed.
+            onMagicScroll?(abs(e.deltaX) + abs(e.deltaY), t)
+        }
 
         if debugLogging {
             let sender = identifier.senderID(of: event)

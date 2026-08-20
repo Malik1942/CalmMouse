@@ -24,6 +24,8 @@ final class Settings: ObservableObject {
         static let blockHorizontalScroll = "blockHorizontalScroll"
         static let modifierActions = "modifierActions"
         static let appRules = "appRules"
+        static let tapToClick = "tapToClick"
+        static let tapSensitivity = "tapSensitivity"
         static let batteryWarningEnabled = "batteryWarningEnabled"
         static let batteryWarningThreshold = "batteryWarningThreshold"
         static let treatUnknownContinuousAsMagicMouse = "treatUnknownContinuousAsMagicMouse"
@@ -42,6 +44,8 @@ final class Settings: ObservableObject {
     @Published var blockHorizontalScroll: Bool { didSet { d.set(blockHorizontalScroll, forKey: Key.blockHorizontalScroll); changed() } }
     @Published var modifierActions: [ModifierCombo: ScrollAction] { didSet { saveModifierActions(); changed() } }
     @Published var appRules: [AppRule] { didSet { saveAppRules(); changed() } }
+    @Published var tapToClick: Bool { didSet { d.set(tapToClick, forKey: Key.tapToClick); changed() } }
+    @Published var tapSensitivity: Double { didSet { d.set(tapSensitivity, forKey: Key.tapSensitivity); changed() } }
     @Published var batteryWarningEnabled: Bool { didSet { d.set(batteryWarningEnabled, forKey: Key.batteryWarningEnabled); changed() } }
     @Published var batteryWarningThreshold: Int { didSet { d.set(batteryWarningThreshold, forKey: Key.batteryWarningThreshold); changed() } }
     @Published var treatUnknownContinuousAsMagicMouse: Bool { didSet { d.set(treatUnknownContinuousAsMagicMouse, forKey: Key.treatUnknownContinuousAsMagicMouse); changed() } }
@@ -57,6 +61,8 @@ final class Settings: ObservableObject {
             Key.axisLockThreshold: 10.0,
             Key.momentumEnabled: true,
             Key.blockHorizontalScroll: false,
+            Key.tapToClick: false,
+            Key.tapSensitivity: 0.5,
             Key.batteryWarningEnabled: true,
             Key.batteryWarningThreshold: 15,
             Key.treatUnknownContinuousAsMagicMouse: false,
@@ -71,6 +77,8 @@ final class Settings: ObservableObject {
         axisLockThreshold = d.double(forKey: Key.axisLockThreshold)
         momentumEnabled = d.bool(forKey: Key.momentumEnabled)
         blockHorizontalScroll = d.bool(forKey: Key.blockHorizontalScroll)
+        tapToClick = d.bool(forKey: Key.tapToClick)
+        tapSensitivity = d.double(forKey: Key.tapSensitivity)
         batteryWarningEnabled = d.bool(forKey: Key.batteryWarningEnabled)
         batteryWarningThreshold = d.integer(forKey: Key.batteryWarningThreshold)
         treatUnknownContinuousAsMagicMouse = d.bool(forKey: Key.treatUnknownContinuousAsMagicMouse)
@@ -93,6 +101,12 @@ final class Settings: ObservableObject {
         c.blockHorizontalScroll = blockHorizontalScroll
         c.modifierActions = modifierActions
         return RuleSet(base: c, appRules: appRules)
+    }
+
+    var tapConfig: TapConfig {
+        var c = TapConfig(sensitivity: tapSensitivity)
+        c.enabled = tapToClick
+        return c
     }
 
     // MARK: Per-app helpers

@@ -37,6 +37,7 @@ Godmouse is that checkbox, plus the rest of the Magic Mouse's rough edges, in a 
 | **Momentum toggle** | Turn off the coasting tail after a flick — for the Magic Mouse only. macOS's own setting is system-wide. |
 | **Per-app rules** | Any of the above, overridden per application. Disable Magic Mouse scrolling entirely in Figma, block horizontal scroll in Excel, drop momentum in a code editor. Rules follow the frontmost app. |
 | **Modifier actions** | Map ⌘/⌥/⌃/⇧ + scroll to horizontal scrolling, inverted scrolling, zoom (⌘-scroll or system ⌃-scroll), or nothing at all. |
+| **Tap to click** | A light single-finger tap left-clicks — no need to press the mouse down. Adjustable Firm↔Light sensitivity; taps are auto-rejected while (and shortly after) scrolling, during and right after physical clicks, for multi-finger touches, resting fingers, and grazes. Double- and triple-taps become real double-/triple-clicks. Off by default. |
 | **Battery warning** | A notification when the Magic Mouse drops below a threshold you set, so it doesn't die mid-afternoon. |
 
 Everything applies **only to the Magic Mouse**. Godmouse identifies the physical device behind each
@@ -127,6 +128,8 @@ defaults write com.godmouse.app axisLock -bool YES
 defaults write com.godmouse.app momentumEnabled -bool NO
 defaults write com.godmouse.app blockHorizontalScroll -bool YES
 defaults write com.godmouse.app batteryWarningThreshold -int 15
+defaults write com.godmouse.app tapToClick -bool YES
+defaults write com.godmouse.app tapSensitivity -float 0.5   # 0 = firm ... 1 = light
 ```
 
 The app picks changes up live. There's also a small CLI inside the bundle:
@@ -146,6 +149,9 @@ Sources/GodmouseCore/     pure logic, no AppKit — the part that's unit-tested
 Sources/Godmouse/
   EventTap.swift          CGEventTap ⇄ ScrollBlocker: pass / drop / rewrite each event
   DeviceIdentifier.swift  which physical device sent this event?
+  TapRecognizer.swift (Core) tap detection: duration/movement/size gates, scroll & click vetoes
+  Multitouch.swift        dlopen bridge to the private MultitouchSupport framework (raw touches)
+  TapController.swift     contact frames → TapRecognizer → synthetic clicks (with double-click state)
   BatteryMonitor.swift    IORegistry battery polling + notification
   SettingsWindow.swift    SwiftUI settings window
   AppDelegate.swift       menu bar, permission polling, launch at login
@@ -167,7 +173,7 @@ makes the momentum tail arrive out of nowhere. The state machine tracks what eac
 allowed to see and always closes the gesture it opened.
 
 ```bash
-swift test    # 48 tests, no device or permission needed
+swift test    # 64 tests, no device or permission needed
 ```
 
 ## Troubleshooting
@@ -186,11 +192,13 @@ Nothing on GitHub blocked Magic Mouse scroll-while-clicking on macOS when this w
 (August 2026) — hence this project. Related, and worth your time:
 
 - **[mac-mouse-fix](https://github.com/noah-nuebling/mac-mouse-fix)** — excellent, but explicitly no Magic Mouse support. Godmouse borrows its sender-ID technique.
-- **[mousetoucher](https://github.com/meatpaste/mousetoucher)** / **[magictap](https://github.com/sysmesh/magictap)** / **[MagicMouseClick](https://github.com/FAZIO11/MagicMouseClick)** — tap-to-click for the Magic Mouse.
+- **[mousetoucher](https://github.com/meatpaste/mousetoucher)** / **[magictap](https://github.com/sysmesh/magictap)** / **[MagicMouseClick](https://github.com/FAZIO11/MagicMouseClick)** — standalone tap-to-click apps for the Magic Mouse; Godmouse's MultitouchSupport bridge follows the same private-framework technique.
 - **[MiddleClick](https://github.com/artginzburg/MiddleClick)** / **[fastmiddle](https://github.com/NicoNex/fastmiddle)** — three-finger middle click.
 - **[MagicPrefs](https://github.com/valexa/MagicPrefsArchive)** — the 10.6-era app that could shrink the scroll area. Long dead, archived source only.
 
-Godmouse deliberately doesn't do tap-to-click or middle-click; the apps above already do them well.
+Godmouse doesn't do middle-click; MiddleClick already does it well. (Tap-to-click grew into
+Godmouse anyway — having the scroll-state machine in the same process means taps can be vetoed by
+real scrolling and physical clicks, which standalone tap apps can't see.)
 
 ## Roadmap
 

@@ -19,6 +19,13 @@ enum StatusReporter {
         var releaseGraceMs: Int
         var deadZone: Double
         var momentumEnabled: Bool
+        var tapToClick: Bool
+        var tapToClickListening: Bool
+        var tapsPosted: Int
+        var tapFramesReceived: Int
+        var tapTouchesSeen: Int
+        var tapLastRejection: String?
+        var tapRejections: [String: Int]
         var settingsWindowOpen: Bool
     }
 

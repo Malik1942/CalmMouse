@@ -7,6 +7,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let blocker = ScrollBlocker()
     private lazy var tap = EventTap(blocker: blocker)
     private let battery = BatteryMonitor()
+    private let tapRecognizer = TapRecognizer()
+    private lazy var tapToClick = TapController(recognizer: tapRecognizer)
 
     private var statusItem: NSStatusItem!
     private var settingsWindow: SettingsWindowController?
@@ -22,11 +24,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let blockItem = NSMenuItem(title: "Block scroll while clicked", action: #selector(toggleBlock), keyEquivalent: "")
     private let momentumItem = NSMenuItem(title: "Momentum scrolling", action: #selector(toggleMomentum), keyEquivalent: "")
     private let axisLockItem = NSMenuItem(title: "Axis lock", action: #selector(toggleAxisLock), keyEquivalent: "")
+    private let tapToClickItem = NSMenuItem(title: "Tap to click", action: #selector(toggleTapToClick), keyEquivalent: "")
     private let perAppItem = NSMenuItem(title: "Ignore scrolling in this app", action: #selector(togglePerApp), keyEquivalent: "")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         buildStatusItem()
+
+        // Tap-to-click context: physical Magic Mouse buttons and real scrolling both veto taps.
+        tap.onMagicButton = { [weak self] isDown, t in self?.tapToClick.physicalButton(isDown: isDown, at: t) }
+        tap.onMagicScroll = { [weak self] magnitude, t in self?.tapToClick.scrollActivity(deltaMagnitude: magnitude, at: t) }
+
         applySettings()
 
         NotificationCenter.default.addObserver(self, selector: #selector(settingsChanged),
@@ -66,6 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         tap.stop()
+        tapToClick.stop()
         battery.stop()
     }
 
@@ -96,12 +105,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             tap.stop()
         }
+        // Posting the synthetic clicks needs the same Accessibility grant as the event tap,
+        // so tap-to-click rides the same lifecycle.
+        if settings.enabled && settings.tapToClick {
+            tapToClick.start()
+        } else {
+            tapToClick.stop()
+        }
         refreshStatusIcon()
         writeStatusFile()
     }
 
     private func applySettings() {
         blocker.rules = settings.ruleSet
+        tapRecognizer.config = settings.tapConfig
         tap.debugLogging = settings.debugLogging
         tap.treatUnknownContinuousAsMagicMouse = settings.treatUnknownContinuousAsMagicMouse
         battery.enabled = settings.batteryWarningEnabled
@@ -148,6 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(blockItem)
         menu.addItem(momentumItem)
         menu.addItem(axisLockItem)
+        menu.addItem(tapToClickItem)
         menu.addItem(perAppItem)
         menu.addItem(.separator())
 
@@ -223,6 +241,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         blockItem.state = settings.blockScrollWhileClicked ? .on : .off
         momentumItem.state = settings.momentumEnabled ? .on : .off
         axisLockItem.state = settings.axisLock ? .on : .off
+        tapToClickItem.state = settings.tapToClick ? .on : .off
+        tapToClickItem.isHidden = !TapController.isSupported
 
         if let app = NSWorkspace.shared.frontmostApplication,
            let bundleID = app.bundleIdentifier, bundleID != Bundle.main.bundleIdentifier {
@@ -259,6 +279,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             releaseGraceMs: Int(blocker.config.releaseGrace * 1000),
             deadZone: blocker.config.deadZone,
             momentumEnabled: blocker.config.momentumEnabled,
+            tapToClick: settings.tapToClick,
+            tapToClickListening: tapToClick.isListening,
+            tapsPosted: tapToClick.tapsPosted,
+            tapFramesReceived: tapToClick.framesReceived,
+            tapTouchesSeen: tapToClick.touchesSeen,
+            tapLastRejection: tapRecognizer.lastRejection?.rawValue,
+            tapRejections: tapRecognizer.rejectionCounts,
             settingsWindowOpen: settingsWindow?.window?.isVisible ?? false
         ))
     }
@@ -269,6 +296,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleBlock() { settings.blockScrollWhileClicked.toggle() }
     @objc private func toggleMomentum() { settings.momentumEnabled.toggle() }
     @objc private func toggleAxisLock() { settings.axisLock.toggle() }
+    @objc private func toggleTapToClick() { settings.tapToClick.toggle() }
 
     @objc private func togglePerApp(_ sender: NSMenuItem) {
         guard let pair = sender.representedObject as? [String], pair.count == 2 else { return }

@@ -30,6 +30,7 @@ struct SettingsView: View {
         TabView {
             GeneralTab(settings: settings).tabItem { Label("General", systemImage: "gearshape") }
             ScrollingTab(settings: settings).tabItem { Label("Scrolling", systemImage: "arrow.up.and.down") }
+            ClickingTab(settings: settings).tabItem { Label("Clicking", systemImage: "hand.tap") }
             AppsTab(settings: settings).tabItem { Label("Apps", systemImage: "square.grid.2x2") }
             ModifiersTab(settings: settings).tabItem { Label("Modifiers", systemImage: "command") }
             BatteryTab(settings: settings, battery: battery).tabItem { Label("Battery", systemImage: "battery.25") }
@@ -147,6 +148,64 @@ private struct ScrollingTab: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+// MARK: - Clicking
+
+private struct ClickingTab: View {
+    @ObservedObject var settings: Settings
+
+    private var config: TapConfig { TapConfig(sensitivity: settings.tapSensitivity) }
+
+    var body: some View {
+        Form {
+            Section("Tap to click") {
+                Toggle("Tap to click", isOn: $settings.tapToClick)
+                Text("A light single-finger tap on the surface left-clicks — no need to press the mouse down. Physical clicking keeps working as before.")
+                    .font(.caption).foregroundStyle(.secondary)
+
+                HStack {
+                    Text("Firm")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Slider(value: $settings.tapSensitivity, in: 0...1)
+                    Text("Light")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                .disabled(!settings.tapToClick)
+                Text("Firm = only quick, deliberate taps count (fewest accidents). Light = easier to trigger. Right now a tap must finish within \(Int(config.maxDuration * 1000)) ms and move less than \(String(format: "%.0f", config.maxMovement * 100))% of the surface.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section("Accident protection") {
+                Text("Taps are ignored automatically:")
+                    .font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    bullet("while — and shortly after — real scrolling (\(Int(config.scrollCooldown * 1000)) ms, follows the slider)")
+                    bullet("while a physical button is down, and \(Int(config.buttonCooldown * 1000)) ms after a real click")
+                    bullet("when two or more fingers touch the surface")
+                    bullet("for resting fingers (too long) and grazes (too small)")
+                }
+                Text("Double- and triple-taps become real double- and triple-clicks.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            if !TapController.isSupported {
+                Section {
+                    Label("This macOS build doesn't expose the multitouch framework — tap-to-click is unavailable.", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private func bullet(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Text("•")
+            Text(text)
+        }
+        .font(.caption).foregroundStyle(.secondary)
     }
 }
 
