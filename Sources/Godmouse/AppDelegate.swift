@@ -282,9 +282,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             tapToClick: settings.tapToClick,
             tapToClickListening: tapToClick.isListening,
             tapsPosted: tapToClick.tapsPosted,
+            tapAndDrag: settings.tapAndDrag,
+            dragsPosted: tapToClick.dragsPosted,
             tapFramesReceived: tapToClick.framesReceived,
             tapTouchesSeen: tapToClick.touchesSeen,
             tapLastRejection: tapRecognizer.lastRejection?.rawValue,
+            tapLastRejectionAt: tapRecognizer.lastRejection == nil ? nil :
+                String(format: "x=%.2f y=%.2f", tapRecognizer.lastRejectionX, tapRecognizer.lastRejectionY),
             tapRejections: tapRecognizer.rejectionCounts,
             settingsWindowOpen: settingsWindow?.window?.isVisible ?? false
         ))

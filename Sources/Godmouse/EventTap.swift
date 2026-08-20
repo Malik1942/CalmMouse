@@ -92,18 +92,10 @@ final class EventTap {
             return Unmanaged.passUnretained(event)
 
         case .leftMouseDown, .rightMouseDown, .otherMouseDown:
-            // Clicks Godmouse itself synthesized (tap-to-click) must not feed the blocker or
-            // the tap recognizer — they're consequences, not causes.
-            if event.getIntegerValueField(.eventSourceUserData) == TapController.syntheticTag {
-                return Unmanaged.passUnretained(event)
-            }
             handleButton(event, isDown: true)
             return Unmanaged.passUnretained(event)
 
         case .leftMouseUp, .rightMouseUp, .otherMouseUp:
-            if event.getIntegerValueField(.eventSourceUserData) == TapController.syntheticTag {
-                return Unmanaged.passUnretained(event)
-            }
             handleButton(event, isDown: false)
             return Unmanaged.passUnretained(event)
 
@@ -133,6 +125,22 @@ final class EventTap {
             magic = known
         } else {
             magic = treatUnknownContinuousAsMagicMouse
+        }
+        // Clicks Godmouse itself synthesized (tap-to-click, tap-and-drag) DO feed the scroll
+        // blocker — during a tap-drag the finger rides the shell, and its jiggle would scroll the
+        // page under whatever is being dragged. They must NOT feed the tap recognizer, though:
+        // a synthetic press would poison the very touch that produced it.
+        let sourceTag = event.getIntegerValueField(.eventSourceUserData)
+        if sourceTag == TapController.syntheticCancelTag {
+            // A drag was cancelled because the finger is scroll-swiping RIGHT NOW: no release
+            // grace, and the gesture already in flight must scroll from its next event.
+            blocker.liftBlockingImmediately()
+            return
+        }
+        if sourceTag == TapController.syntheticTag {
+            let button = Int(event.getIntegerValueField(.mouseEventButtonNumber))
+            blocker.magicMouseButton(button, isDown: isDown, at: seconds(event))
+            return
         }
         guard magic else { return }
         let button = Int(event.getIntegerValueField(.mouseEventButtonNumber))

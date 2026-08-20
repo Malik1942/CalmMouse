@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import Combine
 import GodmouseCore
 
@@ -26,6 +27,12 @@ final class Settings: ObservableObject {
         static let appRules = "appRules"
         static let tapToClick = "tapToClick"
         static let tapSensitivity = "tapSensitivity"
+        static let tapAndDrag = "tapAndDrag"
+        static let twoFingerDrag = "twoFingerDrag"
+        static let tapZoneEnabled = "tapZoneEnabled"
+        static let tapZoneDepth = "tapZoneDepth"
+        static let tapZoneEdgeMargin = "tapZoneEdgeMargin"
+        static let tapZoneFrontIsHighY = "tapZoneFrontIsHighY"
         static let batteryWarningEnabled = "batteryWarningEnabled"
         static let batteryWarningThreshold = "batteryWarningThreshold"
         static let treatUnknownContinuousAsMagicMouse = "treatUnknownContinuousAsMagicMouse"
@@ -46,6 +53,10 @@ final class Settings: ObservableObject {
     @Published var appRules: [AppRule] { didSet { saveAppRules(); changed() } }
     @Published var tapToClick: Bool { didSet { d.set(tapToClick, forKey: Key.tapToClick); changed() } }
     @Published var tapSensitivity: Double { didSet { d.set(tapSensitivity, forKey: Key.tapSensitivity); changed() } }
+    @Published var tapAndDrag: Bool { didSet { d.set(tapAndDrag, forKey: Key.tapAndDrag); changed() } }
+    @Published var twoFingerDrag: Bool { didSet { d.set(twoFingerDrag, forKey: Key.twoFingerDrag); changed() } }
+    @Published var tapZoneEnabled: Bool { didSet { d.set(tapZoneEnabled, forKey: Key.tapZoneEnabled); changed() } }
+    @Published var tapZoneDepth: Double { didSet { d.set(tapZoneDepth, forKey: Key.tapZoneDepth); changed() } }
     @Published var batteryWarningEnabled: Bool { didSet { d.set(batteryWarningEnabled, forKey: Key.batteryWarningEnabled); changed() } }
     @Published var batteryWarningThreshold: Int { didSet { d.set(batteryWarningThreshold, forKey: Key.batteryWarningThreshold); changed() } }
     @Published var treatUnknownContinuousAsMagicMouse: Bool { didSet { d.set(treatUnknownContinuousAsMagicMouse, forKey: Key.treatUnknownContinuousAsMagicMouse); changed() } }
@@ -63,6 +74,12 @@ final class Settings: ObservableObject {
             Key.blockHorizontalScroll: false,
             Key.tapToClick: false,
             Key.tapSensitivity: 0.5,
+            Key.tapAndDrag: false,
+            Key.twoFingerDrag: false,
+            Key.tapZoneEnabled: false,
+            Key.tapZoneDepth: 0.5,
+            Key.tapZoneEdgeMargin: 0.04,   // advanced: defaults-only, no UI
+            Key.tapZoneFrontIsHighY: true, // hardware calibration; defaults-only escape hatch
             Key.batteryWarningEnabled: true,
             Key.batteryWarningThreshold: 15,
             Key.treatUnknownContinuousAsMagicMouse: false,
@@ -79,6 +96,10 @@ final class Settings: ObservableObject {
         blockHorizontalScroll = d.bool(forKey: Key.blockHorizontalScroll)
         tapToClick = d.bool(forKey: Key.tapToClick)
         tapSensitivity = d.double(forKey: Key.tapSensitivity)
+        tapAndDrag = d.bool(forKey: Key.tapAndDrag)
+        twoFingerDrag = d.bool(forKey: Key.twoFingerDrag)
+        tapZoneEnabled = d.bool(forKey: Key.tapZoneEnabled)
+        tapZoneDepth = d.double(forKey: Key.tapZoneDepth)
         batteryWarningEnabled = d.bool(forKey: Key.batteryWarningEnabled)
         batteryWarningThreshold = d.integer(forKey: Key.batteryWarningThreshold)
         treatUnknownContinuousAsMagicMouse = d.bool(forKey: Key.treatUnknownContinuousAsMagicMouse)
@@ -106,6 +127,14 @@ final class Settings: ObservableObject {
     var tapConfig: TapConfig {
         var c = TapConfig(sensitivity: tapSensitivity)
         c.enabled = tapToClick
+        c.tapAndDrag = tapAndDrag
+        // The follow-up touch window matches the user's own double-click speed setting.
+        c.dragWindow = NSEvent.doubleClickInterval
+        c.twoFingerDrag = twoFingerDrag
+        c.tapZoneEnabled = tapZoneEnabled
+        c.tapZoneDepth = min(max(tapZoneDepth, 0.25), 0.75)
+        c.tapZoneEdgeMargin = min(max(d.double(forKey: Key.tapZoneEdgeMargin), 0), 0.3)
+        c.frontIsHighY = d.bool(forKey: Key.tapZoneFrontIsHighY)
         return c
     }
 

@@ -177,6 +177,32 @@ private struct ClickingTab: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
 
+            Section("Tap zone") {
+                Toggle("Front of the mouse only", isOn: $settings.tapZoneEnabled)
+                    .disabled(!settings.tapToClick)
+                HStack {
+                    Text("Zone depth")
+                    Slider(value: $settings.tapZoneDepth, in: 0.25...0.75, step: 0.05)
+                    Text("front \(Int((settings.tapZoneDepth * 100).rounded()))%")
+                        .monospacedDigit().frame(width: 76, alignment: .trailing)
+                }
+                .disabled(!settings.tapToClick || !settings.tapZoneEnabled)
+                Text("Taps only count when they land on the front part of the surface, away from the side edges — where deliberate fingertip taps happen, and where gripping fingers don't. Clicking and tap-and-drag are unaffected.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section("Tap and drag") {
+                Toggle("Tap and drag", isOn: $settings.tapAndDrag)
+                    .disabled(!settings.tapToClick)
+                Text("Tap, then touch again and hold — the button presses the moment you start moving the mouse, and releases when the finger lifts. A quick second tap is still a double-click. A finger that just comes back to rest, or swipes to scroll, presses nothing at all.")
+                    .font(.caption).foregroundStyle(.secondary)
+
+                Toggle("Two-finger drag (long press)", isOn: $settings.twoFingerDrag)
+                    .disabled(!settings.tapToClick)
+                Text("Rest two fingers on the surface together and hold — after a moment the button presses down. Move the mouse to drag, lift to drop. A quick two-finger tap does nothing, and fingers that land one after the other never trigger it.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             Section("Accident protection") {
                 Text("Taps are ignored automatically:")
                     .font(.caption).foregroundStyle(.secondary)

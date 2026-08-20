@@ -6,8 +6,12 @@ import GodmouseCore
 /// Owns tap-to-click: listens to Magic Mouse contact frames, runs the TapRecognizer, and posts
 /// synthetic left clicks. All state is touched on the main queue only.
 final class TapController {
-    /// Synthetic events carry this in `.eventSourceUserData` so our own EventTap ignores them.
+    /// Synthetic events carry this in `.eventSourceUserData` so our own EventTap can tell them
+    /// from physical input.
     static let syntheticTag: Int64 = 0x476D_5461 // "GmTa"
+    /// Tag for the button-up that ends a swipe-cancelled drag: the EventTap must lift scroll
+    /// blocking instantly for it (the user is mid-swipe and expects the page to move NOW).
+    static let syntheticCancelTag: Int64 = 0x476D_5463 // "GmTc"
 
     private let recognizer: TapRecognizer
     private let log = Logger(subsystem: "com.godmouse.app", category: "tap-to-click")
@@ -27,7 +31,24 @@ final class TapController {
     private var lastTapLocation = CGPoint.zero
     private var clickState: Int64 = 1
 
+    /// While a tap-and-drag holds the synthetic button down, this carries the click state the
+    /// matching up must repeat. nil = no press in flight.
+    private var dragClickState: Int64?
+
+    // Deferred press: an armed drag posts NO event until intent is clear. Cursor motion = drag
+    // (press now). Surface swipe = scroll (disarm, zero side effects). Quiet timeout = the
+    // finger just came back to rest (disarm). Lift while still armed = quick second tap (click).
+    private var armCursorPosition: CGPoint?
+    private var armedAt: TimeInterval = 0
+    /// Cursor travel that turns an armed drag into a real press.
+    private let pressOnCursorTravel: CGFloat = 3
+    /// How long an armed drag waits for intent before it's declared a resting finger.
+    private let armWindow: TimeInterval = 0.6
+    /// Cursor samples for the "is the mouse moving" signal fed to the recognizer.
+    private var lastCursorPosition: CGPoint?
+
     private(set) var tapsPosted = 0
+    private(set) var dragsPosted = 0
     var isListening: Bool { !devices.isEmpty }
     static var isSupported: Bool { Multitouch.isAvailable }
 
@@ -55,6 +76,7 @@ final class TapController {
         rescanTimer?.invalidate()
         rescanTimer = nil
         detachDevices()
+        endDragIfActive()
         recognizer.reset()
     }
 
@@ -86,6 +108,7 @@ final class TapController {
         if current != deviceIDs {
             log.info("Magic Mouse device set changed — re-attaching")
             attachDevices()
+            endDragIfActive()
             recognizer.reset()
         }
     }
@@ -93,7 +116,7 @@ final class TapController {
     // MARK: Context from the event tap (main thread)
 
     func physicalButton(isDown: Bool, at t: TimeInterval) {
-        recognizer.physicalButton(isDown: isDown, at: t)
+        handle(recognizer.physicalButton(isDown: isDown, at: t))
     }
 
     func scrollActivity(deltaMagnitude: Double, at t: TimeInterval) {
@@ -106,42 +129,142 @@ final class TapController {
         DispatchQueue.main.async { [self] in
             framesReceived += 1
             touchesSeen += touches.count
-            let taps = recognizer.handleFrame(touches, at: t)
-            for _ in 0..<taps { postClick() }
+
+            let cursor = CGEvent(source: nil)?.location
+            let cursorMoving: Bool
+            if let cursor, let last = lastCursorPosition {
+                cursorMoving = hypot(cursor.x - last.x, cursor.y - last.y) > 1.5
+            } else {
+                cursorMoving = false
+            }
+            lastCursorPosition = cursor
+
+            handle(recognizer.handleFrame(touches, at: t, cursorMoving: cursorMoving))
+            driveArmedDrag(cursor: cursor, at: t)
         }
     }
 
-    private func postClick() {
-        guard let location = CGEvent(source: nil)?.location else { return }
-        let now = ProcessInfo.processInfo.systemUptime
+    /// Armed-but-unpressed SINGLE-finger drags live or die here, once per frame. Pair arms run
+    /// on the recognizer's own long-press clock and must not be pressed or disarmed from here.
+    private func driveArmedDrag(cursor: CGPoint?, at t: TimeInterval) {
+        guard recognizer.dragActive, dragClickState == nil, !recognizer.dragArmIsPair else { return }
+        if let cursor, let armedFrom = armCursorPosition,
+           hypot(cursor.x - armedFrom.x, cursor.y - armedFrom.y) > pressOnCursorTravel {
+            postDragDown()          // the mouse is moving: this IS a drag — press.
+        } else if t - armedAt > armWindow {
+            recognizer.disarmDrag() // nothing happened: the finger just came back to rest.
+            armCursorPosition = nil
+            log.debug("armed drag timed out — disarmed")
+        }
+    }
 
-        // Consecutive taps in the same spot escalate the click state (1, 2, 3) so apps see real
-        // double- and triple-clicks. Same rules macOS uses: time window + small radius.
-        let interval = NSEvent.doubleClickInterval
+    private func handle(_ events: [TapEvent]) {
+        for event in events {
+            switch event {
+            case .tap:
+                postClick()
+            case .dragBegan:
+                // Arm only. The press is posted by driveArmedDrag when the cursor moves.
+                armCursorPosition = CGEvent(source: nil)?.location
+                armedAt = MachTime.now()
+            case .dragEnded:
+                if dragClickState != nil {
+                    postDragUp()
+                } else {
+                    // Lifted while still armed: a quick second tap. postClick escalates the
+                    // click state itself, so tap-tap lands as a genuine double-click.
+                    postClick()
+                }
+                armCursorPosition = nil
+            case .dragSwipeCancelled:
+                // If unpressed, the press never happened — the swipe just scrolls, and no app
+                // ever saw a button. That's the whole point of deferring.
+                if dragClickState != nil { postDragUp(swipeCancelled: true) }
+                armCursorPosition = nil
+            case .dragCancelled:
+                if dragClickState != nil { postDragUp() }
+                armCursorPosition = nil
+            case .dragPressed:
+                // Two-finger long press completed: press right here, no motion required.
+                postDragDown()
+            }
+        }
+    }
+
+    /// Escalates the click state (1, 2, 3) for consecutive presses in the same spot, so taps
+    /// and tap-drags produce real double-/triple-clicks. Same rules macOS uses: time + radius.
+    private func escalatedClickState(at location: CGPoint) -> Int64 {
+        let now = ProcessInfo.processInfo.systemUptime
         let dx = location.x - lastTapLocation.x
         let dy = location.y - lastTapLocation.y
-        if now - lastTapAt <= interval && (dx * dx + dy * dy).squareRoot() <= 5 {
+        if now - lastTapAt <= NSEvent.doubleClickInterval && (dx * dx + dy * dy).squareRoot() <= 5 {
             clickState = min(clickState + 1, 3)
         } else {
             clickState = 1
         }
         lastTapAt = now
         lastTapLocation = location
+        return clickState
+    }
 
+    private func mouseEvent(_ type: CGEventType, at location: CGPoint, clickState: Int64) -> CGEvent? {
         let source = CGEventSource(stateID: .combinedSessionState)
         source?.userData = Self.syntheticTag
+        // By default macOS suppresses local hardware events for 250 ms after a synthetic post —
+        // that reads as stutter right when a drag starts. We're augmenting the mouse, not
+        // fighting it: never suppress.
+        source?.localEventsSuppressionInterval = 0
+        let event = CGEvent(mouseEventSource: source, mouseType: type,
+                            mouseCursorPosition: location, mouseButton: .left)
+        event?.setIntegerValueField(.mouseEventClickState, value: clickState)
+        return event
+    }
+
+    private func postClick() {
+        guard dragClickState == nil else { return } // never click while holding a drag
+        guard let location = CGEvent(source: nil)?.location else { return }
+        let state = escalatedClickState(at: location)
         guard
-            let down = CGEvent(mouseEventSource: source, mouseType: .leftMouseDown,
-                               mouseCursorPosition: location, mouseButton: .left),
-            let up = CGEvent(mouseEventSource: source, mouseType: .leftMouseUp,
-                             mouseCursorPosition: location, mouseButton: .left)
+            let down = mouseEvent(.leftMouseDown, at: location, clickState: state),
+            let up = mouseEvent(.leftMouseUp, at: location, clickState: state)
         else { return }
-        down.setIntegerValueField(.mouseEventClickState, value: clickState)
-        up.setIntegerValueField(.mouseEventClickState, value: clickState)
         down.post(tap: .cghidEventTap)
         up.post(tap: .cghidEventTap)
         tapsPosted += 1
-        log.debug("tap → click (state \(self.clickState)) at \(location.x, format: .fixed(precision: 0)),\(location.y, format: .fixed(precision: 0))")
+        log.debug("tap → click (state \(state)) at \(location.x, format: .fixed(precision: 0)),\(location.y, format: .fixed(precision: 0))")
+    }
+
+    private func postDragDown() {
+        guard dragClickState == nil else { return }
+        guard let location = CGEvent(source: nil)?.location else { return }
+        // Inherits the tap's click chain: tap-then-hold presses with state 2, which is also what
+        // makes a quick tap-tap read as a double-click.
+        let state = escalatedClickState(at: location)
+        guard let down = mouseEvent(.leftMouseDown, at: location, clickState: state) else { return }
+        down.post(tap: .cghidEventTap)
+        dragClickState = state
+        dragsPosted += 1
+        log.debug("drag began (state \(state))")
+    }
+
+    private func postDragUp(swipeCancelled: Bool = false) {
+        guard let state = dragClickState else { return }
+        // Location lookup can transiently fail; the up must be posted regardless, or the
+        // synthetic button stays down forever. Fall back to the last known point.
+        let location = CGEvent(source: nil)?.location ?? lastTapLocation
+        guard let up = mouseEvent(.leftMouseUp, at: location, clickState: state) else { return }
+        if swipeCancelled {
+            up.setIntegerValueField(.eventSourceUserData, value: Self.syntheticCancelTag)
+        }
+        dragClickState = nil
+        up.post(tap: .cghidEventTap)
+        log.debug("drag ended\(swipeCancelled ? " (swipe-cancelled)" : "")")
+    }
+
+    /// Safety: a synthetic button must never stay down past a stop/disable/device loss.
+    private func endDragIfActive() {
+        if dragClickState != nil { postDragUp() }
+        armCursorPosition = nil
     }
 }
 

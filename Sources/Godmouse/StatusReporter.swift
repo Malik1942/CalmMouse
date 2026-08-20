@@ -22,9 +22,12 @@ enum StatusReporter {
         var tapToClick: Bool
         var tapToClickListening: Bool
         var tapsPosted: Int
+        var tapAndDrag: Bool
+        var dragsPosted: Int
         var tapFramesReceived: Int
         var tapTouchesSeen: Int
         var tapLastRejection: String?
+        var tapLastRejectionAt: String?
         var tapRejections: [String: Int]
         var settingsWindowOpen: Bool
     }

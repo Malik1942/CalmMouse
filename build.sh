@@ -12,9 +12,16 @@ cd "$(dirname "$0")"
 CONFIG=${1:-release}
 APP=build/Godmouse.app
 
+# The repo lives in an iCloud-synced folder (~/Documents) and the account's quota is full: the
+# sync daemon fighting over the build directory corrupts SwiftPM's build database ("disk I/O
+# error") and leaves stale products behind. Empirically, an in-repo scratch dir keeps failing
+# (even *.nosync) while any location outside ~/Documents builds fine — so the scratch lives in
+# Caches, which is never synced.
+SCRATCH="$HOME/Library/Caches/Godmouse/build"
+
 echo "▶ swift build -c $CONFIG"
-swift build -c "$CONFIG" >/dev/null
-BIN="$(swift build -c "$CONFIG" --show-bin-path)/Godmouse"
+swift build -c "$CONFIG" --scratch-path "$SCRATCH" >/dev/null
+BIN="$(swift build -c "$CONFIG" --scratch-path "$SCRATCH" --show-bin-path)/Godmouse"
 [[ -x "$BIN" ]] || { echo "binary missing: $BIN"; exit 1; }
 
 echo "▶ assembling $APP"

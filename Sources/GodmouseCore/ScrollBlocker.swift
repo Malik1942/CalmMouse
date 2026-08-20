@@ -161,6 +161,16 @@ public final class ScrollBlocker {
         }
     }
 
+    /// A tap-and-drag was cancelled because the finger started scroll-swiping: drop every trace
+    /// of blocking RIGHT NOW — no release grace, and the scroll gesture already in flight gets
+    /// unsuppressed so the user's swipe scrolls from its very next event.
+    public func liftBlockingImmediately() {
+        buttonsDown.removeAll()
+        blockUntil = 0
+        suppressingGesture = false
+        suppressingMomentum = false
+    }
+
     /// Safety valve: the system reports no buttons pressed but we think some are (missed mouse-up).
     public func forceReleaseAllButtons(at t: TimeInterval) {
         guard !buttonsDown.isEmpty else { return }
