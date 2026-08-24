@@ -19,6 +19,12 @@ final class EventTap {
     var onMagicButton: ((_ isDown: Bool, _ t: TimeInterval) -> Void)?
     var onMagicScroll: ((_ deltaMagnitude: Double, _ t: TimeInterval) -> Void)?
 
+    /// Non-nil while a synthetic drag holds the button down (value = that press's click state).
+    /// macOS turns hardware motion into `leftMouseDragged` only for *physically* held buttons, so
+    /// while this is set the tap rewrites every `mouseMoved` into a dragged event itself —
+    /// without that, apps and window dragging only show the result when the button releases.
+    var syntheticDragClickState: Int64?
+
     /// Set when we've seen at least one Magic Mouse event — surfaced in the menu as a sanity check.
     private(set) var lastSeenDevice: String?
     private(set) var swallowedCount = 0
@@ -42,7 +48,8 @@ final class EventTap {
             (1 << CGEventType.rightMouseUp.rawValue) |
             (1 << CGEventType.otherMouseDown.rawValue) |
             (1 << CGEventType.otherMouseUp.rawValue) |
-            (1 << CGEventType.scrollWheel.rawValue)
+            (1 << CGEventType.scrollWheel.rawValue) |
+            (1 << CGEventType.mouseMoved.rawValue)
 
         let callback: CGEventTapCallBack = { _, type, event, userInfo in
             guard let userInfo else { return Unmanaged.passUnretained(event) }
@@ -102,6 +109,13 @@ final class EventTap {
         case .scrollWheel:
             return handleScroll(event)
 
+        case .mouseMoved:
+            // Fast path: motion is untouched unless a synthetic drag is holding the button.
+            if let clickState = syntheticDragClickState {
+                Self.convertMovedToDragged(event, clickState: clickState)
+            }
+            return Unmanaged.passUnretained(event)
+
         default:
             return Unmanaged.passUnretained(event)
         }
@@ -126,11 +140,17 @@ final class EventTap {
         } else {
             magic = treatUnknownContinuousAsMagicMouse
         }
-        // Clicks CalmMouse itself synthesized (tap-to-click, tap-and-drag) DO feed the scroll
-        // blocker — during a tap-drag the finger rides the shell, and its jiggle would scroll the
-        // page under whatever is being dragged. They must NOT feed the tap recognizer, though:
-        // a synthetic press would poison the very touch that produced it.
+        // CalmMouse's own synthetic events, by tag:
+        //  - tap clicks (instant down+up) are invisible here. Feeding them to the blocker armed
+        //    a release-grace window after every tap, which made "tap, then scroll" go dead.
+        //  - drag presses DO feed the blocker: during a tap-drag the finger rides the shell, and
+        //    its jiggle would scroll the page under whatever is being dragged.
+        //  - none of them may feed the tap recognizer: a synthetic press would poison the very
+        //    touch that produced it.
         let sourceTag = event.getIntegerValueField(.eventSourceUserData)
+        if sourceTag == TapController.syntheticClickTag {
+            return
+        }
         if sourceTag == TapController.syntheticCancelTag {
             // A drag was cancelled because the finger is scroll-swiping RIGHT NOW: no release
             // grace, and the gesture already in flight must scroll from its next event.
@@ -139,7 +159,13 @@ final class EventTap {
         }
         if sourceTag == TapController.syntheticTag {
             let button = Int(event.getIntegerValueField(.mouseEventButtonNumber))
-            blocker.magicMouseButton(button, isDown: isDown, at: seconds(event))
+            // NEVER seconds(event) here. Hardware events carry mach ticks, which seconds()
+            // converts; events WE post come back with a kernel-assigned stamp in a different
+            // unit (CGEventTimestamp is nominally nanoseconds). Converted as ticks, a
+            // nanosecond stamp lands ~41x in the future — the drag-release grace then ends
+            // millions of seconds from now and every scroll is blocked until a physical
+            // click's sane timestamp overwrites it. Stamp with our own clock instead.
+            blocker.magicMouseButton(button, isDown: isDown, at: MachTime.now())
             return
         }
         guard magic else { return }
@@ -236,6 +262,16 @@ final class EventTap {
             flags.formUnion(Self.flags(from: r.addModifiers))
             event.flags = flags
         }
+    }
+
+    /// Rewrites a hardware `mouseMoved` into the `leftMouseDragged` the system would have
+    /// produced had the button been physically held. Deltas and location are already right;
+    /// only the type and button identity change.
+    static func convertMovedToDragged(_ event: CGEvent, clickState: Int64) {
+        event.type = .leftMouseDragged
+        event.setIntegerValueField(.mouseEventButtonNumber, value: 0)
+        event.setIntegerValueField(.mouseEventClickState, value: clickState)
+        event.setDoubleValueField(.mouseEventPressure, value: 1)
     }
 
     // MARK: Conversions

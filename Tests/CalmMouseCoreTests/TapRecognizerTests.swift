@@ -646,3 +646,150 @@ final class TwoFingerDragTests: XCTestCase {
         XCTAssertFalse(r.dragActive)
     }
 }
+
+// MARK: - Scroll-burst drag cancellation (drags must never trap a scrolling finger)
+
+final class ScrollBurstCancelTests: XCTestCase {
+
+    private func recognizer(twoFinger: Bool = false) -> TapRecognizer {
+        var c = TapConfig(sensitivity: 0.5)
+        c.enabled = true
+        c.tapAndDrag = true
+        c.twoFingerDrag = twoFinger
+        c.dragWindow = 0.5
+        c.scrollBurstWindow = 0.3
+        c.scrollBurstCancelThreshold = 80
+        return TapRecognizer(config: c)
+    }
+
+    private func touch(_ id: Int, x: Double = 0.5, y: Double = 0.5) -> TouchSample {
+        TouchSample(id: id, x: x, y: y, size: 0.6)
+    }
+
+    private func armSingle(_ r: TapRecognizer) {
+        XCTAssertEqual(r.handleFrame([touch(1)], at: 1.0), [])
+        XCTAssertEqual(r.handleFrame([], at: 1.08), [.tap])
+        XCTAssertEqual(r.handleFrame([touch(2)], at: 1.2), [.dragBegan])
+    }
+
+    /// The exact reported failure: tap, rest, then scroll WHILE the mouse is moving. Surface
+    /// travel re-anchors (cursorMoving) so it can't cancel — the scroll burst must.
+    func testScrollBurstCancelsArmedDragEvenWhileCursorMoves() {
+        let r = recognizer()
+        armSingle(r)
+        _ = r.handleFrame([touch(2, y: 0.45)], at: 1.30, cursorMoving: true)
+        var events: [TapEvent] = []
+        for i in 0..<5 {
+            events += r.noteScroll(deltaMagnitude: 20, at: 1.32 + Double(i) * 0.02)
+        }
+        XCTAssertEqual(events, [.dragSwipeCancelled], "100 pt of scrolling inside the window")
+        XCTAssertFalse(r.dragActive)
+    }
+
+    func testScrollBurstReleasesPressedTwoFingerDrag() {
+        let r = recognizer(twoFinger: true)
+        XCTAssertEqual(r.handleFrame([touch(1, x: 0.42), touch(2, x: 0.58)], at: 1.0), [.dragBegan])
+        XCTAssertEqual(r.handleFrame([touch(1, x: 0.42), touch(2, x: 0.58)], at: 1.4), [.dragPressed])
+        var events: [TapEvent] = []
+        for i in 0..<5 {
+            events += r.noteScroll(deltaMagnitude: 25, at: 1.5 + Double(i) * 0.02)
+        }
+        XCTAssertEqual(events, [.dragSwipeCancelled])
+        XCTAssertFalse(r.dragActive)
+    }
+
+    func testOccasionalJiggleSpikesDoNotCancelARealDrag() {
+        let r = recognizer()
+        armSingle(r)
+        // A vigorous but genuine drag: isolated strong spikes, spread out past the window.
+        XCTAssertEqual(r.noteScroll(deltaMagnitude: 25, at: 1.5), [])
+        XCTAssertEqual(r.noteScroll(deltaMagnitude: 25, at: 1.9), [])
+        XCTAssertEqual(r.noteScroll(deltaMagnitude: 25, at: 2.3), [])
+        XCTAssertTrue(r.dragActive, "sub-burst jiggle must never drop a drag")
+    }
+
+    func testBurstWithoutAnyDragIsInert() {
+        let r = recognizer()
+        for i in 0..<6 {
+            XCTAssertEqual(r.noteScroll(deltaMagnitude: 30, at: 1.0 + Double(i) * 0.02), [])
+        }
+    }
+
+    func testBurstBeforeLongPressPreventsThePress() {
+        let r = recognizer(twoFinger: true)
+        XCTAssertEqual(r.handleFrame([touch(1, x: 0.42), touch(2, x: 0.58)], at: 1.0), [.dragBegan])
+        var events: [TapEvent] = []
+        for i in 0..<5 {
+            events += r.noteScroll(deltaMagnitude: 20, at: 1.05 + Double(i) * 0.02)
+        }
+        XCTAssertEqual(events, [.dragSwipeCancelled])
+        // The long-press clock must not fire afterwards.
+        XCTAssertEqual(r.handleFrame([touch(1, x: 0.42), touch(2, x: 0.58)], at: 1.5), [])
+        XCTAssertFalse(r.dragActive)
+    }
+}
+
+// MARK: - Post-drag traps (the "after dragging, scroll is dead" family)
+
+final class PostDragTrapTests: XCTestCase {
+
+    private func recognizer() -> TapRecognizer {
+        var c = TapConfig(sensitivity: 0.5)
+        c.enabled = true
+        c.twoFingerDrag = true
+        c.twoFingerLongPress = 0.35
+        c.pressQuietPeriod = 0.25
+        c.pairArmTTL = 1.5
+        c.pairRearmCooldown = 0.4
+        return TapRecognizer(config: c)
+    }
+
+    private func pair(_ y: Double = 0.75) -> [TouchSample] {
+        [TouchSample(id: 1, x: 0.42, y: y, size: 0.6), TouchSample(id: 2, x: 0.58, y: y, size: 0.6)]
+    }
+    private func pair2(_ y: Double = 0.75) -> [TouchSample] {
+        [TouchSample(id: 7, x: 0.42, y: y, size: 0.6), TouchSample(id: 8, x: 0.58, y: y, size: 0.6)]
+    }
+
+    func testHandSettlingAfterAPairDragCannotRearmImmediately() {
+        let r = recognizer()
+        XCTAssertEqual(r.handleFrame(pair(), at: 1.0), [.dragBegan])
+        XCTAssertEqual(r.handleFrame(pair(), at: 1.4), [.dragPressed])
+        XCTAssertEqual(r.handleFrame([], at: 2.0), [.dragCancelled])
+        // The hand settles back 150 ms later — two fresh contacts landing together, exactly
+        // like a deliberate arm. The cooldown must reject it.
+        XCTAssertEqual(r.handleFrame(pair2(), at: 2.15), [])
+        XCTAssertFalse(r.dragActive)
+        // A deliberate pair after the cooldown arms normally.
+        XCTAssertEqual(r.handleFrame([], at: 2.3), [])
+        XCTAssertEqual(r.handleFrame(pair(), at: 2.6), [.dragBegan])
+    }
+
+    func testSlowScrollingDefersTheLongPress() {
+        let r = recognizer()
+        XCTAssertEqual(r.handleFrame(pair(), at: 1.0), [.dragBegan])
+        // Gentle reading-scroll: 4 pt events — below the "strong" bar, so no burst cancel,
+        // but the press must not fire into the middle of it.
+        XCTAssertEqual(r.noteScroll(deltaMagnitude: 4, at: 1.30), [])
+        XCTAssertEqual(r.handleFrame(pair(), at: 1.40), [], "long press due, but scrolling is live")
+        XCTAssertEqual(r.noteScroll(deltaMagnitude: 4, at: 1.45), [])
+        XCTAssertEqual(r.handleFrame(pair(), at: 1.55), [], "still scrolling")
+        // Scrolling stops; after the quiet period the press fires.
+        XCTAssertEqual(r.handleFrame(pair(), at: 1.75), [.dragPressed])
+    }
+
+    func testStaleArmDisarmsInsteadOfPressingBySurprise() {
+        let r = recognizer()
+        XCTAssertEqual(r.handleFrame(pair(), at: 1.0), [.dragBegan])
+        // Continuous slow scrolling keeps deferring the press past the TTL...
+        var t = 1.0
+        while t < 2.6 {
+            t += 0.1
+            _ = r.noteScroll(deltaMagnitude: 4, at: t)
+            XCTAssertEqual(r.handleFrame(pair(), at: t), [], "no press may ever fire")
+        }
+        XCTAssertFalse(r.dragActive, "the arm expired silently")
+        // And the fingers lifting afterwards emits nothing.
+        XCTAssertEqual(r.handleFrame([], at: 3.0), [])
+    }
+}

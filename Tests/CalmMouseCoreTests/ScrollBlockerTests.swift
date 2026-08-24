@@ -41,25 +41,42 @@ final class ScrollBlockerTests: XCTestCase {
 
     // MARK: The headline feature
 
-    func testGestureStartingWhileClickedIsSwallowedEntirely() {
+    func testGestureStartingWhileClickedResumesOnceBlockingEnds() {
         let b = ScrollBlocker()
         b.magicMouseButton(0, isDown: true, at: 0)
         XCTAssertEqual(b.handleScroll(ev(0.01, .began)), .drop)
         XCTAssertEqual(b.handleScroll(ev(0.02, .changed)), .drop)
         b.magicMouseButton(0, isDown: false, at: 0.03)
-        // Still the same (swallowed) gesture after release: keep swallowing until it ends.
-        XCTAssertEqual(b.handleScroll(ev(0.50, .changed)), .drop)
-        XCTAssertEqual(b.handleScroll(ev(0.51, .ended)), .drop)
-        // Its momentum tail is swallowed too.
-        XCTAssertEqual(b.handleScroll(ev(0.52, momentum: .began)), .drop)
-        XCTAssertEqual(b.handleScroll(ev(0.53, momentum: .continued)), .drop)
-        XCTAssertEqual(b.handleScroll(ev(0.54, momentum: .ended)), .drop)
-        // Next gesture, well after grace: normal again.
+        // Still inside the release grace: keep swallowing.
+        XCTAssertEqual(b.handleScroll(ev(0.10, .changed)), .drop)
+        // Grace expired mid-gesture: the rest of the swipe is the user's deliberate scrolling
+        // and must flow. (Swallowing it whole made "click, then scroll" dead for the entire
+        // swipe, however long the finger stayed down.) Apps join mid-gesture — same contract as
+        // a gesture that started before the tap was watching — then everything is normal,
+        // momentum included.
+        XCTAssertEqual(b.handleScroll(ev(0.50, .changed)), .pass)
+        XCTAssertEqual(b.handleScroll(ev(0.505, .changed)), .pass)
+        XCTAssertEqual(b.handleScroll(ev(0.51, .ended)), .pass)
+        XCTAssertEqual(b.handleScroll(ev(0.52, momentum: .began)), .pass)
+        XCTAssertEqual(b.handleScroll(ev(0.53, momentum: .continued)), .pass)
+        XCTAssertEqual(b.handleScroll(ev(0.54, momentum: .ended)), .pass)
+        // Next gesture: normal from the start.
         XCTAssertEqual(b.handleScroll(ev(1.0, .began)), .pass)
         XCTAssertEqual(b.handleScroll(ev(1.01, .changed)), .pass)
         XCTAssertEqual(b.handleScroll(ev(1.02, .ended)), .pass)
-        XCTAssertEqual(b.handleScroll(ev(1.03, momentum: .began)), .pass)
-        XCTAssertEqual(b.handleScroll(ev(1.04, momentum: .ended)), .pass)
+    }
+
+    func testGestureEndingWhileStillBlockedStaysSwallowedWithItsMomentum() {
+        let b = ScrollBlocker()
+        b.magicMouseButton(0, isDown: true, at: 0)
+        XCTAssertEqual(b.handleScroll(ev(0.01, .began)), .drop)
+        XCTAssertEqual(b.handleScroll(ev(0.02, .changed)), .drop)
+        // The whole gesture ends while the button is still down: nothing may leak, and the
+        // momentum tail belongs to the swallowed gesture.
+        XCTAssertEqual(b.handleScroll(ev(0.03, .ended)), .drop)
+        XCTAssertEqual(b.handleScroll(ev(0.04, momentum: .began)), .drop)
+        XCTAssertEqual(b.handleScroll(ev(0.05, momentum: .ended)), .drop)
+        b.magicMouseButton(0, isDown: false, at: 0.06)
     }
 
     func testReleaseGraceBlocksTrailingScrollAfterMouseUp() {

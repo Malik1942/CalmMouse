@@ -155,3 +155,26 @@ final class EventBridgeTests: XCTestCase {
         XCTAssertGreaterThan(reading.percent, 0)
     }
 }
+
+extension EventBridgeTests {
+    /// While a synthetic drag holds the button, hardware mouseMoved events must become genuine
+    /// leftMouseDragged events — macOS only does this conversion for physically held buttons,
+    /// and without it window dragging renders nothing until release.
+    func testMovedToDraggedConversion() throws {
+        let moved = try XCTUnwrap(CGEvent(mouseEventSource: nil, mouseType: .mouseMoved,
+                                          mouseCursorPosition: CGPoint(x: 100, y: 200),
+                                          mouseButton: .left))
+        moved.setIntegerValueField(.mouseEventDeltaX, value: 7)
+        moved.setIntegerValueField(.mouseEventDeltaY, value: -3)
+
+        EventTap.convertMovedToDragged(moved, clickState: 2)
+
+        XCTAssertEqual(moved.type, .leftMouseDragged)
+        XCTAssertEqual(moved.getIntegerValueField(.mouseEventButtonNumber), 0)
+        XCTAssertEqual(moved.getIntegerValueField(.mouseEventClickState), 2,
+                       "double-click drags must keep their click state while moving")
+        XCTAssertEqual(moved.getIntegerValueField(.mouseEventDeltaX), 7)
+        XCTAssertEqual(moved.getIntegerValueField(.mouseEventDeltaY), -3)
+        XCTAssertEqual(moved.location, CGPoint(x: 100, y: 200))
+    }
+}

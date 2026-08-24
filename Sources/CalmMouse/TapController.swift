@@ -12,6 +12,10 @@ final class TapController {
     /// Tag for the button-up that ends a swipe-cancelled drag: the EventTap must lift scroll
     /// blocking instantly for it (the user is mid-swipe and expects the page to move NOW).
     static let syntheticCancelTag: Int64 = 0x476D_5463 // "GmTc"
+    /// Tag for tap clicks (instant down+up). These must NOT feed the scroll blocker: arming a
+    /// release-grace window after every tap made "tap, then scroll" dead for 200 ms — and the
+    /// whole-gesture swallow stretched that into the entire next swipe.
+    static let syntheticClickTag: Int64 = 0x476D_546B // "GmTk"
 
     private let recognizer: TapRecognizer
     private let log = Logger(subsystem: "com.calmmouse.app", category: "tap-to-click")
@@ -49,6 +53,10 @@ final class TapController {
 
     private(set) var tapsPosted = 0
     private(set) var dragsPosted = 0
+
+    /// Fired with the press's click state on drag-down and nil on release, so the EventTap can
+    /// rewrite hardware motion into dragged events for exactly the pressed interval.
+    var onDragPressChanged: ((Int64?) -> Void)?
     var isListening: Bool { !devices.isEmpty }
     static var isSupported: Bool { Multitouch.isAvailable }
 
@@ -120,7 +128,7 @@ final class TapController {
     }
 
     func scrollActivity(deltaMagnitude: Double, at t: TimeInterval) {
-        recognizer.noteScroll(deltaMagnitude: deltaMagnitude, at: t)
+        handle(recognizer.noteScroll(deltaMagnitude: deltaMagnitude, at: t))
     }
 
     // MARK: Frames (arrive on the MT framework's thread)
@@ -228,6 +236,9 @@ final class TapController {
             let down = mouseEvent(.leftMouseDown, at: location, clickState: state),
             let up = mouseEvent(.leftMouseUp, at: location, clickState: state)
         else { return }
+        // Tap clicks are invisible to the scroll blocker (see syntheticClickTag).
+        down.setIntegerValueField(.eventSourceUserData, value: Self.syntheticClickTag)
+        up.setIntegerValueField(.eventSourceUserData, value: Self.syntheticClickTag)
         down.post(tap: .cghidEventTap)
         up.post(tap: .cghidEventTap)
         tapsPosted += 1
@@ -243,6 +254,7 @@ final class TapController {
         guard let down = mouseEvent(.leftMouseDown, at: location, clickState: state) else { return }
         down.post(tap: .cghidEventTap)
         dragClickState = state
+        onDragPressChanged?(state)
         dragsPosted += 1
         log.debug("drag began (state \(state))")
     }
@@ -257,6 +269,7 @@ final class TapController {
             up.setIntegerValueField(.eventSourceUserData, value: Self.syntheticCancelTag)
         }
         dragClickState = nil
+        onDragPressChanged?(nil)
         up.post(tap: .cghidEventTap)
         log.debug("drag ended\(swipeCancelled ? " (swipe-cancelled)" : "")")
     }

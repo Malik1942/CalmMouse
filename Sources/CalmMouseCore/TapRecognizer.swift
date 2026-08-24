@@ -78,6 +78,26 @@ public struct TapConfig: Equatable, Sendable {
     /// Hold the pair this long and the button presses down (that's the "long press").
     public var twoFingerLongPress: TimeInterval = 0.35
 
+    /// A sustained burst of strong scroll events means the finger is SCROLLING, whatever the
+    /// cursor is doing — surface-travel checks go blind when the mouse moves (drift re-anchors),
+    /// but a genuine swipe pumps out strong deltas that a planted drag finger never sustains.
+    /// When the summed magnitude of strong events inside the window crosses the threshold, an
+    /// armed drag disarms and a pressed drag releases immediately.
+    public var scrollBurstWindow: TimeInterval = 0.3
+    public var scrollBurstCancelThreshold: Double = 80
+
+    /// The long press may not fire while ANY scroll activity (however weak) is this recent —
+    /// slow reading-scrolls emit events below the "strong" threshold, and a press landing in
+    /// the middle of one blocks it dead.
+    public var pressQuietPeriod: TimeInterval = 0.25
+    /// An armed pair that hasn't managed to press within this long disarms silently. Without a
+    /// TTL, a press deferred by ongoing scrolling would fire out of nowhere seconds later.
+    public var pairArmTTL: TimeInterval = 1.5
+    /// After any drag ends, no new PAIR may arm for this long — a two-finger drag ends with the
+    /// hand settling back onto the shell, and those two landing contacts look exactly like a
+    /// deliberate arm. (Single-finger re-arms already require a fresh tap, so no cooldown there.)
+    public var pairRearmCooldown: TimeInterval = 0.4
+
     public init() { retune() }
 
     public init(sensitivity: Double) {
@@ -139,6 +159,12 @@ public final class TapRecognizer {
     private var buttonIsDown = false
     private var lastButtonUp: TimeInterval = -.infinity
     private var lastScroll: TimeInterval = -.infinity
+    /// Any scroll activity at all, however weak — the long-press quiet gate.
+    private var lastAnyScroll: TimeInterval = -.infinity
+    /// When the last drag ended (lift, cancel, or burst) — the pair re-arm cooldown anchor.
+    private var lastDragEnded: TimeInterval = -.infinity
+    /// Recent strong scroll events (time, magnitude) inside `scrollBurstWindow`.
+    private var scrollBurst: [(t: TimeInterval, magnitude: Double)] = []
     public private(set) var tapCount = 0
     /// Touches currently carrying the drag (one for tap-and-drag, two for two-finger drag).
     private var dragIDs: Set<Int> = []
@@ -191,6 +217,7 @@ public final class TapRecognizer {
         if isDown {
             if !dragIDs.isEmpty {
                 demoteDragTracks()
+                lastDragEnded = t
                 events.append(.dragCancelled)
             }
             for id in tracks.keys { tracks[id]?.invalidated = true }
@@ -204,10 +231,23 @@ public final class TapRecognizer {
     /// finger always jiggles the surface a little, and that must not veto the tap. The drag
     /// touch is exempt: a finger riding the shell while the mouse physically moves can jiggle
     /// past the threshold, and that must not drop what it's dragging.
-    public func noteScroll(deltaMagnitude: Double, at t: TimeInterval) {
-        guard deltaMagnitude >= config.scrollActivityThreshold else { return }
+    @discardableResult
+    public func noteScroll(deltaMagnitude: Double, at t: TimeInterval) -> [TapEvent] {
+        if deltaMagnitude > 0 { lastAnyScroll = t }
+        guard deltaMagnitude >= config.scrollActivityThreshold else { return [] }
         lastScroll = t
         for (id, track) in tracks where !track.isDrag { tracks[id]?.invalidated = true }
+
+        // Scroll-burst drag cancellation: see scrollBurstWindow above.
+        scrollBurst.append((t, deltaMagnitude))
+        scrollBurst.removeAll { t - $0.t > config.scrollBurstWindow }
+        if !dragIDs.isEmpty && scrollBurst.reduce(0, { $0 + $1.magnitude }) >= config.scrollBurstCancelThreshold {
+            demoteDragTracks()
+            lastDragEnded = t
+            scrollBurst.removeAll()
+            return [.dragSwipeCancelled]
+        }
+        return []
     }
 
     /// Silently drop an armed drag — no event, no click, the touch becomes an ordinary
@@ -266,10 +306,16 @@ public final class TapRecognizer {
         if armTwoFingerPair(touches, at: t) {
             events.append(.dragBegan)
         }
-        // The pair's long-press clock: hold it long enough and the button presses down.
-        if dragIsPair && !pairPressSent && t - pairArmedAt >= config.twoFingerLongPress {
-            pairPressSent = true
-            events.append(.dragPressed)
+        // The pair's long-press clock: hold it long enough and the button presses down —
+        // but never mid-scroll (quiet gate), and never after the arm has grown stale (TTL).
+        if dragIsPair && !pairPressSent {
+            if t - pairArmedAt > config.pairArmTTL {
+                demoteDragTracks() // silent: resting fingers, not a gesture
+            } else if t - pairArmedAt >= config.twoFingerLongPress
+                        && t - lastAnyScroll >= config.pressQuietPeriod {
+                pairPressSent = true
+                events.append(.dragPressed)
+            }
         }
 
         for touch in touches {
@@ -294,6 +340,7 @@ public final class TapRecognizer {
                         let dy = touch.y - track.startY
                         if (dx * dx + dy * dy).squareRoot() > config.dragSwipeCancelDistance {
                             demoteDragTracks() // either finger sweeping ends the whole drag
+                            lastDragEnded = t
                             events.append(.dragSwipeCancelled)
                         }
                     }
@@ -327,6 +374,7 @@ public final class TapRecognizer {
                     // two-finger tap — not a left-click gesture, stay silent.
                     let wasPair = dragIsPair
                     demoteDragTracks()
+                    lastDragEnded = t
                     events.append(wasPair ? .dragCancelled : .dragEnded)
                 }
             } else if isTap(track, liftedAt: t) {
@@ -346,6 +394,7 @@ public final class TapRecognizer {
         guard config.twoFingerDrag, dragIDs.isEmpty, !buttonIsDown else { return false }
         guard touches.count == 2 else { return false }
         guard t - lastScroll >= config.scrollCooldown else { return false }
+        guard t - lastDragEnded >= config.pairRearmCooldown else { return false }
 
         for touch in touches {
             if config.tapZoneEnabled && !inTapZone(x: touch.x, y: touch.y) { return false }

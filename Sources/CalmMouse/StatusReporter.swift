@@ -30,6 +30,8 @@ enum StatusReporter {
         var tapLastRejectionAt: String?
         var tapRejections: [String: Int]
         var settingsWindowOpen: Bool
+        var scrollBlocker: String
+        var dragConversionActive: Bool
     }
 
     static var fileURL: URL {

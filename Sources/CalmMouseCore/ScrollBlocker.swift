@@ -180,6 +180,14 @@ public final class ScrollBlocker {
 
     public var anyButtonDown: Bool { !buttonsDown.isEmpty }
 
+    /// Live diagnostics for the status file — when scrolling "mysteriously" dies, this names
+    /// the component holding it: stuck buttons, an unexpired grace, or gesture suppression.
+    public func debugSnapshot(at t: TimeInterval) -> String {
+        "buttons=\(buttonsDown.count) graceRemainingMs=\(Int(max(0, blockUntil - t) * 1000)) " +
+        "suppressingGesture=\(suppressingGesture) suppressingMomentum=\(suppressingMomentum) " +
+        "blocking=\(isBlocking(at: t))"
+    }
+
     public func isBlocking(at t: TimeInterval) -> Bool {
         guard config.blockScrollWhileClicked else { return false }
         return !buttonsDown.isEmpty || t < blockUntil
@@ -220,7 +228,16 @@ public final class ScrollBlocker {
             return passGesture(e)
 
         case .changed:
-            if suppressingGesture { return .drop }
+            if suppressingGesture {
+                if blocking { return .drop }
+                // Blocking ended mid-gesture (button released, grace expired). The rest of the
+                // gesture is the user's deliberate scrolling — swallowing it whole meant "tap,
+                // then scroll" stayed dead for the entire swipe. Resume: apps join mid-gesture,
+                // with the dead zone waived since the finger has already travelled.
+                suppressingGesture = false
+                gestureActive = false
+                return passGesture(e)
+            }
             if blocking {
                 return suppressVisibleGesture(e)
             }

@@ -34,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Tap-to-click context: physical Magic Mouse buttons and real scrolling both veto taps.
         tap.onMagicButton = { [weak self] isDown, t in self?.tapToClick.physicalButton(isDown: isDown, at: t) }
         tap.onMagicScroll = { [weak self] magnitude, t in self?.tapToClick.scrollActivity(deltaMagnitude: magnitude, at: t) }
+        tapToClick.onDragPressChanged = { [weak self] clickState in self?.tap.syntheticDragClickState = clickState }
 
         applySettings()
 
@@ -290,7 +291,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             tapLastRejectionAt: tapRecognizer.lastRejection == nil ? nil :
                 String(format: "x=%.2f y=%.2f", tapRecognizer.lastRejectionX, tapRecognizer.lastRejectionY),
             tapRejections: tapRecognizer.rejectionCounts,
-            settingsWindowOpen: settingsWindow?.window?.isVisible ?? false
+            settingsWindowOpen: settingsWindow?.window?.isVisible ?? false,
+            scrollBlocker: blocker.debugSnapshot(at: MachTime.now()),
+            dragConversionActive: tap.syntheticDragClickState != nil
         ))
     }
 
