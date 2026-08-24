@@ -46,6 +46,7 @@ CalmMouse is that checkbox, plus the rest of the Magic Mouse's rough edges, in a
 | **Tap and drag** | Tap, then touch again and hold: the button presses down **when you start moving the mouse** and releases when the finger lifts. Because the press is deferred until you actually move, a finger that just comes back to rest — or swipes to scroll — never presses anything. A quick second tap is still a double-click, so double-click-drag (selecting a word, then extending it) works. |
 | **Two-finger drag (long press)** | Rest two fingers on the surface together and hold; after a moment the button presses down. Move to drag, lift either finger to drop. Fingers that land one after the other are grip, not gesture, and never trigger it. |
 | **Battery warning** | A notification when the Magic Mouse drops below a threshold you set, so it doesn't die mid-afternoon. |
+| **Presets** | Three one-click starting points — *Just fix clicking*, *Extra steady*, *Trackpad feel* — that set the Scrolling and Clicking options in one go. Everything stays tweakable afterwards, and you can save your own setups as named presets. Per-app rules and shortcuts are never touched. |
 
 Everything applies **only to the Magic Mouse**. CalmMouse identifies the physical device behind each
 event, so your trackpad, your other mouse, and anything synthetic are passed through untouched.
@@ -112,9 +113,10 @@ window** (⌘, from the menu).
 gliding after a swipe (momentum), Scroll in straight lines, Tap to click, Per-app rules,
 Settings…, Quit.
 
-**Settings window** — six tabs:
+**Settings window** — seven tabs:
 
 - **General** — enable, launch at login, permission status, troubleshooting toggles
+- **Presets** — one-click starting points, plus your own saved setups
 - **Scrolling** — don't scroll while clicking, nudge filtering, straight-line scrolling, momentum
 - **Clicking** — tap to click, tap area, tap-and-drag, two-finger drag
 - **Apps** — per-app rules

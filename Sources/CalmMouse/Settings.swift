@@ -37,6 +37,7 @@ final class Settings: ObservableObject {
         static let batteryWarningThreshold = "batteryWarningThreshold"
         static let treatUnknownContinuousAsMagicMouse = "treatUnknownContinuousAsMagicMouse"
         static let debugLogging = "debugLogging"
+        static let customPresets = "customPresets"
     }
 
     // MARK: Published state
@@ -51,6 +52,7 @@ final class Settings: ObservableObject {
     @Published var blockHorizontalScroll: Bool { didSet { d.set(blockHorizontalScroll, forKey: Key.blockHorizontalScroll); changed() } }
     @Published var modifierActions: [ModifierCombo: ScrollAction] { didSet { saveModifierActions(); changed() } }
     @Published var appRules: [AppRule] { didSet { saveAppRules(); changed() } }
+    @Published var customPresets: [Preset] { didSet { saveCustomPresets(); changed() } }
     @Published var tapToClick: Bool { didSet { d.set(tapToClick, forKey: Key.tapToClick); changed() } }
     @Published var tapSensitivity: Double { didSet { d.set(tapSensitivity, forKey: Key.tapSensitivity); changed() } }
     @Published var tapAndDrag: Bool { didSet { d.set(tapAndDrag, forKey: Key.tapAndDrag); changed() } }
@@ -107,6 +109,7 @@ final class Settings: ObservableObject {
         debugLogging = d.bool(forKey: Key.debugLogging)
         modifierActions = Settings.loadModifierActions(d)
         appRules = Settings.loadAppRules(d)
+        customPresets = Settings.loadCustomPresets(d)
         loading = false
     }
 
@@ -146,6 +149,73 @@ final class Settings: ObservableObject {
         guard d.persistentDomain(forName: newDomain) == nil,
               let old = d.persistentDomain(forName: "com.godmouse.app"), !old.isEmpty else { return }
         d.setPersistentDomain(old, forName: newDomain)
+    }
+
+    // MARK: Presets
+
+    /// How the Scrolling and Clicking tabs are set right now, as preset values.
+    var currentPresetValues: PresetValues {
+        var v = PresetValues()
+        v.blockScrollWhileClicked = blockScrollWhileClicked
+        v.releaseGraceMs = releaseGraceMs
+        v.deadZone = deadZone
+        v.axisLock = axisLock
+        v.axisLockThreshold = axisLockThreshold
+        v.momentumEnabled = momentumEnabled
+        v.blockHorizontalScroll = blockHorizontalScroll
+        v.tapToClick = tapToClick
+        v.tapSensitivity = tapSensitivity
+        v.tapAndDrag = tapAndDrag
+        v.twoFingerDrag = twoFingerDrag
+        v.tapZoneEnabled = tapZoneEnabled
+        v.tapZoneDepth = tapZoneDepth
+        return v
+    }
+
+    /// The preset (built-in or custom) that matches the current settings exactly, if any.
+    /// The moment the user tweaks anything, no preset matches — which is the point:
+    /// presets are starting points, not modes.
+    var activePreset: Preset? {
+        let current = currentPresetValues
+        return (Preset.builtIn + customPresets).first { $0.values == current }
+    }
+
+    func apply(_ preset: Preset) {
+        let v = preset.values
+        loading = true   // one change notification at the end instead of thirteen
+        blockScrollWhileClicked = v.blockScrollWhileClicked
+        releaseGraceMs = v.releaseGraceMs
+        deadZone = v.deadZone
+        axisLock = v.axisLock
+        axisLockThreshold = v.axisLockThreshold
+        momentumEnabled = v.momentumEnabled
+        blockHorizontalScroll = v.blockHorizontalScroll
+        tapToClick = v.tapToClick
+        tapSensitivity = v.tapSensitivity
+        tapAndDrag = v.tapAndDrag
+        twoFingerDrag = v.twoFingerDrag
+        tapZoneEnabled = v.tapZoneEnabled
+        tapZoneDepth = v.tapZoneDepth
+        loading = false
+        changed()
+    }
+
+    /// Saving under an existing custom preset's name updates that preset in place.
+    @discardableResult
+    func saveCurrentAsPreset(named name: String) -> Preset {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        var preset = Preset(name: trimmed, symbolName: "star", values: currentPresetValues)
+        if let i = customPresets.firstIndex(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            preset.id = customPresets[i].id
+            customPresets[i] = preset
+        } else {
+            customPresets.append(preset)
+        }
+        return preset
+    }
+
+    func removePreset(id: UUID) {
+        customPresets.removeAll { $0.id == id }
     }
 
     // MARK: Per-app helpers
@@ -204,6 +274,16 @@ final class Settings: ObservableObject {
 
     private func saveAppRules() {
         d.set(try? JSONEncoder().encode(appRules), forKey: Key.appRules)
+    }
+
+    private static func loadCustomPresets(_ d: UserDefaults) -> [Preset] {
+        guard let data = d.data(forKey: Key.customPresets),
+              let presets = try? JSONDecoder().decode([Preset].self, from: data) else { return [] }
+        return presets
+    }
+
+    private func saveCustomPresets() {
+        d.set(try? JSONEncoder().encode(customPresets), forKey: Key.customPresets)
     }
 
     private func changed() {

@@ -31,6 +31,7 @@ struct SettingsView: View {
     var body: some View {
         TabView(selection: $tab) {
             GeneralTab(settings: settings).tabItem { Label("General", systemImage: "gearshape") }.tag(0)
+            PresetsTab(settings: settings).tabItem { Label("Presets", systemImage: "slider.horizontal.3") }.tag(6)
             ScrollingTab(settings: settings).tabItem { Label("Scrolling", systemImage: "arrow.up.and.down") }.tag(1)
             ClickingTab(settings: settings).tabItem { Label("Clicking", systemImage: "hand.tap") }.tag(2)
             AppsTab(settings: settings).tabItem { Label("Apps", systemImage: "square.grid.2x2") }.tag(3)
@@ -96,6 +97,93 @@ private struct GeneralTab: View {
         }
         .formStyle(.grouped)
         .onReceive(timer) { _ in trusted = AXIsProcessTrusted() }
+    }
+}
+
+// MARK: - Presets
+
+struct PresetsTab: View {
+    @ObservedObject var settings: Settings
+    @State private var newName = ""
+
+    var body: some View {
+        Form {
+            Section {
+                ForEach(Preset.builtIn) { preset in
+                    PresetRow(preset: preset,
+                              isActive: settings.currentPresetValues == preset.values,
+                              apply: { settings.apply(preset) })
+                }
+            } header: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Starting points")
+                    Text("One click sets everything on the Scrolling and Clicking tabs. Tweak whatever you like afterwards — a preset is a starting point, not a mode. Per-app rules and shortcuts are never touched.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+
+            Section("Your presets") {
+                ForEach(settings.customPresets) { preset in
+                    PresetRow(preset: preset,
+                              isActive: settings.currentPresetValues == preset.values,
+                              apply: { settings.apply(preset) },
+                              remove: { settings.removePreset(id: preset.id) })
+                }
+                HStack {
+                    TextField("Name", text: $newName, prompt: Text("Preset name"))
+                        .textFieldStyle(.roundedBorder)
+                    Button("Save Current Settings") {
+                        settings.saveCurrentAsPreset(named: newName)
+                        newName = ""
+                    }
+                    .disabled(newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                Text("Saves how the Scrolling and Clicking tabs are set right now. Saving with an existing name updates that preset.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+/// One preset card: icon, name, summary, and either a Use button or an "In use" check.
+private struct PresetRow: View {
+    let preset: Preset
+    let isActive: Bool
+    let apply: () -> Void
+    var remove: (() -> Void)? = nil
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: preset.symbolName)
+                .font(.title3)
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(preset.name).fontWeight(.medium)
+                if !preset.summary.isEmpty {
+                    Text(preset.summary)
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer()
+            if isActive {
+                Label("In use", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .labelStyle(.titleAndIcon)
+                    .font(.callout)
+            } else {
+                Button("Use", action: apply)
+            }
+            if let remove {
+                Button(action: remove) { Image(systemName: "trash") }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Delete this preset")
+            }
+        }
+        .padding(.vertical, 2)
     }
 }
 
