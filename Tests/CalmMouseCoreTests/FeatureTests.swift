@@ -1,5 +1,5 @@
 import XCTest
-@testable import GodmouseCore
+@testable import CalmMouseCore
 
 /// Dead zone, momentum control, per-app rules and modifier actions.
 final class FeatureTests: XCTestCase {

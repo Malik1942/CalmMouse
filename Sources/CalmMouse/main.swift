@@ -9,7 +9,7 @@ if args.count >= 2 {
         if let json = StatusReporter.read() {
             print(json)
         } else {
-            print("no status file — is Godmouse running?")
+            print("no status file — is CalmMouse running?")
             exit(1)
         }
         exit(0)
@@ -25,7 +25,7 @@ if args.count >= 2 {
 
     case "--resolve":
         // Resolve an IORegistry entry ID the way the event tap does (CGEvent field 87).
-        guard args.count >= 3 else { print("usage: Godmouse --resolve <id>"); exit(2) }
+        guard args.count >= 3 else { print("usage: CalmMouse --resolve <id>"); exit(2) }
         let raw = args[2]
         guard let id = raw.hasPrefix("0x") ? UInt64(raw.dropFirst(2), radix: 16) : UInt64(raw) else {
             print("bad id"); exit(2)
@@ -39,7 +39,7 @@ if args.count >= 2 {
 
     case "--help", "-h":
         print("""
-        Godmouse — Magic Mouse UX fixes.
+        CalmMouse — Magic Mouse UX fixes.
           (no args)          run the menu bar app
           --status           print the running app's runtime state
           --battery          print the Magic Mouse battery level

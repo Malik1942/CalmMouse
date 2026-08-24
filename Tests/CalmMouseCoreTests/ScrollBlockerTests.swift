@@ -1,5 +1,5 @@
 import XCTest
-@testable import GodmouseCore
+@testable import CalmMouseCore
 
 final class ScrollBlockerTests: XCTestCase {
 

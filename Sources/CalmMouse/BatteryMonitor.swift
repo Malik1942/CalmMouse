@@ -12,7 +12,7 @@ final class BatteryMonitor {
         var deviceName: String
     }
 
-    private let log = Logger(subsystem: "com.godmouse.app", category: "battery")
+    private let log = Logger(subsystem: "com.calmmouse.app", category: "battery")
     private var timer: Timer?
     private var warnedAt: Int?          // the threshold we already warned about
     private var notificationsAuthorized = false
@@ -96,7 +96,7 @@ final class BatteryMonitor {
             content.title = "Magic Mouse battery low"
             content.body = "\(reading.percent)% left — worth plugging it in before it dies mid-click."
             content.sound = .default
-            let request = UNNotificationRequest(identifier: "godmouse.battery.\(reading.percent)",
+            let request = UNNotificationRequest(identifier: "calmmouse.battery.\(reading.percent)",
                                                 content: content, trigger: nil)
             UNUserNotificationCenter.current().add(request)
         }
@@ -104,5 +104,5 @@ final class BatteryMonitor {
         NotificationCenter.default.post(name: BatteryMonitor.didWarn, object: reading.percent)
     }
 
-    static let didWarn = Notification.Name("GodmouseBatteryDidWarn")
+    static let didWarn = Notification.Name("CalmMouseBatteryDidWarn")
 }

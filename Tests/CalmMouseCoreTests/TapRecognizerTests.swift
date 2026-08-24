@@ -1,5 +1,5 @@
 import XCTest
-@testable import GodmouseCore
+@testable import CalmMouseCore
 
 private extension TapRecognizer {
     /// Compatibility shim for assertions that only care about click count.

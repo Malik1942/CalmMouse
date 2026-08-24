@@ -27,5 +27,5 @@ jobs:
 
       - name: Verify bundle
         run: |
-          test -x build/Godmouse.app/Contents/MacOS/Godmouse
-          codesign --verify --verbose=1 build/Godmouse.app
+          test -x build/CalmMouse.app/Contents/MacOS/CalmMouse
+          codesign --verify --verbose=1 build/CalmMouse.app

@@ -2,7 +2,7 @@ import Foundation
 import CoreGraphics
 import AppKit
 import os
-import GodmouseCore
+import CalmMouseCore
 
 /// Owns the CGEventTap and bridges CGEvents <-> the pure ScrollBlocker state machine.
 final class EventTap {
@@ -10,7 +10,7 @@ final class EventTap {
     private let identifier = DeviceIdentifier()
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
-    private let log = Logger(subsystem: "com.godmouse.app", category: "tap")
+    private let log = Logger(subsystem: "com.calmmouse.app", category: "tap")
 
     var debugLogging = false
     var treatUnknownContinuousAsMagicMouse = false
@@ -126,7 +126,7 @@ final class EventTap {
         } else {
             magic = treatUnknownContinuousAsMagicMouse
         }
-        // Clicks Godmouse itself synthesized (tap-to-click, tap-and-drag) DO feed the scroll
+        // Clicks CalmMouse itself synthesized (tap-to-click, tap-and-drag) DO feed the scroll
         // blocker — during a tap-drag the finger rides the shell, and its jiggle would scroll the
         // page under whatever is being dragged. They must NOT feed the tap recognizer, though:
         // a synthetic press would poison the very touch that produced it.

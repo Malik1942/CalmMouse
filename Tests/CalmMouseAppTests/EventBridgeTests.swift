@@ -1,7 +1,7 @@
 import XCTest
 import CoreGraphics
-import GodmouseCore
-@testable import Godmouse
+import CalmMouseCore
+@testable import CalmMouse
 
 /// These build real CGEvents and push them through the same conversion code the tap uses,
 /// so the field mapping is verified without needing Accessibility permission.

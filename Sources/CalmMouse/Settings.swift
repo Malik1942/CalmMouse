@@ -1,15 +1,15 @@
 import Foundation
 import AppKit
 import Combine
-import GodmouseCore
+import CalmMouseCore
 
 /// UserDefaults-backed settings, observable by the UI.
 /// Simple flags stay individual keys so they're scriptable:
-///   defaults write com.godmouse.app blockScrollWhileClicked -bool YES
+///   defaults write com.calmmouse.app blockScrollWhileClicked -bool YES
 /// Structured data (per-app rules, modifier actions) is stored as JSON.
 final class Settings: ObservableObject {
     static let shared = Settings()
-    static let didChange = Notification.Name("GodmouseSettingsDidChange")
+    static let didChange = Notification.Name("CalmMouseSettingsDidChange")
 
     private let d = UserDefaults.standard
     private var loading = false
@@ -63,6 +63,7 @@ final class Settings: ObservableObject {
     @Published var debugLogging: Bool { didSet { d.set(debugLogging, forKey: Key.debugLogging); changed() } }
 
     private init() {
+        Settings.migrateFromGodmouseIfNeeded(d)
         d.register(defaults: [
             Key.enabled: true,
             Key.blockScrollWhileClicked: true,
@@ -136,6 +137,15 @@ final class Settings: ObservableObject {
         c.tapZoneEdgeMargin = min(max(d.double(forKey: Key.tapZoneEdgeMargin), 0), 0.3)
         c.frontIsHighY = d.bool(forKey: Key.tapZoneFrontIsHighY)
         return c
+    }
+
+    /// The app used to be Godmouse (com.godmouse.app). On the first launch under the new
+    /// bundle ID, adopt the old domain's settings wholesale so nothing is lost in the rename.
+    private static func migrateFromGodmouseIfNeeded(_ d: UserDefaults) {
+        let newDomain = Bundle.main.bundleIdentifier ?? "com.calmmouse.app"
+        guard d.persistentDomain(forName: newDomain) == nil,
+              let old = d.persistentDomain(forName: "com.godmouse.app"), !old.isEmpty else { return }
+        d.setPersistentDomain(old, forName: newDomain)
     }
 
     // MARK: Per-app helpers

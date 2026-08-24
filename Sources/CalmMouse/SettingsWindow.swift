@@ -1,14 +1,14 @@
 import AppKit
 import SwiftUI
 import ServiceManagement
-import GodmouseCore
+import CalmMouseCore
 
 final class SettingsWindowController: NSWindowController {
     init(settings: Settings, battery: BatteryMonitor) {
         let root = SettingsView(settings: settings, battery: battery)
         let hosting = NSHostingController(rootView: root)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "Godmouse Settings"
+        window.title = "CalmMouse Settings"
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.setContentSize(NSSize(width: 620, height: 520))
         window.center()
@@ -53,7 +53,7 @@ private struct GeneralTab: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Enable Godmouse", isOn: $settings.enabled)
+                Toggle("Enable CalmMouse", isOn: $settings.enabled)
                     .toggleStyle(.switch)
                 Toggle("Launch at login", isOn: Binding(
                     get: { launchAtLogin },
@@ -66,7 +66,7 @@ private struct GeneralTab: View {
                         .foregroundStyle(trusted ? .green : .orange)
                     Text(trusted
                          ? "Accessibility access granted."
-                         : "Godmouse needs Accessibility access to see mouse events.")
+                         : "CalmMouse needs Accessibility access to see mouse events.")
                     Spacer()
                     if !trusted {
                         Button("Open Settings…") { SettingsHelpers.openAccessibilityPane() }
@@ -86,10 +86,10 @@ private struct GeneralTab: View {
 
             Section("Troubleshooting") {
                 Toggle("Assume unrecognised touch scrolling is the Magic Mouse", isOn: $settings.treatUnknownContinuousAsMagicMouse)
-                Text("Only needed if a macOS update stops Godmouse recognising your mouse. Leave off — otherwise trackpad scrolling can get caught too.")
+                Text("Only needed if a macOS update stops CalmMouse recognising your mouse. Leave off — otherwise trackpad scrolling can get caught too.")
                     .font(.caption).foregroundStyle(.secondary)
                 Toggle("Debug logging", isOn: $settings.debugLogging)
-                Text("log stream --predicate 'subsystem == \"com.godmouse.app\"' --level debug")
+                Text("log stream --predicate 'subsystem == \"com.calmmouse.app\"' --level debug")
                     .font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)
                     .textSelection(.enabled)
             }
@@ -475,7 +475,7 @@ enum SettingsHelpers {
         } catch {
             let alert = NSAlert()
             alert.messageText = "Couldn't change the login item"
-            alert.informativeText = "\(error.localizedDescription)\n\nLaunch at login only works when Godmouse runs from an app bundle (e.g. /Applications)."
+            alert.informativeText = "\(error.localizedDescription)\n\nLaunch at login only works when CalmMouse runs from an app bundle (e.g. /Applications)."
             alert.runModal()
         }
         return SMAppService.mainApp.status == .enabled
@@ -484,7 +484,7 @@ enum SettingsHelpers {
     /// Removes our own TCC row (`tccutil reset Accessibility <bundle id>`) — allowed for one's own
     /// bundle without admin rights — then re-prompts so the fresh grant matches the current signature.
     static func resetAccessibilityGrant() {
-        let bundleID = Bundle.main.bundleIdentifier ?? "com.godmouse.app"
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.calmmouse.app"
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
         proc.arguments = ["reset", "Accessibility", bundleID]

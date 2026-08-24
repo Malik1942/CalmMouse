@@ -1,6 +1,6 @@
 import AppKit
 import ServiceManagement
-import GodmouseCore
+import CalmMouseCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = Settings.shared
@@ -20,7 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let batteryLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let permissionItem = NSMenuItem(title: "Grant Accessibility permission…", action: #selector(openAccessibility), keyEquivalent: "")
-    private let enabledItem = NSMenuItem(title: "Godmouse enabled", action: #selector(toggleEnabled), keyEquivalent: "")
+    private let enabledItem = NSMenuItem(title: "CalmMouse enabled", action: #selector(toggleEnabled), keyEquivalent: "")
     private let blockItem = NSMenuItem(title: "Don't scroll while clicking", action: #selector(toggleBlock), keyEquivalent: "")
     private let momentumItem = NSMenuItem(title: "Keep gliding after a swipe", action: #selector(toggleMomentum), keyEquivalent: "")
     private let axisLockItem = NSMenuItem(title: "Scroll in straight lines", action: #selector(toggleAxisLock), keyEquivalent: "")
@@ -171,14 +171,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let settingsItem = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         menu.addItem(settingsItem)
-        menu.addItem(NSMenuItem(title: "Quit Godmouse", action: #selector(quit), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit CalmMouse", action: #selector(quit), keyEquivalent: "q"))
 
         for item in menu.items where item.action != nil { item.target = self }
         statusItem.menu = menu
     }
 
     private static func icon(named name: String) -> NSImage? {
-        let image = NSImage(systemSymbolName: name, accessibilityDescription: "Godmouse")
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: "CalmMouse")
         image?.isTemplate = true
         return image
     }
@@ -192,23 +192,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !trusted {
             button.image = Self.icon(named: "magicmouse.fill")
             button.contentTintColor = .systemOrange
-            button.toolTip = "Godmouse needs Accessibility permission"
+            button.toolTip = "CalmMouse needs Accessibility permission"
         } else if !settings.enabled {
             button.image = Self.icon(named: "magicmouse")
             button.contentTintColor = nil
-            button.toolTip = "Godmouse is paused"
+            button.toolTip = "CalmMouse is paused"
         } else if !tap.isRunning {
             button.image = Self.icon(named: "magicmouse.fill")
             button.contentTintColor = .systemOrange
-            button.toolTip = "Godmouse couldn't start its event tap"
+            button.toolTip = "CalmMouse couldn't start its event tap"
         } else if lowBatteryFlag {
             button.image = Self.icon(named: "magicmouse.fill")
             button.contentTintColor = .systemYellow
-            button.toolTip = "Godmouse — active · Magic Mouse battery low"
+            button.toolTip = "CalmMouse — active · Magic Mouse battery low"
         } else {
             button.image = Self.icon(named: "magicmouse.fill")
             button.contentTintColor = nil
-            button.toolTip = "Godmouse — active"
+            button.toolTip = "CalmMouse — active"
         }
         // Only a deliberate pause dims the icon. Something that needs the user's attention must
         // stay at full strength — a faint warning in a crowded menu bar is no warning at all.

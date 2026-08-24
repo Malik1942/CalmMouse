@@ -12,20 +12,20 @@ cd "$(dirname "$0")"
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
 OUT="dist"
 
-GODMOUSE_SIGN_IDENTITY="-" ./build.sh release
+CALMMOUSE_SIGN_IDENTITY="-" ./build.sh release
 
 mkdir -p "$OUT"
-rm -f "$OUT/Godmouse.zip"
+rm -f "$OUT/CalmMouse.zip"
 # --norsrc --noextattr matters: without them ditto stores xattrs as AppleDouble entries, and a
 # plain command-line `unzip` materialises them as ._Info.plist / ._PkgInfo files that invalidate
 # the code signature. Finder's Archive Utility copes; `unzip` does not.
-ditto -c -k --norsrc --noextattr --keepParent build/Godmouse.app "$OUT/Godmouse.zip"
+ditto -c -k --norsrc --noextattr --keepParent build/CalmMouse.app "$OUT/CalmMouse.zip"
 
 echo
-echo "✅ $OUT/Godmouse.zip  (v$VERSION, $(du -h "$OUT/Godmouse.zip" | cut -f1))"
+echo "✅ $OUT/CalmMouse.zip  (v$VERSION, $(du -h "$OUT/CalmMouse.zip" | cut -f1))"
 # Prove the artifact users will actually download still validates after a plain unzip.
 TMP=$(mktemp -d)
-( cd "$TMP" && unzip -q "$OLDPWD/$OUT/Godmouse.zip" && codesign --verify --strict Godmouse.app ) \
+( cd "$TMP" && unzip -q "$OLDPWD/$OUT/CalmMouse.zip" && codesign --verify --strict CalmMouse.app ) \
   && echo "   signature verifies after plain unzip ✅" \
   || { echo "   ⚠️  signature broken after unzip"; exit 1; }
 rm -rf "$TMP"

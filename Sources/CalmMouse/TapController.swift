@@ -1,7 +1,7 @@
 import AppKit
 import CoreGraphics
 import os
-import GodmouseCore
+import CalmMouseCore
 
 /// Owns tap-to-click: listens to Magic Mouse contact frames, runs the TapRecognizer, and posts
 /// synthetic left clicks. All state is touched on the main queue only.
@@ -14,7 +14,7 @@ final class TapController {
     static let syntheticCancelTag: Int64 = 0x476D_5463 // "GmTc"
 
     private let recognizer: TapRecognizer
-    private let log = Logger(subsystem: "com.godmouse.app", category: "tap-to-click")
+    private let log = Logger(subsystem: "com.calmmouse.app", category: "tap-to-click")
 
     private var devices: [Multitouch.DeviceRef] = []
     /// Owns the device refs in `devices`; releasing it invalidates them (see magicMouseDevices).

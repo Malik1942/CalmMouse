@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/images/icon-256.png" width="128" alt="Godmouse icon">
+  <img src="docs/images/icon-256.png" width="128" alt="CalmMouse icon">
 </p>
 
-<h1 align="center">Godmouse</h1>
+<h1 align="center">CalmMouse</h1>
 
 <p align="center">
   <b>Magic Mouse UX fixes for macOS.</b><br>
@@ -10,14 +10,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Malik1942/Godmouse/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Malik1942/Godmouse/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/Malik1942/CalmMouse/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Malik1942/CalmMouse/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="macOS 13+" src="https://img.shields.io/badge/macOS-13%2B-black?logo=apple">
   <img alt="Swift 5.9" src="https://img.shields.io/badge/Swift-5.9-orange?logo=swift&logoColor=white">
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
 </p>
 
 <p align="center">
-  <img src="docs/images/settings-general.png" width="620" alt="Godmouse settings window">
+  <img src="docs/images/settings-general.png" width="620" alt="CalmMouse settings window">
 </p>
 
 ## The problem
@@ -29,7 +29,7 @@ Drag a window and the document scrolls out from under it. Click a link and the l
 macOS has no setting for this. [BetterTouchTool](https://folivora.ai) has one — the undocumented
 `BTTBlockMagicMouseScrollWhenClicked` — but that's a paid, do-everything app for one checkbox.
 
-Godmouse is that checkbox, plus the rest of the Magic Mouse's rough edges, in a small menu-bar app.
+CalmMouse is that checkbox, plus the rest of the Magic Mouse's rough edges, in a small menu-bar app.
 
 ## Features
 
@@ -47,7 +47,7 @@ Godmouse is that checkbox, plus the rest of the Magic Mouse's rough edges, in a 
 | **Two-finger drag (long press)** | Rest two fingers on the surface together and hold; after a moment the button presses down. Move to drag, lift either finger to drop. Fingers that land one after the other are grip, not gesture, and never trigger it. |
 | **Battery warning** | A notification when the Magic Mouse drops below a threshold you set, so it doesn't die mid-afternoon. |
 
-Everything applies **only to the Magic Mouse**. Godmouse identifies the physical device behind each
+Everything applies **only to the Magic Mouse**. CalmMouse identifies the physical device behind each
 event, so your trackpad, your other mouse, and anything synthetic are passed through untouched.
 
 Clicks that land in the middle of a scroll are handled gracefully: the app that was scrolling gets a
@@ -58,15 +58,14 @@ dropped so the page doesn't keep coasting under your click.
 
 ### Download
 
-Grab the latest `Godmouse.zip` from [Releases](https://github.com/Malik1942/Godmouse/releases),
-unzip it, and drag **Godmouse.app** to `/Applications`.
+Grab the latest `CalmMouse.zip` from [Releases](https://github.com/Malik1942/CalmMouse/releases),
+unzip it, and drag **CalmMouse.app** to `/Applications`.
 
-The release build is unsigned (no paid Apple Developer Program membership behind this project), so
-the first launch needs one extra step:
+Current release builds are not yet notarized, so the first launch needs one extra step:
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/Godmouse.app
-open /Applications/Godmouse.app
+xattr -dr com.apple.quarantine /Applications/CalmMouse.app
+open /Applications/CalmMouse.app
 ```
 
 Or right-click the app → **Open** → **Open** in the dialog.
@@ -76,8 +75,8 @@ Or right-click the app → **Open** → **Open** in the dialog.
 Needs Xcode 15+ (or the Command Line Tools).
 
 ```bash
-git clone https://github.com/Malik1942/Godmouse.git
-cd Godmouse
+git clone https://github.com/Malik1942/CalmMouse.git
+cd CalmMouse
 ./install.sh          # builds, installs to /Applications, launches, prints status
 ```
 
@@ -87,29 +86,29 @@ real identity means macOS keeps your Accessibility grant across rebuilds (see be
 
 ## Accessibility permission
 
-Godmouse reads mouse events through a `CGEventTap`, which macOS gates behind Accessibility access:
+CalmMouse reads mouse events through a `CGEventTap`, which macOS gates behind Accessibility access:
 
-**System Settings → Privacy & Security → Accessibility → enable Godmouse.**
+**System Settings → Privacy & Security → Accessibility → enable CalmMouse.**
 
 The app polls for the grant and starts working within two seconds — no relaunch needed.
 
-> **If the toggle is already ON but Godmouse still says it has no permission**, the stored grant has
+> **If the toggle is already ON but CalmMouse still says it has no permission**, the stored grant has
 > gone stale. macOS ties the grant to the app's code signature, so a rebuild or a new unsigned
 > release looks like a different app while the switch still reads ON.
 >
 > Settings → General → **Reset grant…** fixes it (it clears the entry and re-asks). By hand:
 > ```bash
-> tccutil reset Accessibility com.godmouse.app
+> tccutil reset Accessibility com.calmmouse.app
 > ```
 
-Godmouse never sees keystrokes, never touches the network, and stores nothing but its own settings.
+CalmMouse never sees keystrokes, never touches the network, and stores nothing but its own settings.
 
 ## Menu bar vs. settings window
 
 The switches you flip often live in the **menu bar**; everything else lives in the **settings
 window** (⌘, from the menu).
 
-**Menu bar** — status and battery line, Godmouse enabled, Don't scroll while clicking, Keep
+**Menu bar** — status and battery line, CalmMouse enabled, Don't scroll while clicking, Keep
 gliding after a swipe (momentum), Scroll in straight lines, Tap to click, Per-app rules,
 Settings…, Quit.
 
@@ -129,39 +128,39 @@ mouse battery is low.
 
 ## Scripting
 
-Every setting is plain `UserDefaults` under `com.godmouse.app`:
+Every setting is plain `UserDefaults` under `com.calmmouse.app`:
 
 ```bash
-defaults write com.godmouse.app blockScrollWhileClicked -bool YES
-defaults write com.godmouse.app releaseGraceMs -int 200      # 0–800
-defaults write com.godmouse.app deadZone -float 3            # points; 0 = off
-defaults write com.godmouse.app axisLock -bool YES
-defaults write com.godmouse.app momentumEnabled -bool NO
-defaults write com.godmouse.app blockHorizontalScroll -bool YES
-defaults write com.godmouse.app batteryWarningThreshold -int 15
-defaults write com.godmouse.app tapToClick -bool YES
-defaults write com.godmouse.app tapSensitivity -float 0.5   # 0 = firm ... 1 = light
-defaults write com.godmouse.app tapAndDrag -bool YES
-defaults write com.godmouse.app twoFingerDrag -bool YES
-defaults write com.godmouse.app tapZoneEnabled -bool YES
-defaults write com.godmouse.app tapZoneDepth -float 0.5     # front 25%...75% of the surface
+defaults write com.calmmouse.app blockScrollWhileClicked -bool YES
+defaults write com.calmmouse.app releaseGraceMs -int 200      # 0–800
+defaults write com.calmmouse.app deadZone -float 3            # points; 0 = off
+defaults write com.calmmouse.app axisLock -bool YES
+defaults write com.calmmouse.app momentumEnabled -bool NO
+defaults write com.calmmouse.app blockHorizontalScroll -bool YES
+defaults write com.calmmouse.app batteryWarningThreshold -int 15
+defaults write com.calmmouse.app tapToClick -bool YES
+defaults write com.calmmouse.app tapSensitivity -float 0.5   # 0 = firm ... 1 = light
+defaults write com.calmmouse.app tapAndDrag -bool YES
+defaults write com.calmmouse.app twoFingerDrag -bool YES
+defaults write com.calmmouse.app tapZoneEnabled -bool YES
+defaults write com.calmmouse.app tapZoneDepth -float 0.5     # front 25%...75% of the surface
 ```
 
 The app picks changes up live. There's also a small CLI inside the bundle:
 
 ```bash
-Godmouse --status      # JSON: permission, tap state, events swallowed, active app, battery
-Godmouse --battery     # Magic Mouse battery level
-Godmouse --resolve <id># resolve an IORegistry entry ID to a device (device-ID debugging)
+CalmMouse --status      # JSON: permission, tap state, events swallowed, active app, battery
+CalmMouse --battery     # Magic Mouse battery level
+CalmMouse --resolve <id># resolve an IORegistry entry ID to a device (device-ID debugging)
 ```
 
 ## How it works
 
 ```
-Sources/GodmouseCore/     pure logic, no AppKit — the part that's unit-tested
+Sources/CalmMouseCore/     pure logic, no AppKit — the part that's unit-tested
   ScrollBlocker.swift     the state machine: gesture phases, blocking, dead zone, axis lock
   Config.swift            settings model, per-app rule resolution, modifier actions
-Sources/Godmouse/
+Sources/CalmMouse/
   EventTap.swift          CGEventTap ⇄ ScrollBlocker: pass / drop / rewrite each event
   DeviceIdentifier.swift  which physical device sent this event?
   TapRecognizer.swift (Core) taps and drags: duration/movement/size gates, zone, scroll & click vetoes
@@ -175,7 +174,7 @@ Sources/Godmouse/
 Two details do most of the work:
 
 **Device attribution.** A `CGEvent` doesn't say which mouse produced it — unless you read the
-undocumented sender-ID field (`CGEventField(87)`), which holds an IORegistry entry ID. Godmouse walks
+undocumented sender-ID field (`CGEventField(87)`), which holds an IORegistry entry ID. CalmMouse walks
 that entry's parents until it finds the HID device and reads its product name, with a cache so the
 lookup happens once per device. That's how a Magic Mouse scroll is told apart from a trackpad swipe.
 (The technique comes from [Mac Mouse Fix](https://github.com/noah-nuebling/mac-mouse-fix)'s
@@ -205,24 +204,24 @@ swift test    # 99 tests, no device or permission needed
 | Symptom | Fix |
 |---|---|
 | Menu bar says "Accessibility permission needed" but the toggle is ON | Stale grant — Settings → General → **Reset grant…** |
-| Nothing is blocked, `--status` shows `lastSeenDevice: null` | Device identification isn't matching your mouse. Settings → General → **Treat unidentified touch scrolls as Magic Mouse**. Please [open an issue](https://github.com/Malik1942/Godmouse/issues) with the output of `Godmouse --status` — that's a bug worth fixing properly. |
+| Nothing is blocked, `--status` shows `lastSeenDevice: null` | Device identification isn't matching your mouse. Settings → General → **Treat unidentified touch scrolls as Magic Mouse**. Please [open an issue](https://github.com/Malik1942/CalmMouse/issues) with the output of `CalmMouse --status` — that's a bug worth fixing properly. |
 | Trackpad scrolling got caught too | Turn *off* "Treat unidentified touch scrolls as Magic Mouse". |
 | Scrolling feels like it stops too long after a click | Settings → Scrolling → lower the release grace. |
-| A tap does nothing in one part of the surface | The tap zone is on. `Godmouse --status` reports `outsideZone` in `tapRejections` plus the exact landing point in `tapLastRejectionAt` — widen the depth in Settings → Clicking, or turn the zone off. |
-| Want to see what's happening | Settings → General → Debug logging, then `log stream --predicate 'subsystem == "com.godmouse.app"' --level debug` |
+| A tap does nothing in one part of the surface | The tap zone is on. `CalmMouse --status` reports `outsideZone` in `tapRejections` plus the exact landing point in `tapLastRejectionAt` — widen the depth in Settings → Clicking, or turn the zone off. |
+| Want to see what's happening | Settings → General → Debug logging, then `log stream --predicate 'subsystem == "com.calmmouse.app"' --level debug` |
 
 ## Prior art
 
 Nothing on GitHub blocked Magic Mouse scroll-while-clicking on macOS when this was written
 (August 2026) — hence this project. Related, and worth your time:
 
-- **[mac-mouse-fix](https://github.com/noah-nuebling/mac-mouse-fix)** — excellent, but explicitly no Magic Mouse support. Godmouse borrows its sender-ID technique.
-- **[mousetoucher](https://github.com/meatpaste/mousetoucher)** / **[magictap](https://github.com/sysmesh/magictap)** / **[MagicMouseClick](https://github.com/FAZIO11/MagicMouseClick)** — standalone tap-to-click apps for the Magic Mouse; Godmouse's MultitouchSupport bridge follows the same private-framework technique.
+- **[mac-mouse-fix](https://github.com/noah-nuebling/mac-mouse-fix)** — excellent, but explicitly no Magic Mouse support. CalmMouse borrows its sender-ID technique.
+- **[mousetoucher](https://github.com/meatpaste/mousetoucher)** / **[magictap](https://github.com/sysmesh/magictap)** / **[MagicMouseClick](https://github.com/FAZIO11/MagicMouseClick)** — standalone tap-to-click apps for the Magic Mouse; CalmMouse's MultitouchSupport bridge follows the same private-framework technique.
 - **[MiddleClick](https://github.com/artginzburg/MiddleClick)** / **[fastmiddle](https://github.com/NicoNex/fastmiddle)** — three-finger middle click.
 - **[MagicPrefs](https://github.com/valexa/MagicPrefsArchive)** — the 10.6-era app that could shrink the scroll area. Long dead, archived source only.
 
-Godmouse doesn't do middle-click; MiddleClick already does it well. (Tap-to-click grew into
-Godmouse anyway — having the scroll-state machine in the same process means taps can be vetoed by
+CalmMouse doesn't do middle-click; MiddleClick already does it well. (Tap-to-click grew into
+CalmMouse anyway — having the scroll-state machine in the same process means taps can be vetoed by
 real scrolling and physical clicks, which standalone tap apps can't see.)
 
 ## Roadmap
@@ -236,7 +235,7 @@ Ideas, not promises:
 
 ## Contributing
 
-Solo project, but issues and PRs are welcome — especially bug reports with `Godmouse --status`
+Solo project, but issues and PRs are welcome — especially bug reports with `CalmMouse --status`
 output and a note about which Magic Mouse generation you have.
 
 ## License

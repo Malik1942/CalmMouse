@@ -66,7 +66,7 @@ enum Multitouch {
             "/System/Library/PrivateFrameworks/MultitouchSupport.framework/MultitouchSupport",
             RTLD_LAZY
         ) else {
-            Logger(subsystem: "com.godmouse.app", category: "multitouch")
+            Logger(subsystem: "com.calmmouse.app", category: "multitouch")
                 .error("MultitouchSupport framework not found — tap-to-click unavailable")
             return nil
         }
@@ -84,7 +84,7 @@ enum Multitouch {
             let getFamilyID = sym("MTDeviceGetFamilyID", as: (@convention(c) (DeviceRef, UnsafeMutablePointer<Int32>) -> Int32).self),
             let getID = sym("MTDeviceGetDeviceID", as: (@convention(c) (DeviceRef, UnsafeMutablePointer<UInt64>) -> Int32).self)
         else {
-            Logger(subsystem: "com.godmouse.app", category: "multitouch")
+            Logger(subsystem: "com.calmmouse.app", category: "multitouch")
                 .error("MultitouchSupport symbols missing — tap-to-click unavailable")
             return nil
         }

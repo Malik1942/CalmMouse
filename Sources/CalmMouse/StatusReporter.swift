@@ -1,7 +1,7 @@
 import Foundation
 
 /// Writes a small JSON snapshot of runtime state to
-/// ~/Library/Application Support/Godmouse/status.json so `Godmouse --status` (and you, and any
+/// ~/Library/Application Support/CalmMouse/status.json so `CalmMouse --status` (and you, and any
 /// script) can see what the running app actually thinks — no guessing whether the tap is live.
 enum StatusReporter {
     struct Snapshot: Codable {
@@ -34,7 +34,7 @@ enum StatusReporter {
 
     static var fileURL: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Godmouse", isDirectory: true)
+            .appendingPathComponent("CalmMouse", isDirectory: true)
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         return base.appendingPathComponent("status.json")
     }
