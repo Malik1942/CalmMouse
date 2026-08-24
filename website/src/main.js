@@ -22,3 +22,20 @@ if (prefersReducedMotion || !("IntersectionObserver" in window)) {
   );
   revealables.forEach((el) => observer.observe(el));
 }
+
+// Downloading is only half the job: the release isn't notarized, so the first
+// launch needs the right-click → Open step. The click is never intercepted —
+// the href starts the download on its own — we just bring the install steps
+// into view behind it, so the instructions are waiting once the file lands.
+const installSteps = document.querySelector(".steps");
+
+if (installSteps) {
+  document.querySelectorAll('a[href*="/releases/latest/download/"]').forEach((link) => {
+    link.addEventListener("click", () => {
+      installSteps.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "center",
+      });
+    });
+  });
+}

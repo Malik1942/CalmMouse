@@ -107,11 +107,15 @@
   font-weight: var(--weight-semibold);
 }
 
-.hero .actions {
+/* An action row gets air above it wherever it follows content — keyed on
+   placement rather than on the hero, so every section picks it up. The fine
+   print then tucks in close underneath, reading as part of the same block. */
+.hero .actions,
+.section__copy + .actions {
   margin-top: var(--space-10);
 }
 
-.hero__fineprint {
+.actions + .fineprint {
   margin-top: var(--space-5);
 }
 
