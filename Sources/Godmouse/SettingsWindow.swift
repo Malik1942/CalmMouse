@@ -132,7 +132,7 @@ private struct ScrollingTab: View {
                     HStack {
                         Text("Ignore small finger nudges")
                         Slider(value: $settings.deadZone, in: 0...40, step: 1)
-                        Text(settings.deadZone == 0 ? "Off" : "\(Int(settings.deadZone))")
+                        Text(settings.deadZone == 0 ? "Off" : "\(Int(settings.deadZone)) pt")
                             .monospacedDigit().frame(width: 60, alignment: .trailing)
                     }
                 }
@@ -141,15 +141,14 @@ private struct ScrollingTab: View {
                              caption: "Scrolling sticks to straight up-down or left-right. A swipe that drifts a little diagonally won't wander sideways.") {
                     Toggle("Scroll in straight lines", isOn: $settings.axisLock)
                 }
-                ExplainedRow(preview: .straightLines,
-                             caption: "How far your finger moves before the direction is locked in for that swipe. Lower locks sooner.") {
-                    HStack {
-                        Text("Pick a direction after")
-                        Slider(value: $settings.axisLockThreshold, in: 2...40, step: 1)
-                        Text("\(Int(settings.axisLockThreshold))").monospacedDigit().frame(width: 60, alignment: .trailing)
-                    }
+                HStack {
+                    Text("Lock direction after sliding")
+                    Slider(value: $settings.axisLockThreshold, in: 2...40, step: 1)
+                    Text("\(Int(settings.axisLockThreshold)) pt").monospacedDigit().frame(width: 60, alignment: .trailing)
                 }
                 .disabled(!settings.axisLock)
+                Text("A distance, not a time — once your finger has slid this far, the swipe commits to one direction. Lower locks in sooner.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Feel") {
@@ -194,18 +193,15 @@ private struct ClickingTab: View {
 
             Section("Where taps count") {
                 ExplainedRow(preview: .tapZone(depth: settings.tapZoneDepth),
-                             caption: "Taps only count on the front part of the surface — where deliberate fingertip taps land. The fingers gripping the sides can't click by accident.") {
+                             caption: "Taps only count on the front part of the surface — where deliberate fingertip taps land. The fingers gripping the sides can't click by accident. Pressing to click and dragging still work everywhere.") {
                     Toggle("Front of the mouse only", isOn: $settings.tapZoneEnabled)
                 }
                 .disabled(!settings.tapToClick)
-                ExplainedRow(preview: .tapZone(depth: settings.tapZoneDepth),
-                             caption: "How much of the surface, from the front edge back, accepts taps. Pressing to click and dragging work everywhere regardless.") {
-                    HStack {
-                        Text("Size of the tap area")
-                        Slider(value: $settings.tapZoneDepth, in: 0.25...0.75, step: 0.05)
-                        Text("front \(Int((settings.tapZoneDepth * 100).rounded()))%")
-                            .monospacedDigit().frame(width: 76, alignment: .trailing)
-                    }
+                HStack {
+                    Text("Size of the tap area")
+                    Slider(value: $settings.tapZoneDepth, in: 0.25...0.75, step: 0.05)
+                    Text("front \(Int((settings.tapZoneDepth * 100).rounded()))%")
+                        .monospacedDigit().frame(width: 76, alignment: .trailing)
                 }
                 .disabled(!settings.tapToClick || !settings.tapZoneEnabled)
             }
