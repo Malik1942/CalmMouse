@@ -42,11 +42,11 @@ public enum ScrollAction: String, Codable, CaseIterable, Sendable {
 
     public var label: String {
         switch self {
-        case .normal:      return "Normal scrolling"
-        case .horizontal:  return "Horizontal scrolling"
-        case .invert:      return "Inverted scrolling"
-        case .zoomCommand: return "Zoom (⌘ scroll)"
-        case .zoomControl: return "Zoom (⌃ scroll, system)"
+        case .normal:      return "Scroll normally"
+        case .horizontal:  return "Scroll sideways"
+        case .invert:      return "Scroll in reverse"
+        case .zoomCommand: return "Zoom in apps"
+        case .zoomControl: return "Zoom the whole screen"
         case .block:       return "Do nothing"
         }
     }

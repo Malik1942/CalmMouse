@@ -25,15 +25,17 @@ final class SettingsWindowController: NSWindowController {
 struct SettingsView: View {
     @ObservedObject var settings: Settings
     let battery: BatteryMonitor
+    /// Remembers which tab was open last time the window was shown.
+    @AppStorage("settingsTab") private var tab = 0
 
     var body: some View {
-        TabView {
-            GeneralTab(settings: settings).tabItem { Label("General", systemImage: "gearshape") }
-            ScrollingTab(settings: settings).tabItem { Label("Scrolling", systemImage: "arrow.up.and.down") }
-            ClickingTab(settings: settings).tabItem { Label("Clicking", systemImage: "hand.tap") }
-            AppsTab(settings: settings).tabItem { Label("Apps", systemImage: "square.grid.2x2") }
-            ModifiersTab(settings: settings).tabItem { Label("Modifiers", systemImage: "command") }
-            BatteryTab(settings: settings, battery: battery).tabItem { Label("Battery", systemImage: "battery.25") }
+        TabView(selection: $tab) {
+            GeneralTab(settings: settings).tabItem { Label("General", systemImage: "gearshape") }.tag(0)
+            ScrollingTab(settings: settings).tabItem { Label("Scrolling", systemImage: "arrow.up.and.down") }.tag(1)
+            ClickingTab(settings: settings).tabItem { Label("Clicking", systemImage: "hand.tap") }.tag(2)
+            AppsTab(settings: settings).tabItem { Label("Apps", systemImage: "square.grid.2x2") }.tag(3)
+            ModifiersTab(settings: settings).tabItem { Label("Shortcuts", systemImage: "command") }.tag(4)
+            BatteryTab(settings: settings, battery: battery).tabItem { Label("Battery", systemImage: "battery.25") }.tag(5)
         }
         .padding(20)
         .frame(width: 620, height: 520)
@@ -83,8 +85,8 @@ private struct GeneralTab: View {
             }
 
             Section("Troubleshooting") {
-                Toggle("Treat unidentified touch scrolls as Magic Mouse", isOn: $settings.treatUnknownContinuousAsMagicMouse)
-                Text("Only needed if a macOS update breaks device identification. Leave off — otherwise trackpad scrolling can get caught too.")
+                Toggle("Assume unrecognised touch scrolling is the Magic Mouse", isOn: $settings.treatUnknownContinuousAsMagicMouse)
+                Text("Only needed if a macOS update stops Godmouse recognising your mouse. Leave off — otherwise trackpad scrolling can get caught too.")
                     .font(.caption).foregroundStyle(.secondary)
                 Toggle("Debug logging", isOn: $settings.debugLogging)
                 Text("log stream --predicate 'subsystem == \"com.godmouse.app\"' --level debug")
@@ -104,47 +106,61 @@ private struct ScrollingTab: View {
 
     var body: some View {
         Form {
-            Section("While clicking") {
-                Toggle("Block scrolling while a Magic Mouse button is held", isOn: $settings.blockScrollWhileClicked)
-                HStack {
-                    Text("Keep blocking after release")
-                    Slider(value: Binding(
-                        get: { Double(settings.releaseGraceMs) },
-                        set: { settings.releaseGraceMs = Int($0.rounded()) }),
-                           in: 0...800, step: 50)
-                    Text("\(settings.releaseGraceMs) ms").monospacedDigit().frame(width: 60, alignment: .trailing)
+            Section("Clicking") {
+                ExplainedRow(preview: .blockWhileClick,
+                             caption: "While a mouse button is held down, your finger resting on the surface can't scroll the page out from under your click.") {
+                    Toggle("Don't scroll while clicking", isOn: $settings.blockScrollWhileClicked)
+                }
+                ExplainedRow(preview: .settleAfterRelease,
+                             caption: "As your finger lifts off after a click it usually drags the page a tiny bit. This gives it a moment to settle before scrolling works again.") {
+                    HStack {
+                        Text("Hold still after you let go")
+                        Slider(value: Binding(
+                            get: { Double(settings.releaseGraceMs) },
+                            set: { settings.releaseGraceMs = Int($0.rounded()) }),
+                               in: 0...800, step: 50)
+                        Text(settings.releaseGraceMs == 0 ? "Off" : String(format: "%.2g s", Double(settings.releaseGraceMs) / 1000))
+                            .monospacedDigit().frame(width: 60, alignment: .trailing)
+                    }
                 }
                 .disabled(!settings.blockScrollWhileClicked)
-                Text("Lifting a finger off the shell usually produces a small trailing scroll. This eats it.")
-                    .font(.caption).foregroundStyle(.secondary)
             }
 
-            Section("Jitter") {
-                HStack {
-                    Text("Dead zone")
-                    Slider(value: $settings.deadZone, in: 0...40, step: 1)
-                    Text(settings.deadZone == 0 ? "Off" : "\(Int(settings.deadZone)) pt")
-                        .monospacedDigit().frame(width: 60, alignment: .trailing)
+            Section("Steadiness") {
+                ExplainedRow(preview: .ignoreNudges,
+                             caption: "The page only starts scrolling once your finger has moved at least this far — so a finger just resting on the mouse can't nudge anything.") {
+                    HStack {
+                        Text("Ignore small finger nudges")
+                        Slider(value: $settings.deadZone, in: 0...40, step: 1)
+                        Text(settings.deadZone == 0 ? "Off" : "\(Int(settings.deadZone))")
+                            .monospacedDigit().frame(width: 60, alignment: .trailing)
+                    }
                 }
-                Text("A gesture must travel this far before anything scrolls, so a resting finger can't nudge the page.")
-                    .font(.caption).foregroundStyle(.secondary)
 
-                Toggle("Axis lock", isOn: $settings.axisLock)
-                HStack {
-                    Text("Commit after")
-                    Slider(value: $settings.axisLockThreshold, in: 2...40, step: 1)
-                    Text("\(Int(settings.axisLockThreshold)) pt").monospacedDigit().frame(width: 60, alignment: .trailing)
+                ExplainedRow(preview: .straightLines,
+                             caption: "Scrolling sticks to straight up-down or left-right. A swipe that drifts a little diagonally won't wander sideways.") {
+                    Toggle("Scroll in straight lines", isOn: $settings.axisLock)
+                }
+                ExplainedRow(preview: .straightLines,
+                             caption: "How far your finger moves before the direction is locked in for that swipe. Lower locks sooner.") {
+                    HStack {
+                        Text("Pick a direction after")
+                        Slider(value: $settings.axisLockThreshold, in: 2...40, step: 1)
+                        Text("\(Int(settings.axisLockThreshold))").monospacedDigit().frame(width: 60, alignment: .trailing)
+                    }
                 }
                 .disabled(!settings.axisLock)
-                Text("Once a scroll commits to vertical or horizontal, the other axis is ignored for the rest of the gesture.")
-                    .font(.caption).foregroundStyle(.secondary)
             }
 
-            Section("Behaviour") {
-                Toggle("Momentum scrolling", isOn: $settings.momentumEnabled)
-                Text("Off = the page stops the moment your finger does. Applies to the Magic Mouse only; macOS's own setting is system-wide.")
-                    .font(.caption).foregroundStyle(.secondary)
-                Toggle("Ignore horizontal scrolling", isOn: $settings.blockHorizontalScroll)
+            Section("Feel") {
+                ExplainedRow(preview: .momentum(on: settings.momentumEnabled),
+                             caption: "On: the page keeps gliding after a quick swipe, like a trackpad. Off: it stops the moment your finger does. Only affects the Magic Mouse — macOS's own setting changes every device.") {
+                    Toggle("Keep gliding after a swipe", isOn: $settings.momentumEnabled)
+                }
+                ExplainedRow(preview: .ignoreSideways,
+                             caption: "Sideways swipes are ignored completely. Scrolling up and down still works.") {
+                    Toggle("Ignore sideways scrolling", isOn: $settings.blockHorizontalScroll)
+                }
             }
         }
         .formStyle(.grouped)
@@ -156,61 +172,65 @@ private struct ScrollingTab: View {
 private struct ClickingTab: View {
     @ObservedObject var settings: Settings
 
-    private var config: TapConfig { TapConfig(sensitivity: settings.tapSensitivity) }
-
     var body: some View {
         Form {
             Section("Tap to click") {
-                Toggle("Tap to click", isOn: $settings.tapToClick)
-                Text("A light single-finger tap on the surface left-clicks — no need to press the mouse down. Physical clicking keeps working as before.")
-                    .font(.caption).foregroundStyle(.secondary)
-
-                HStack {
-                    Text("Firm")
-                        .font(.caption).foregroundStyle(.secondary)
-                    Slider(value: $settings.tapSensitivity, in: 0...1)
-                    Text("Light")
-                        .font(.caption).foregroundStyle(.secondary)
+                ExplainedRow(preview: .tapToClick,
+                             caption: "A light single-finger tap on the surface clicks — no need to press the mouse down. Pressing to click keeps working as before.") {
+                    Toggle("Tap to click", isOn: $settings.tapToClick)
+                }
+                ExplainedRow(preview: .tapToClick,
+                             caption: "Firm: only quick, deliberate taps count — the fewest accidental clicks. Light: gentler, slower taps work too.") {
+                    HStack {
+                        Text("Firm")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Slider(value: $settings.tapSensitivity, in: 0...1)
+                        Text("Light")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 .disabled(!settings.tapToClick)
-                Text("Firm = only quick, deliberate taps count (fewest accidents). Light = easier to trigger. Right now a tap must finish within \(Int(config.maxDuration * 1000)) ms and move less than \(String(format: "%.0f", config.maxMovement * 100))% of the surface.")
-                    .font(.caption).foregroundStyle(.secondary)
             }
 
-            Section("Tap zone") {
-                Toggle("Front of the mouse only", isOn: $settings.tapZoneEnabled)
-                    .disabled(!settings.tapToClick)
-                HStack {
-                    Text("Zone depth")
-                    Slider(value: $settings.tapZoneDepth, in: 0.25...0.75, step: 0.05)
-                    Text("front \(Int((settings.tapZoneDepth * 100).rounded()))%")
-                        .monospacedDigit().frame(width: 76, alignment: .trailing)
+            Section("Where taps count") {
+                ExplainedRow(preview: .tapZone(depth: settings.tapZoneDepth),
+                             caption: "Taps only count on the front part of the surface — where deliberate fingertip taps land. The fingers gripping the sides can't click by accident.") {
+                    Toggle("Front of the mouse only", isOn: $settings.tapZoneEnabled)
+                }
+                .disabled(!settings.tapToClick)
+                ExplainedRow(preview: .tapZone(depth: settings.tapZoneDepth),
+                             caption: "How much of the surface, from the front edge back, accepts taps. Pressing to click and dragging work everywhere regardless.") {
+                    HStack {
+                        Text("Size of the tap area")
+                        Slider(value: $settings.tapZoneDepth, in: 0.25...0.75, step: 0.05)
+                        Text("front \(Int((settings.tapZoneDepth * 100).rounded()))%")
+                            .monospacedDigit().frame(width: 76, alignment: .trailing)
+                    }
                 }
                 .disabled(!settings.tapToClick || !settings.tapZoneEnabled)
-                Text("Taps only count when they land on the front part of the surface, away from the side edges — where deliberate fingertip taps happen, and where gripping fingers don't. Clicking and tap-and-drag are unaffected.")
-                    .font(.caption).foregroundStyle(.secondary)
             }
 
-            Section("Tap and drag") {
-                Toggle("Tap and drag", isOn: $settings.tapAndDrag)
-                    .disabled(!settings.tapToClick)
-                Text("Tap, then touch again and hold — the button presses the moment you start moving the mouse, and releases when the finger lifts. A quick second tap is still a double-click. A finger that just comes back to rest, or swipes to scroll, presses nothing at all.")
-                    .font(.caption).foregroundStyle(.secondary)
-
-                Toggle("Two-finger drag (long press)", isOn: $settings.twoFingerDrag)
-                    .disabled(!settings.tapToClick)
-                Text("Rest two fingers on the surface together and hold — after a moment the button presses down. Move the mouse to drag, lift to drop. A quick two-finger tap does nothing, and fingers that land one after the other never trigger it.")
-                    .font(.caption).foregroundStyle(.secondary)
+            Section("Dragging") {
+                ExplainedRow(preview: .tapAndDrag,
+                             caption: "Tap, then touch again and move the mouse — whatever is under the cursor comes along, and lifting your finger drops it. A quick second tap is still a double-click.") {
+                    Toggle("Tap and drag", isOn: $settings.tapAndDrag)
+                }
+                .disabled(!settings.tapToClick)
+                ExplainedRow(preview: .twoFingerDrag,
+                             caption: "Rest two fingers on the surface and hold for a moment — then move the mouse to drag, and lift to drop. Fingers that land one after the other are just your grip, and never trigger it.") {
+                    Toggle("Two-finger drag", isOn: $settings.twoFingerDrag)
+                }
+                .disabled(!settings.tapToClick)
             }
 
-            Section("Accident protection") {
+            Section("Accidental tap protection") {
                 Text("Taps are ignored automatically:")
                     .font(.caption).foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 4) {
-                    bullet("while — and shortly after — real scrolling (\(Int(config.scrollCooldown * 1000)) ms, follows the slider)")
-                    bullet("while a physical button is down, and \(Int(config.buttonCooldown * 1000)) ms after a real click")
-                    bullet("when two or more fingers touch the surface")
-                    bullet("for resting fingers (too long) and grazes (too small)")
+                    bullet("while — and just after — you're scrolling")
+                    bullet("while a button is held down, and right after a real click")
+                    bullet("when two or more fingers are on the surface")
+                    bullet("for fingers that rest too long, or barely brush the surface")
                 }
                 Text("Double- and triple-taps become real double- and triple-clicks.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -250,7 +270,7 @@ private struct AppsTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Rules apply while that app is frontmost. Anything left as “Inherit” follows the Scrolling tab.")
+            Text("Rules apply while that app is in front. Anything left as “Default” follows the Scrolling tab.")
                 .font(.caption).foregroundStyle(.secondary)
 
             HStack(alignment: .top, spacing: 12) {
@@ -318,17 +338,17 @@ private struct RuleEditor: View {
         Form {
             Section {
                 Toggle("Rule enabled", isOn: $rule.enabled)
-                LabeledContent("Bundle ID") {
+                LabeledContent("App ID") {
                     Text(rule.bundleID).font(.system(.caption, design: .monospaced))
                         .textSelection(.enabled)
                 }
             }
-            Section("Overrides") {
+            Section("In this app") {
                 TriToggle(title: "Ignore Magic Mouse scrolling", value: $rule.disableScrollEntirely)
-                TriToggle(title: "Block scroll while clicked", value: $rule.blockScrollWhileClicked)
-                TriToggle(title: "Ignore horizontal scrolling", value: $rule.blockHorizontalScroll)
-                TriToggle(title: "Momentum scrolling", value: $rule.momentumEnabled)
-                TriToggle(title: "Axis lock", value: $rule.axisLock)
+                TriToggle(title: "Don't scroll while clicking", value: $rule.blockScrollWhileClicked)
+                TriToggle(title: "Ignore sideways scrolling", value: $rule.blockHorizontalScroll)
+                TriToggle(title: "Keep gliding after a swipe", value: $rule.momentumEnabled)
+                TriToggle(title: "Scroll in straight lines", value: $rule.axisLock)
             }
         }
         .formStyle(.grouped)
@@ -344,7 +364,7 @@ private struct TriToggle: View {
         Picker(title, selection: Binding(
             get: { value == nil ? 0 : (value! ? 1 : 2) },
             set: { value = $0 == 0 ? nil : ($0 == 1) })) {
-                Text("Inherit").tag(0)
+                Text("Default").tag(0)
                 Text("On").tag(1)
                 Text("Off").tag(2)
             }
@@ -362,9 +382,9 @@ private struct ModifiersTab: View {
 
     var body: some View {
         Form {
-            Section("Hold a modifier while scrolling with the Magic Mouse") {
+            Section {
                 ForEach(combos, id: \.rawValue) { combo in
-                    Picker(combo.label + " scroll", selection: Binding(
+                    Picker("While holding " + combo.label, selection: Binding(
                         get: { settings.modifierActions[combo] ?? .normal },
                         set: { action in
                             var m = settings.modifierActions
@@ -374,9 +394,15 @@ private struct ModifiersTab: View {
                             ForEach(ScrollAction.allCases, id: \.self) { Text($0.label).tag($0) }
                         }
                 }
+            } header: {
+                ExplainedRow(preview: .keyZoom,
+                             caption: "Hold the key and scroll on the Magic Mouse to get the action you picked — here, zooming instead of scrolling.") {
+                    Text("Hold a key while you scroll to change what it does")
+                    Spacer()
+                }
             }
             Section {
-                Text("“Zoom (⌘)” relabels the scroll as ⌘-scroll, which Figma, Sketch, Preview and most creative apps zoom with. “Zoom (⌃)” drives the macOS system zoom. Only the Magic Mouse is affected — your trackpad and other mice keep their normal behaviour.")
+                Text("“Zoom in apps” is the zoom Figma, Sketch, Preview and most design apps use. “Zoom the whole screen” magnifies everything on screen (the macOS zoom). Only the Magic Mouse is affected — your trackpad and other mice keep working normally.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -406,7 +432,7 @@ private struct BatteryTab: View {
                     Button("Refresh") { battery.poll(); reading = battery.latest }
                 }
             }
-            Section("Low battery nudge") {
+            Section("Low battery warning") {
                 Toggle("Warn me when the battery gets low", isOn: $settings.batteryWarningEnabled)
                 HStack {
                     Text("Warn below")

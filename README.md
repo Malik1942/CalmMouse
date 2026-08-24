@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/icon-256.png" width="128" alt="Godmouse icon">
+</p>
+
 <h1 align="center">Godmouse</h1>
 
 <p align="center">
@@ -105,16 +109,20 @@ Godmouse never sees keystrokes, never touches the network, and stores nothing bu
 The switches you flip often live in the **menu bar**; everything else lives in the **settings
 window** (⌘, from the menu).
 
-**Menu bar** — status and battery line, Enable Godmouse, Block scroll while clicked, Momentum,
-Axis lock, Per-app rules, Settings…, Quit.
+**Menu bar** — status and battery line, Godmouse enabled, Don't scroll while clicking, Keep
+gliding after a swipe (momentum), Scroll in straight lines, Tap to click, Per-app rules,
+Settings…, Quit.
 
-**Settings window** — five tabs:
+**Settings window** — six tabs:
 
 - **General** — enable, launch at login, permission status, troubleshooting toggles
-- **Scrolling** — release grace, dead zone, axis-lock sensitivity, horizontal scroll, momentum
+- **Scrolling** — don't scroll while clicking, nudge filtering, straight-line scrolling, momentum
+- **Clicking** — tap to click, tap area, tap-and-drag, two-finger drag
 - **Apps** — per-app rules
-- **Modifiers** — modifier + scroll actions
+- **Shortcuts** — hold a modifier key while scrolling to scroll sideways, zoom, and more
 - **Battery** — current level and the low-battery threshold
+
+Hover any setting (or its ⓘ) for a little animated preview of what it does.
 
 The menu-bar icon carries state: orange when it needs attention, dimmed when paused, yellow when the
 mouse battery is low.

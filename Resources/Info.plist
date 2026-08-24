@@ -8,6 +8,8 @@
 	<string>Godmouse</string>
 	<key>CFBundleExecutable</key>
 	<string>Godmouse</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.godmouse.app</string>
 	<key>CFBundleInfoDictionaryVersion</key>

@@ -21,9 +21,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let batteryLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let permissionItem = NSMenuItem(title: "Grant Accessibility permission…", action: #selector(openAccessibility), keyEquivalent: "")
     private let enabledItem = NSMenuItem(title: "Godmouse enabled", action: #selector(toggleEnabled), keyEquivalent: "")
-    private let blockItem = NSMenuItem(title: "Block scroll while clicked", action: #selector(toggleBlock), keyEquivalent: "")
-    private let momentumItem = NSMenuItem(title: "Momentum scrolling", action: #selector(toggleMomentum), keyEquivalent: "")
-    private let axisLockItem = NSMenuItem(title: "Axis lock", action: #selector(toggleAxisLock), keyEquivalent: "")
+    private let blockItem = NSMenuItem(title: "Don't scroll while clicking", action: #selector(toggleBlock), keyEquivalent: "")
+    private let momentumItem = NSMenuItem(title: "Keep gliding after a swipe", action: #selector(toggleMomentum), keyEquivalent: "")
+    private let axisLockItem = NSMenuItem(title: "Scroll in straight lines", action: #selector(toggleAxisLock), keyEquivalent: "")
     private let tapToClickItem = NSMenuItem(title: "Tap to click", action: #selector(toggleTapToClick), keyEquivalent: "")
     private let perAppItem = NSMenuItem(title: "Ignore scrolling in this app", action: #selector(togglePerApp), keyEquivalent: "")
 
