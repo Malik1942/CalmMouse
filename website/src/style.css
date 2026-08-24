@@ -241,7 +241,7 @@ code {
 }
 
 .hero-mouse {
-  margin: clamp(56px, 9vh, 96px) auto -1px;
+  margin: clamp(56px, 9vh, 96px) auto 10px;
   width: clamp(170px, 24vw, 240px);
 }
 
