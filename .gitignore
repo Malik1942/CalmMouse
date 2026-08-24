@@ -2,6 +2,8 @@
 .build.nosync/
 build/
 dist/
+node_modules/
+.claude/
 *.xcodeproj
 .swiftpm/
 .DS_Store
