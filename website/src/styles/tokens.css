@@ -1,0 +1,167 @@
+/* =============================================================
+   FOUNDATIONS — design tokens
+   The only place raw values are allowed. Everything else in the
+   stylesheet composes these; if a component needs a new value,
+   add a token here rather than a literal there.
+   ============================================================= */
+
+:root {
+  /* ---------- Palette primitives -------------------------------
+     Raw ramp. Never referenced by components directly — the
+     semantic tokens below map them to roles so dark mode only has
+     to remap roles, not hunt down literals. */
+  --palette-white: #ffffff;
+  --palette-gray-50: #f5f5f7;
+  --palette-gray-100: #e8e8ed;
+  --palette-gray-500: #6e6e73;
+  --palette-gray-600: #a1a1a6;
+  --palette-gray-850: #1b1b1e;
+  --palette-gray-900: #1d1d1f;
+  --palette-black: #000000;
+
+  --palette-blue-500: #0071e3; /* accent, light mode */
+  --palette-blue-400: #2997ff; /* accent, dark mode (raised for contrast on black) */
+
+  --palette-green-500: #28c840;
+  --palette-yellow-500: #febc2e;
+  --palette-red-500: #ff5f57;
+
+  /* ---------- Semantic colour ---------------------------------- */
+  --color-bg: var(--palette-white);
+  --color-bg-subtle: var(--palette-gray-50);
+  --color-surface: var(--palette-white);
+  --color-text: var(--palette-gray-900);
+  --color-text-secondary: var(--palette-gray-500);
+  --color-border: rgba(0, 0, 0, 0.1);
+  --color-accent: var(--palette-blue-500);
+  --color-on-accent: var(--palette-white);
+  --color-scrim: rgba(255, 255, 255, 0.72); /* nav backdrop */
+  --color-knob: var(--palette-white);       /* switch handle */
+
+  /* Magic Mouse illustration — its own scale because the glass
+     material needs light/dark values that aren't UI surfaces. */
+  --color-shell-top: #f8f8fa;
+  --color-shell-bottom: #d7d7dc;
+  --color-shell-edge: rgba(0, 0, 0, 0.15);
+  --color-shell-reflection: rgba(255, 255, 255, 0.95);
+  --color-shell-occlusion: rgba(0, 0, 0, 0.2);
+  --color-ripple: rgba(0, 113, 227, 0.6);
+
+  /* ---------- Typography --------------------------------------- */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, Menlo, monospace;
+
+  /* Static steps — UI text */
+  --text-2xs: 0.72rem;
+  --text-xs: 0.8rem;
+  --text-sm: 0.875rem;
+  --text-base: 0.95rem;
+  --text-md: 1rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.125rem;
+  --text-2xl: 1.25rem;
+
+  /* Fluid steps — editorial text that should scale with viewport */
+  --text-lede: clamp(1.08rem, 2vw, 1.3rem);
+  --text-tagline: clamp(1.15rem, 2.2vw, 1.45rem);
+  --text-statement: clamp(1.35rem, 2.7vw, 1.85rem);
+  --text-display-md: clamp(2.3rem, 5.6vw, 3.8rem);
+  --text-display-lg: clamp(3.6rem, 11vw, 7.5rem);
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --leading-tight: 1.08;
+  --leading-snug: 1.3;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.55;
+
+  --tracking-tight: -0.03em;
+  --tracking-snug: -0.02em;
+  --tracking-normal: -0.01em;
+  --tracking-loose: 0.05em;
+
+  /* ---------- Space (4px base) ---------------------------------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-14: 3.5rem;
+  --space-16: 4rem;
+
+  /* Fluid rhythm — vertical cadence between major blocks */
+  --space-section: clamp(5rem, 12vh, 8.75rem);
+  --space-block: clamp(2.25rem, 6vh, 3.75rem);
+  --space-hero-top: clamp(4.375rem, 12vh, 8.125rem);
+  --space-hero-visual: clamp(3.5rem, 9vh, 6rem);
+
+  /* ---------- Radius -------------------------------------------- */
+  --radius-xs: 5px;
+  --radius-sm: 7px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
+  --radius-pill: 980px;
+  --radius-circle: 50%;
+
+  /* ---------- Elevation ------------------------------------------ */
+  --shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-floating: 0 20px 60px rgba(0, 0, 0, 0.12);
+  --shadow-object: 0 30px 50px rgba(0, 0, 0, 0.18);
+
+  /* ---------- Motion --------------------------------------------- */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 0.2s;
+  --duration-slow: 0.9s;
+  --duration-loop: 4.5s;      /* the with/without comparison cycle */
+  --duration-loop-tap: 3.2s;  /* the hero tap ripple cycle */
+
+  /* ---------- Layout --------------------------------------------- */
+  --container-width: 1024px;
+  --container-gutter: var(--space-6);
+  --measure-wide: 700px;   /* section copy */
+  --measure-mid: 640px;    /* hero statement */
+  --measure-narrow: 560px; /* install steps, settings window */
+  --nav-height: 52px;
+  --z-nav: 100;
+
+  color-scheme: light dark;
+}
+
+/* =============================================================
+   Dark theme — remaps roles only. No component rule below this
+   file needs to know which theme is active.
+   ============================================================= */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: var(--palette-black);
+    --color-bg-subtle: #101012;
+    --color-surface: var(--palette-gray-850);
+    --color-text: var(--palette-gray-50);
+    --color-text-secondary: var(--palette-gray-600);
+    --color-border: rgba(255, 255, 255, 0.14);
+    --color-accent: var(--palette-blue-400);
+    --color-on-accent: var(--palette-white);
+    --color-scrim: rgba(0, 0, 0, 0.65);
+    --color-knob: #d5d5d8;
+
+    --color-shell-top: #2e2e32;
+    --color-shell-bottom: #0e0e10;
+    --color-shell-edge: rgba(255, 255, 255, 0.18);
+    --color-shell-reflection: rgba(255, 255, 255, 0.32);
+    --color-shell-occlusion: rgba(0, 0, 0, 0.55);
+    --color-ripple: rgba(41, 151, 255, 0.65);
+
+    --shadow-floating: 0 20px 60px rgba(0, 0, 0, 0.7);
+  }
+}

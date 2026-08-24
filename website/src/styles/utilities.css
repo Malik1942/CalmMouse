@@ -1,0 +1,55 @@
+/* =============================================================
+   UTILITIES — single-purpose helpers and global motion rules.
+   ============================================================= */
+
+/* ---------- Reveal on scroll ------------------------------------ */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity var(--duration-slow) var(--ease-out-expo),
+    transform var(--duration-slow) var(--ease-out-expo);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Siblings revealing together cascade rather than snapping in as a block. */
+.is-visible:nth-child(2) { transition-delay: 0.07s; }
+.is-visible:nth-child(3) { transition-delay: 0.14s; }
+.is-visible:nth-child(4) { transition-delay: 0.21s; }
+.is-visible:nth-child(5) { transition-delay: 0.28s; }
+
+/* ---------- Reduced motion --------------------------------------
+   Everything decorative stops. The reveal resolves to its end
+   state so no content is left invisible. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .btn:hover,
+  .btn:active {
+    transform: none;
+  }
+
+  .mouse__tap,
+  .mouse__ripple,
+  .compare__cursor,
+  .compare__click,
+  .compare__item--before .compare__page {
+    animation: none;
+  }
+
+  .mouse__ripple,
+  .compare__click {
+    opacity: 0;
+  }
+}

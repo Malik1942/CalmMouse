@@ -1,0 +1,377 @@
+/* =============================================================
+   PATTERNS — page-level compositions.
+   Patterns arrange components and own the space between them.
+   Components own their own insides; patterns own the layout.
+   ============================================================= */
+
+/* ---------- Container ------------------------------------------ */
+.container {
+  max-width: var(--container-width);
+  margin-inline: auto;
+  padding-inline: var(--container-gutter);
+}
+
+/* ---------- Action row (button + link pairing) ----------------- */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+  flex-wrap: wrap;
+}
+
+.actions--center {
+  justify-content: center;
+}
+
+/* ---------- Site nav -------------------------------------------- */
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-nav);
+  background: var(--color-scrim);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.site-nav__inner {
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.site-nav__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-normal);
+}
+
+.site-nav__brand img {
+  border-radius: var(--radius-xs);
+}
+
+.site-nav__links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  font-size: var(--text-xs);
+}
+
+.site-nav__link {
+  color: var(--color-text-secondary);
+  transition: color var(--duration-fast) ease;
+}
+
+.site-nav__link:hover {
+  color: var(--color-text);
+}
+
+/* ---------- Hero -------------------------------------------------- */
+.hero {
+  padding: var(--space-hero-top) var(--container-gutter) 0;
+  text-align: center;
+  overflow: hidden;
+}
+
+.hero__title {
+  margin-top: var(--space-3);
+  font-size: var(--text-display-lg);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.03;
+}
+
+.hero__tagline {
+  margin-top: var(--space-3);
+  font-size: var(--text-tagline);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.hero__statement {
+  max-width: var(--measure-mid);
+  margin: var(--space-block) auto 0;
+  font-size: var(--text-statement);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-snug);
+  line-height: var(--leading-snug);
+  color: var(--color-text-secondary);
+}
+
+.hero__statement strong {
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+.hero .actions {
+  margin-top: var(--space-10);
+}
+
+.hero__fineprint {
+  margin-top: var(--space-5);
+}
+
+.hero__visual {
+  margin: var(--space-hero-visual) auto var(--space-2);
+  width: clamp(170px, 24vw, 240px);
+}
+
+/* ---------- Magic Mouse illustration ---------------------------- */
+.mouse {
+  width: 100%;
+  filter: drop-shadow(var(--shadow-object));
+}
+
+.mouse__tap {
+  fill: var(--color-ripple);
+  animation: tap-dot var(--duration-loop-tap) ease-in-out infinite;
+}
+
+.mouse__ripple {
+  fill: none;
+  stroke: var(--color-ripple);
+  stroke-width: 2.5;
+  opacity: 0;
+  transform-origin: 130px 120px;
+  animation: ripple var(--duration-loop-tap) ease-out infinite;
+}
+
+.mouse__ripple--delayed {
+  animation-delay: 0.35s;
+}
+
+@keyframes tap-dot {
+  0%, 55%, 100% { opacity: 0; }
+  60%, 80% { opacity: 1; }
+}
+
+@keyframes ripple {
+  0%, 58% { opacity: 0; transform: scale(0.4); }
+  62% { opacity: 0.9; }
+  95%, 100% { opacity: 0; transform: scale(2.6); }
+}
+
+/* ---------- Section --------------------------------------------- */
+.section {
+  padding-block: var(--space-section);
+}
+
+.section--alt {
+  background: var(--color-bg-subtle);
+}
+
+.section--center {
+  text-align: center;
+}
+
+.section__copy {
+  max-width: var(--measure-wide);
+}
+
+.section--center .section__copy {
+  max-width: var(--measure-mid);
+  margin-inline: auto;
+}
+
+.section__title {
+  font-size: var(--text-display-md);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.025em;
+  line-height: var(--leading-tight);
+  margin-bottom: var(--space-6);
+}
+
+.section--center .section__title {
+  margin-bottom: var(--space-4);
+}
+
+/* ---------- Comparison (with / without) -------------------------- */
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin-top: var(--space-14);
+}
+
+.compare__screen {
+  position: relative;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  height: 250px;
+  overflow: hidden;
+}
+
+.section--alt .compare__screen {
+  background: var(--color-bg);
+}
+
+.compare__page {
+  padding: var(--space-7) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Only the "without" side jumps — that jump is the whole point. */
+.compare__item--before .compare__page {
+  animation: page-jump var(--duration-loop) ease-in-out infinite;
+}
+
+.compare__line {
+  height: 11px;
+  border-radius: var(--radius-xs);
+  background: var(--color-border);
+}
+
+.compare__line--target {
+  background: var(--color-accent);
+  opacity: 0.75;
+}
+
+.compare__cursor {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  left: 50%;
+  top: 44%;
+  animation: cursor-move var(--duration-loop) ease-in-out infinite;
+}
+
+.compare__click {
+  position: absolute;
+  left: calc(50% - 12px);
+  top: calc(44% - 10px);
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--color-ripple);
+  border-radius: var(--radius-circle);
+  opacity: 0;
+  animation: click-ring var(--duration-loop) ease-out infinite;
+}
+
+.compare__caption {
+  margin-top: var(--space-4);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--color-text-secondary);
+}
+
+.compare__caption strong {
+  display: block;
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+@keyframes cursor-move {
+  0% { transform: translate(150px, 130px); }
+  30%, 87% { transform: translate(0, 0); }
+  40%, 44% { transform: translate(0, 0) scale(0.82); }
+  48% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(150px, 130px); }
+}
+
+@keyframes click-ring {
+  0%, 41% { opacity: 0; transform: scale(0.4); }
+  46% { opacity: 0.9; }
+  70%, 100% { opacity: 0; transform: scale(2.2); }
+}
+
+@keyframes page-jump {
+  0%, 43% { transform: translateY(0); }
+  47% { transform: translateY(-34px); }
+  49% { transform: translateY(-28px); }
+  88% { transform: translateY(-28px); }
+  96%, 100% { transform: translateY(0); }
+}
+
+/* ---------- Bento grid -------------------------------------------- */
+.bento {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-5);
+  margin-top: var(--space-14);
+}
+
+.bento > .card {
+  grid-column: span 2;
+}
+
+.bento > .card--wide {
+  grid-column: span 3;
+}
+
+/* ---------- Centred figure ---------------------------------------- */
+.figure-center {
+  margin-top: var(--space-14);
+  display: flex;
+  justify-content: center;
+}
+
+/* ---------- Tile grid ---------------------------------------------- */
+.tile-grid {
+  list-style: none;
+  margin-top: var(--space-10);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-5);
+}
+
+/* ---------- Steps ---------------------------------------------------- */
+.steps {
+  list-style: none;
+  max-width: var(--measure-narrow);
+  margin: var(--space-16) auto 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.section__note {
+  margin-top: var(--space-14);
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+/* ---------- Footer ---------------------------------------------------- */
+.site-footer {
+  border-top: 1px solid var(--color-border);
+  padding-block: var(--space-8) var(--space-10);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.site-footer__legal {
+  margin-top: var(--space-2);
+}
+
+/* =============================================================
+   Responsive — the bento reflows first, then the comparison
+   stacks and the nav sheds its secondary links.
+   ============================================================= */
+@media (max-width: 900px) {
+  .bento > .card,
+  .bento > .card--wide {
+    grid-column: span 3;
+  }
+}
+
+@media (max-width: 640px) {
+  .site-nav__link {
+    display: none;
+  }
+
+  .compare {
+    grid-template-columns: 1fr;
+  }
+
+  .bento > .card,
+  .bento > .card--wide {
+    grid-column: span 6;
+  }
+}

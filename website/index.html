@@ -17,54 +17,62 @@
     <script type="module" src="/src/main.js"></script>
   </head>
   <body>
-    <nav class="localnav" aria-label="CalmMouse">
-      <div class="localnav-inner">
-        <a class="localnav-title" href="#top">
+    <nav class="site-nav" aria-label="CalmMouse">
+      <div class="site-nav__inner container">
+        <a class="site-nav__brand" href="#top">
           <img src="/icon-256.png" alt="" width="22" height="22" />
           CalmMouse
         </a>
-        <div class="localnav-links">
-          <a href="#problem">The&nbsp;fix</a>
-          <a href="#features">Features</a>
-          <a href="#privacy">Privacy</a>
-          <a href="https://github.com/Malik1942/CalmMouse" target="_blank" rel="noopener">GitHub</a>
-          <a class="pill pill-small" href="#download">Download</a>
+        <div class="site-nav__links">
+          <a class="site-nav__link" href="#problem">The&nbsp;fix</a>
+          <a class="site-nav__link" href="#features">Features</a>
+          <a class="site-nav__link" href="#privacy">Privacy</a>
+          <a class="site-nav__link" href="https://github.com/Malik1942/CalmMouse" target="_blank" rel="noopener">GitHub</a>
+          <a
+            class="btn btn--primary btn--sm"
+            href="https://github.com/Malik1942/CalmMouse/releases/latest/download/CalmMouse.zip"
+            >Download</a
+          >
         </div>
       </div>
     </nav>
 
     <header class="hero" id="top">
-      <p class="hero-eyebrow reveal">Free &amp; open source</p>
-      <h1 class="hero-title reveal">CalmMouse</h1>
-      <p class="hero-tagline reveal">Magic&nbsp;Mouse UX fixes for macOS.</p>
-      <p class="hero-statement reveal">
+      <p class="eyebrow reveal">Free &amp; open source</p>
+      <h1 class="hero__title reveal">CalmMouse</h1>
+      <p class="hero__tagline reveal">Magic&nbsp;Mouse UX fixes for macOS.</p>
+      <p class="hero__statement reveal">
         The main one: <strong>your mouse stops scrolling the page every&nbsp;time you&nbsp;click.</strong>
       </p>
-      <div class="hero-ctas reveal">
-        <a class="pill pill-large" href="#download">Download for macOS</a>
-        <a class="text-link" href="https://github.com/Malik1942/CalmMouse" target="_blank" rel="noopener"
+      <div class="actions actions--center reveal">
+        <a
+          class="btn btn--primary btn--lg"
+          href="https://github.com/Malik1942/CalmMouse/releases/latest/download/CalmMouse.zip"
+          >Download for macOS</a
+        >
+        <a class="link-arrow" href="https://github.com/Malik1942/CalmMouse" target="_blank" rel="noopener"
           >View on GitHub <span aria-hidden="true">›</span></a
         >
       </div>
-      <p class="hero-fineprint reveal">Free. MIT-licensed. Requires macOS&nbsp;13 or later.</p>
+      <p class="fineprint hero__fineprint reveal">Free. MIT-licensed. Requires macOS&nbsp;13 or later.</p>
 
-      <div class="hero-mouse reveal" aria-hidden="true">
-        <svg viewBox="0 0 260 460" class="mouse-svg" role="img" aria-label="Magic Mouse, seen from above">
+      <div class="hero__visual reveal" aria-hidden="true">
+        <svg viewBox="0 0 260 460" class="mouse" role="img" aria-label="Magic Mouse, seen from above">
           <defs>
             <linearGradient id="shell" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="var(--mouse-hi)" />
-              <stop offset="1" stop-color="var(--mouse-lo)" />
+              <stop offset="0" stop-color="var(--color-shell-top)" />
+              <stop offset="1" stop-color="var(--color-shell-bottom)" />
             </linearGradient>
             <!-- one large, soft glass reflection sweeping down almost the whole shell -->
             <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="var(--mouse-refl)" stop-opacity="0.85" />
-              <stop offset="0.5" stop-color="var(--mouse-refl)" stop-opacity="0.35" />
-              <stop offset="0.92" stop-color="var(--mouse-refl)" stop-opacity="0" />
+              <stop offset="0" stop-color="var(--color-shell-reflection)" stop-opacity="0.85" />
+              <stop offset="0.5" stop-color="var(--color-shell-reflection)" stop-opacity="0.35" />
+              <stop offset="0.92" stop-color="var(--color-shell-reflection)" stop-opacity="0" />
             </linearGradient>
             <linearGradient id="band" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0" stop-color="var(--mouse-refl)" stop-opacity="0" />
-              <stop offset="0.5" stop-color="var(--mouse-refl)" stop-opacity="0.55" />
-              <stop offset="1" stop-color="var(--mouse-refl)" stop-opacity="0" />
+              <stop offset="0" stop-color="var(--color-shell-reflection)" stop-opacity="0" />
+              <stop offset="0.5" stop-color="var(--color-shell-reflection)" stop-opacity="0.55" />
+              <stop offset="1" stop-color="var(--color-shell-reflection)" stop-opacity="0" />
             </linearGradient>
             <clipPath id="bodyClip"><rect x="15" y="15" width="230" height="430" rx="115" /></clipPath>
             <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
@@ -78,13 +86,13 @@
             <rect x="42" y="28" width="72" height="390" rx="36" fill="url(#band)" filter="url(#soft)" opacity="0.8" />
             <rect x="188" y="50" width="26" height="330" rx="13" fill="url(#band)" filter="url(#soft)" opacity="0.4" />
             <!-- ambient occlusion around the rim -->
-            <rect x="15" y="15" width="230" height="430" rx="115" fill="none" stroke="var(--mouse-ao)" stroke-width="18" filter="url(#soft)" />
+            <rect x="15" y="15" width="230" height="430" rx="115" fill="none" stroke="var(--color-shell-occlusion)" stroke-width="18" filter="url(#soft)" />
           </g>
-          <rect x="15" y="15" width="230" height="430" rx="115" fill="none" stroke="var(--mouse-edge)" stroke-width="1.5" />
-          <g class="tap-ripples">
-            <circle class="ripple r1" cx="130" cy="120" r="18" />
-            <circle class="ripple r2" cx="130" cy="120" r="18" />
-            <circle class="tap-dot" cx="130" cy="120" r="10" />
+          <rect x="15" y="15" width="230" height="430" rx="115" fill="none" stroke="var(--color-shell-edge)" stroke-width="1.5" />
+          <g>
+            <circle class="mouse__ripple" cx="130" cy="120" r="18" />
+            <circle class="mouse__ripple mouse__ripple--delayed" cx="130" cy="120" r="18" />
+            <circle class="mouse__tap" cx="130" cy="120" r="10" />
           </g>
         </svg>
       </div>
@@ -93,245 +101,260 @@
     <main>
       <!-- ============ The problem / headline fix ============ -->
       <section class="section" id="problem">
-        <div class="section-copy">
-          <h2 class="reveal">Every click is also<br />a tiny swipe.</h2>
-          <p class="lede reveal">
-            The Magic&nbsp;Mouse's entire top shell is a touch surface — and it stays live while you click.
-            You press down, your finger rolls half a millimetre, and the page jumps. Drag a window and the
-            document scrolls out from under it. Click a link and the link moves first.
-          </p>
-          <p class="lede reveal">
-            macOS has no setting for this. <strong>CalmMouse is that setting</strong> — a small menu-bar app
-            that swallows Magic&nbsp;Mouse scrolling while any of its buttons is held, and keeps swallowing
-            for a moment after, to catch the trailing swipe your finger makes as it lifts.
-          </p>
-        </div>
+        <div class="container">
+          <div class="section__copy">
+            <h2 class="section__title reveal">Every click is also<br />a tiny swipe.</h2>
+            <p class="lede reveal">
+              The Magic&nbsp;Mouse's entire top shell is a touch surface — and it stays live while you click.
+              You press down, your finger rolls half a millimetre, and the page jumps. Drag a window and the
+              document scrolls out from under it. Click a link and the link moves first.
+            </p>
+            <p class="lede reveal">
+              macOS has no setting for this. <strong>CalmMouse is that setting</strong> — a small menu-bar app
+              that swallows Magic&nbsp;Mouse scrolling while any of its buttons is held, and keeps swallowing
+              for a moment after, to catch the trailing swipe your finger makes as it lifts.
+            </p>
+          </div>
 
-        <div class="demo-pair reveal" aria-label="Comparison: clicking with and without CalmMouse">
-          <figure class="demo demo-before">
-            <div class="demo-screen">
-              <div class="demo-page">
-                <div class="demo-line w80"></div>
-                <div class="demo-line w95"></div>
-                <div class="demo-line w60 demo-target"></div>
-                <div class="demo-line w90"></div>
-                <div class="demo-line w75"></div>
-                <div class="demo-line w95"></div>
-                <div class="demo-line w55"></div>
+          <div class="compare reveal" aria-label="Comparison: clicking with and without CalmMouse">
+            <figure class="compare__item compare__item--before">
+              <div class="compare__screen">
+                <div class="compare__page">
+                  <div class="compare__line" style="width: 80%"></div>
+                  <div class="compare__line" style="width: 95%"></div>
+                  <div class="compare__line compare__line--target" style="width: 60%"></div>
+                  <div class="compare__line" style="width: 90%"></div>
+                  <div class="compare__line" style="width: 75%"></div>
+                  <div class="compare__line" style="width: 95%"></div>
+                  <div class="compare__line" style="width: 55%"></div>
+                </div>
+                <svg class="compare__cursor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 2l14 12-6.5 1L9 21z" fill="var(--color-text)" stroke="var(--color-bg)" stroke-width="1.5" />
+                </svg>
+                <span class="compare__click" aria-hidden="true"></span>
               </div>
-              <svg class="demo-cursor" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M5 2l14 12-6.5 1L9 21z" fill="var(--text)" stroke="var(--bg)" stroke-width="1.5" />
-              </svg>
-              <span class="demo-click-ring" aria-hidden="true"></span>
-            </div>
-            <figcaption>
-              <strong>Without CalmMouse</strong>
-              The click lands, the page jumps.
-            </figcaption>
-          </figure>
+              <figcaption class="compare__caption">
+                <strong>Without CalmMouse</strong>
+                The click lands, the page jumps.
+              </figcaption>
+            </figure>
 
-          <figure class="demo demo-after">
-            <div class="demo-screen">
-              <div class="demo-page">
-                <div class="demo-line w80"></div>
-                <div class="demo-line w95"></div>
-                <div class="demo-line w60 demo-target"></div>
-                <div class="demo-line w90"></div>
-                <div class="demo-line w75"></div>
-                <div class="demo-line w95"></div>
-                <div class="demo-line w55"></div>
+            <figure class="compare__item compare__item--after">
+              <div class="compare__screen">
+                <div class="compare__page">
+                  <div class="compare__line" style="width: 80%"></div>
+                  <div class="compare__line" style="width: 95%"></div>
+                  <div class="compare__line compare__line--target" style="width: 60%"></div>
+                  <div class="compare__line" style="width: 90%"></div>
+                  <div class="compare__line" style="width: 75%"></div>
+                  <div class="compare__line" style="width: 95%"></div>
+                  <div class="compare__line" style="width: 55%"></div>
+                </div>
+                <svg class="compare__cursor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 2l14 12-6.5 1L9 21z" fill="var(--color-text)" stroke="var(--color-bg)" stroke-width="1.5" />
+                </svg>
+                <span class="compare__click" aria-hidden="true"></span>
               </div>
-              <svg class="demo-cursor" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M5 2l14 12-6.5 1L9 21z" fill="var(--text)" stroke="var(--bg)" stroke-width="1.5" />
-              </svg>
-              <span class="demo-click-ring" aria-hidden="true"></span>
-            </div>
-            <figcaption>
-              <strong>With CalmMouse</strong>
-              The click just clicks.
-            </figcaption>
-          </figure>
+              <figcaption class="compare__caption">
+                <strong>With CalmMouse</strong>
+                The click just clicks.
+              </figcaption>
+            </figure>
+          </div>
         </div>
       </section>
 
       <!-- ============ Features ============ -->
-      <section class="section section-alt" id="features">
-        <div class="section-copy">
-          <h2 class="reveal">And the rest of the<br />rough edges.</h2>
-          <p class="lede reveal">
-            Everything applies <strong>only to the Magic&nbsp;Mouse</strong>. CalmMouse identifies the
-            physical device behind every event, so your trackpad and any other mouse pass through untouched.
-          </p>
-        </div>
-
-        <div class="bento">
-          <article class="card card-wide reveal">
-            <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="3" fill="currentColor" />
-              <circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5" />
-              <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.25" />
-            </svg>
-            <h3>Tap to click</h3>
-            <p>
-              A light single-finger tap left-clicks — no need to press the mouse down. Adjustable
-              Firm↔Light sensitivity, and taps are auto-rejected while you're scrolling, clicking,
-              resting a finger, or just grazing the shell. Double- and triple-taps become real
-              double- and triple-clicks.
+      <section class="section section--alt" id="features">
+        <div class="container">
+          <div class="section__copy">
+            <h2 class="section__title reveal">And the rest of the<br />rough edges.</h2>
+            <p class="lede reveal">
+              Everything applies <strong>only to the Magic&nbsp;Mouse</strong>. CalmMouse identifies the
+              physical device behind every event, so your trackpad and any other mouse pass through untouched.
             </p>
-          </article>
+          </div>
 
-          <article class="card card-wide reveal">
-            <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="7" cy="16" r="3" fill="currentColor" />
-              <path d="M11 13L19 5m0 0h-5m5 0v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <h3>Tap and drag</h3>
-            <p>
-              Tap, touch again, and go: the button presses down when you actually start moving and
-              releases when your finger lifts. A finger that just comes back to rest never presses
-              anything — and a quick second tap is still a double-click, so selecting a word and
-              extending it works.
-            </p>
-          </article>
+          <div class="bento">
+            <article class="card card--wide reveal">
+              <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="3" fill="currentColor" />
+                <circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5" />
+                <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.25" />
+              </svg>
+              <h3 class="card__title">Tap to click</h3>
+              <p class="card__body">
+                A light single-finger tap left-clicks — no need to press the mouse down. Adjustable
+                Firm↔Light sensitivity, and taps are auto-rejected while you're scrolling, clicking,
+                resting a finger, or just grazing the shell. Double- and triple-taps become real
+                double- and triple-clicks.
+              </p>
+            </article>
 
-          <article class="card card-wide reveal">
-            <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="8.5" cy="10" r="3" fill="currentColor" />
-              <circle cx="15.5" cy="10" r="3" fill="currentColor" />
-              <path d="M12 16v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-            </svg>
-            <h3>Two-finger drag</h3>
-            <p>
-              Rest two fingers on the surface together and hold — after a moment the button presses
-              down. Move to drag, lift either finger to drop. Fingers that land one after the other
-              are grip, not gesture, and never trigger it.
-            </p>
-          </article>
+            <article class="card card--wide reveal">
+              <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="7" cy="16" r="3" fill="currentColor" />
+                <path d="M11 13L19 5m0 0h-5m5 0v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <h3 class="card__title">Tap and drag</h3>
+              <p class="card__body">
+                Tap, touch again, and go: the button presses down when you actually start moving and
+                releases when your finger lifts. A finger that just comes back to rest never presses
+                anything — and a quick second tap is still a double-click, so selecting a word and
+                extending it works.
+              </p>
+            </article>
 
-          <article class="card card-wide reveal">
-            <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="3" y="3" width="8" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" />
-              <rect x="13" y="3" width="8" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" />
-              <rect x="3" y="13" width="8" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" />
-              <rect x="13" y="13" width="8" height="8" rx="2" fill="currentColor" />
-            </svg>
-            <h3>Per-app rules</h3>
-            <p>
-              Any setting, overridden per application. Disable Magic&nbsp;Mouse scrolling entirely in
-              Figma, block horizontal scroll in Excel, drop momentum in your code editor. Rules
-              follow whichever app is in front.
-            </p>
-          </article>
+            <article class="card card--wide reveal">
+              <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="8.5" cy="10" r="3" fill="currentColor" />
+                <circle cx="15.5" cy="10" r="3" fill="currentColor" />
+                <path d="M12 16v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              </svg>
+              <h3 class="card__title">Two-finger drag</h3>
+              <p class="card__body">
+                Rest two fingers on the surface together and hold — after a moment the button presses
+                down. Move to drag, lift either finger to drop. Fingers that land one after the other
+                are grip, not gesture, and never trigger it.
+              </p>
+            </article>
 
-          <article class="card reveal">
-            <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 3v18m0-18l-3.5 3.5M12 3l3.5 3.5M12 21l-3.5-3.5M12 21l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <h3>Scroll in straight lines</h3>
-            <p>
-              Once a scroll commits to vertical or horizontal, the other axis is zeroed for the rest
-              of the gesture. No more diagonal drift.
-            </p>
-          </article>
+            <article class="card card--wide reveal">
+              <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="3" width="8" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" />
+                <rect x="13" y="3" width="8" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" />
+                <rect x="3" y="13" width="8" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" />
+                <rect x="13" y="13" width="8" height="8" rx="2" fill="currentColor" />
+              </svg>
+              <h3 class="card__title">Per-app rules</h3>
+              <p class="card__body">
+                Any setting, overridden per application. Disable Magic&nbsp;Mouse scrolling entirely in
+                Figma, block horizontal scroll in Excel, drop momentum in your code editor. Rules
+                follow whichever app is in front.
+              </p>
+            </article>
 
-          <article class="card reveal">
-            <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 14c2-3 4-3 6 0s4 3 6 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.4" />
-              <path d="M5 5l14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-            </svg>
-            <h3>Ignore tiny nudges</h3>
-            <p>
-              A gesture has to travel a minimum distance before it counts — so a finger merely
-              resting on the shell can't jitter the page.
-            </p>
-          </article>
+            <article class="card reveal">
+              <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3v18m0-18l-3.5 3.5M12 3l3.5 3.5M12 21l-3.5-3.5M12 21l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <h3 class="card__title">Scroll in straight lines</h3>
+              <p class="card__body">
+                Once a scroll commits to vertical or horizontal, the other axis is zeroed for the rest
+                of the gesture. No more diagonal drift.
+              </p>
+            </article>
 
-          <article class="card reveal">
-            <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M3 12h6l2-6 3 12 2-6h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <h3>Keep gliding — or don't</h3>
-            <p>
-              Turn off the coasting tail after a flick, for the Magic&nbsp;Mouse alone. macOS's own
-              momentum setting is all-or-nothing, system-wide.
-            </p>
-          </article>
+            <article class="card reveal">
+              <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 14c2-3 4-3 6 0s4 3 6 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.4" />
+                <path d="M5 5l14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              </svg>
+              <h3 class="card__title">Ignore tiny nudges</h3>
+              <p class="card__body">
+                A gesture has to travel a minimum distance before it counts — so a finger merely
+                resting on the shell can't jitter the page.
+              </p>
+            </article>
 
-          <article class="card reveal">
-            <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M8 8a3 3 0 113 3H8V8zm8 0a3 3 0 10-3 3h3V8zm-8 8a3 3 0 103 3v-3H8zm8 0a3 3 0 11-3 3v-3h3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-            </svg>
-            <h3>Hold a key, scroll differently</h3>
-            <p>
-              Map ⌘, ⌥, ⌃, or ⇧ + scroll to horizontal scrolling, inverted scrolling, zoom — or
-              nothing at all.
-            </p>
-          </article>
+            <article class="card reveal">
+              <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 12h6l2-6 3 12 2-6h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <h3 class="card__title">Keep gliding — or don't</h3>
+              <p class="card__body">
+                Turn off the coasting tail after a flick, for the Magic&nbsp;Mouse alone. macOS's own
+                momentum setting is all-or-nothing, system-wide.
+              </p>
+            </article>
 
-          <article class="card reveal">
-            <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="4" y="9" width="15" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" />
-              <rect x="6" y="11" width="4" height="3" rx="0.5" fill="currentColor" />
-              <path d="M21 11.5v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-            </svg>
-            <h3>Battery warning</h3>
-            <p>
-              A notification when the mouse drops below a threshold you choose, so it doesn't die
-              mid-afternoon.
-            </p>
-          </article>
+            <article class="card reveal">
+              <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 8a3 3 0 113 3H8V8zm8 0a3 3 0 10-3 3h3V8zm-8 8a3 3 0 103 3v-3H8zm8 0a3 3 0 11-3 3v-3h3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+              </svg>
+              <h3 class="card__title">Hold a key, scroll differently</h3>
+              <p class="card__body">
+                Map ⌘, ⌥, ⌃, or ⇧ + scroll to horizontal scrolling, inverted scrolling, zoom — or
+                nothing at all.
+              </p>
+            </article>
 
-          <article class="card reveal">
-            <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="7" y="2.5" width="10" height="19" rx="5" fill="none" stroke="currentColor" stroke-width="1.6" />
-              <path d="M9 5.5a3 3 0 016 0V9H9V5.5z" fill="currentColor" opacity="0.55" />
-            </svg>
-            <h3>Tap zone</h3>
-            <p>
-              Restrict taps to the front of the surface, away from the side edges — so the fingers
-              gripping the mouse can't click. Adjustable depth.
-            </p>
-          </article>
+            <article class="card reveal">
+              <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="4" y="9" width="15" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" />
+                <rect x="6" y="11" width="4" height="3" rx="0.5" fill="currentColor" />
+                <path d="M21 11.5v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              </svg>
+              <h3 class="card__title">Battery warning</h3>
+              <p class="card__body">
+                A notification when the mouse drops below a threshold you choose, so it doesn't die
+                mid-afternoon.
+              </p>
+            </article>
+
+            <article class="card reveal">
+              <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="7" y="2.5" width="10" height="19" rx="5" fill="none" stroke="currentColor" stroke-width="1.6" />
+                <path d="M9 5.5a3 3 0 016 0V9H9V5.5z" fill="currentColor" opacity="0.55" />
+              </svg>
+              <h3 class="card__title">Tap zone</h3>
+              <p class="card__body">
+                Restrict taps to the front of the surface, away from the side edges — so the fingers
+                gripping the mouse can't click. Adjustable depth.
+              </p>
+            </article>
+          </div>
         </div>
       </section>
 
       <!-- ============ Settings ============ -->
       <section class="section" id="settings">
-        <div class="section-copy">
-          <h2 class="reveal">Settings in plain English.<br />Previews you can watch.</h2>
-          <p class="lede reveal">
-            No jargon, no manual. Every switch says what it does — and hovering any setting plays a
-            little animated preview of the behavior it changes. The switches you flip often live right
-            in the menu bar.
-          </p>
-        </div>
-        <div class="screenshot reveal">
-          <div class="mock-window" role="img" aria-label="The CalmMouse settings window, General tab: plain-English switches for enabling the app, launch at login, permission status, and troubleshooting">
-            <div class="mock-titlebar">
-              <span class="tl tl-red"></span><span class="tl tl-yellow"></span><span class="tl tl-green"></span>
-              <span class="mock-title">CalmMouse Settings</span>
-            </div>
-            <div class="mock-tabs">
-              <span class="mock-tab active">General</span>
-              <span class="mock-tab">Scrolling</span>
-              <span class="mock-tab">Clicking</span>
-              <span class="mock-tab">Apps</span>
-              <span class="mock-tab">Shortcuts</span>
-              <span class="mock-tab">Battery</span>
-            </div>
-            <div class="mock-body">
-              <div class="mock-group">
-                <div class="mock-row"><span>Enable CalmMouse</span><span class="switch on"></span></div>
-                <div class="mock-row"><span>Launch at login</span><span class="switch on"></span></div>
+        <div class="container">
+          <div class="section__copy">
+            <h2 class="section__title reveal">Settings in plain English.<br />Previews you can watch.</h2>
+            <p class="lede reveal">
+              No jargon, no manual. Every switch says what it does — and hovering any setting plays a
+              little animated preview of the behavior it changes. The switches you flip often live right
+              in the menu bar.
+            </p>
+          </div>
+
+          <div class="figure-center reveal">
+            <div
+              class="window"
+              role="img"
+              aria-label="The CalmMouse settings window, General tab: plain-English switches for enabling the app, launch at login, permission status, and troubleshooting"
+            >
+              <div class="window__titlebar">
+                <span class="window__light window__light--red"></span>
+                <span class="window__light window__light--yellow"></span>
+                <span class="window__light window__light--green"></span>
+                <span class="window__title">CalmMouse Settings</span>
               </div>
-              <p class="mock-section-label">Permission</p>
-              <div class="mock-group">
-                <div class="mock-row"><span class="mock-ok"><span class="ok-dot">✓</span> Accessibility access granted.</span></div>
+              <div class="window__tabs">
+                <span class="window__tab window__tab--active">General</span>
+                <span class="window__tab">Scrolling</span>
+                <span class="window__tab">Clicking</span>
+                <span class="window__tab">Apps</span>
+                <span class="window__tab">Shortcuts</span>
+                <span class="window__tab">Battery</span>
               </div>
-              <p class="mock-section-label">Troubleshooting</p>
-              <div class="mock-group">
-                <div class="mock-row"><span>Assume unrecognised touch scrolling is the Magic&nbsp;Mouse</span><span class="switch"></span></div>
-                <div class="mock-row"><span>Debug logging</span><span class="switch"></span></div>
+              <div class="window__body">
+                <div class="window__group">
+                  <div class="window__row"><span>Enable CalmMouse</span><span class="switch switch--on"></span></div>
+                  <div class="window__row"><span>Launch at login</span><span class="switch switch--on"></span></div>
+                </div>
+                <p class="window__label">Permission</p>
+                <div class="window__group">
+                  <div class="window__row">
+                    <span class="window__status"><span class="window__check">✓</span> Accessibility access granted.</span>
+                  </div>
+                </div>
+                <p class="window__label">Troubleshooting</p>
+                <div class="window__group">
+                  <div class="window__row"><span>Assume unrecognised touch scrolling is the Magic&nbsp;Mouse</span><span class="switch"></span></div>
+                  <div class="window__row"><span>Debug logging</span><span class="switch"></span></div>
+                </div>
               </div>
             </div>
           </div>
@@ -339,84 +362,91 @@
       </section>
 
       <!-- ============ Privacy ============ -->
-      <section class="section section-alt" id="privacy">
-        <div class="section-copy">
-          <h2 class="reveal">Your mouse. Only your mouse.</h2>
-          <p class="lede reveal">
-            CalmMouse reads mouse events through a system event tap, which macOS gates behind an
-            Accessibility permission — you stay in control.
-          </p>
+      <section class="section section--alt" id="privacy">
+        <div class="container">
+          <div class="section__copy">
+            <h2 class="section__title reveal">Your mouse. Only your mouse.</h2>
+            <p class="lede reveal">
+              CalmMouse reads mouse events through a system event tap, which macOS gates behind an
+              Accessibility permission — you stay in control.
+            </p>
+          </div>
+          <ul class="tile-grid reveal">
+            <li class="tile"><strong>No keystrokes.</strong> It never sees what you type.</li>
+            <li class="tile"><strong>No network.</strong> Nothing is sent anywhere, ever.</li>
+            <li class="tile"><strong>No data.</strong> It stores nothing but its own settings.</li>
+            <li class="tile"><strong>No secrets.</strong> The whole thing is open source, MIT-licensed.</li>
+          </ul>
         </div>
-        <ul class="privacy-list reveal">
-          <li><strong>No keystrokes.</strong> It never sees what you type.</li>
-          <li><strong>No network.</strong> Nothing is sent anywhere, ever.</li>
-          <li><strong>No data.</strong> It stores nothing but its own settings.</li>
-          <li><strong>No secrets.</strong> The whole thing is open source, MIT-licensed.</li>
-        </ul>
       </section>
 
       <!-- ============ Download ============ -->
-      <section class="section section-download" id="download">
-        <h2 class="reveal">Free. As in actually free.</h2>
-        <p class="lede center reveal">No trial, no license key, no email. Download it, drag it in, done.</p>
-        <div class="hero-ctas center reveal">
-          <a
-            class="pill pill-large"
-            href="https://github.com/Malik1942/CalmMouse/releases/latest/download/CalmMouse.zip"
-            >Download CalmMouse for macOS</a
-          >
-          <a class="text-link" href="https://github.com/Malik1942/CalmMouse/releases" target="_blank" rel="noopener"
-            >All releases <span aria-hidden="true">›</span></a
-          >
+      <section class="section section--center" id="download">
+        <div class="container">
+          <div class="section__copy">
+            <h2 class="section__title reveal">Free. As in actually free.</h2>
+            <p class="lede reveal">No trial, no license key, no email. Download it, drag it in, done.</p>
+          </div>
+          <div class="actions actions--center reveal">
+            <a
+              class="btn btn--primary btn--lg"
+              href="https://github.com/Malik1942/CalmMouse/releases/latest/download/CalmMouse.zip"
+              >Download CalmMouse for macOS</a
+            >
+            <a class="link-arrow" href="https://github.com/Malik1942/CalmMouse/releases" target="_blank" rel="noopener"
+              >All releases <span aria-hidden="true">›</span></a
+            >
+          </div>
+          <p class="fineprint hero__fineprint reveal">Requires macOS 13 or later and a Magic Mouse.</p>
+
+          <ol class="steps reveal">
+            <li class="step">
+              <span class="step__num">1</span>
+              <div>
+                <strong class="step__title">Unzip &amp; drag to Applications.</strong>
+                <p class="step__body">You get <code>CalmMouse.app</code> — drop it in <code>/Applications</code>.</p>
+              </div>
+            </li>
+            <li class="step">
+              <span class="step__num">2</span>
+              <div>
+                <strong class="step__title">Right-click → Open, the first time.</strong>
+                <p class="step__body">
+                  Releases aren't notarized yet, so macOS asks once. Right-click the app, choose
+                  <em>Open</em>, then <em>Open</em> again.
+                </p>
+              </div>
+            </li>
+            <li class="step">
+              <span class="step__num">3</span>
+              <div>
+                <strong class="step__title">Grant Accessibility.</strong>
+                <p class="step__body">
+                  System Settings → Privacy&nbsp;&amp;&nbsp;Security → Accessibility → enable CalmMouse.
+                  It starts working within two seconds — no relaunch needed.
+                </p>
+              </div>
+            </li>
+          </ol>
+
+          <p class="section__note reveal">
+            Prefer to build from source? <code>git clone</code> the
+            <a class="link-quiet" href="https://github.com/Malik1942/CalmMouse" target="_blank" rel="noopener">repo</a>
+            and run <code>./install.sh</code>.
+          </p>
         </div>
-        <p class="hero-fineprint reveal">Requires macOS 13 or later and a Magic Mouse.</p>
-
-        <ol class="install-steps reveal">
-          <li>
-            <span class="step-num">1</span>
-            <div>
-              <strong>Unzip &amp; drag to Applications.</strong>
-              <p>You get <code>CalmMouse.app</code> — drop it in <code>/Applications</code>.</p>
-            </div>
-          </li>
-          <li>
-            <span class="step-num">2</span>
-            <div>
-              <strong>Right-click → Open, the first time.</strong>
-              <p>
-                Releases aren't notarized yet, so macOS asks once. Right-click the app, choose
-                <em>Open</em>, then <em>Open</em> again.
-              </p>
-            </div>
-          </li>
-          <li>
-            <span class="step-num">3</span>
-            <div>
-              <strong>Grant Accessibility.</strong>
-              <p>
-                System Settings → Privacy&nbsp;&amp;&nbsp;Security → Accessibility → enable CalmMouse.
-                It starts working within two seconds — no relaunch needed.
-              </p>
-            </div>
-          </li>
-        </ol>
-
-        <p class="build-note reveal">
-          Prefer to build from source? <code>git clone</code> the
-          <a href="https://github.com/Malik1942/CalmMouse" target="_blank" rel="noopener">repo</a> and run
-          <code>./install.sh</code>.
-        </p>
       </section>
     </main>
 
-    <footer class="footer">
-      <div class="footer-inner">
+    <footer class="site-footer">
+      <div class="container">
         <p>
-          CalmMouse · <a href="https://github.com/Malik1942/CalmMouse" target="_blank" rel="noopener">GitHub</a> ·
-          <a href="https://github.com/Malik1942/CalmMouse/issues" target="_blank" rel="noopener">Report an issue</a> ·
-          <a href="https://github.com/Malik1942/CalmMouse/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+          CalmMouse ·
+          <a class="link-quiet" href="https://github.com/Malik1942/CalmMouse" target="_blank" rel="noopener">GitHub</a> ·
+          <a class="link-quiet" href="https://github.com/Malik1942/CalmMouse/issues" target="_blank" rel="noopener">Report an issue</a> ·
+          <a class="link-quiet" href="https://github.com/Malik1942/CalmMouse/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
         </p>
-        <p class="footer-legal">
+        <p class="site-footer__legal">
           Not affiliated with Apple. Magic&nbsp;Mouse is a trademark of Apple&nbsp;Inc.
         </p>
       </div>
