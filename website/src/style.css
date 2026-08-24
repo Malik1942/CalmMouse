@@ -210,13 +210,13 @@ code {
 }
 
 .hero-statement {
-  max-width: 620px;
-  margin: clamp(48px, 8vh, 84px) auto 0;
-  text-align: left;
+  max-width: 640px;
+  margin: clamp(36px, 6vh, 60px) auto 0;
+  text-align: center;
   font-size: clamp(1.35rem, 2.7vw, 1.85rem);
   font-weight: 600;
   letter-spacing: -0.02em;
-  line-height: 1.25;
+  line-height: 1.3;
   color: var(--text-secondary);
 }
 
