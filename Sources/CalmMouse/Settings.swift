@@ -38,6 +38,14 @@ final class Settings: ObservableObject {
         static let treatUnknownContinuousAsMagicMouse = "treatUnknownContinuousAsMagicMouse"
         static let debugLogging = "debugLogging"
         static let customPresets = "customPresets"
+        static let onboardingCompleted = "onboardingCompleted"
+    }
+
+    /// Whether the first-launch welcome tour has been seen (or dismissed).
+    /// Not `@Published` — nothing observes it; it's checked once at launch.
+    var onboardingCompleted: Bool {
+        get { d.bool(forKey: Key.onboardingCompleted) }
+        set { d.set(newValue, forKey: Key.onboardingCompleted) }
     }
 
     // MARK: Published state

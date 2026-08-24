@@ -85,6 +85,10 @@ Building from source is the better option if you have any code-signing identity 
 "Apple Development" one that comes with an Apple ID. `build.sh` picks it up automatically, and a
 real identity means macOS keeps your Accessibility grant across rebuilds (see below).
 
+On first launch a short welcome tour walks through the Accessibility permission, lets you pick a
+preset, and has you try the fix live. Re-run it any time from Settings → General → **Show Welcome
+Tour…**
+
 ## Accessibility permission
 
 CalmMouse reads mouse events through a `CGEventTap`, which macOS gates behind Accessibility access:

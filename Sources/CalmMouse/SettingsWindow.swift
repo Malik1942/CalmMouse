@@ -59,6 +59,14 @@ private struct GeneralTab: View {
                 Toggle("Launch at login", isOn: Binding(
                     get: { launchAtLogin },
                     set: { launchAtLogin = SettingsHelpers.setLaunchAtLogin($0) }))
+                HStack {
+                    Text("New here? The tour covers permission, presets and a try-out.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Show Welcome Tour…") {
+                        NotificationCenter.default.post(name: .calmMouseShowOnboarding, object: nil)
+                    }
+                }
             }
 
             Section("Permission") {

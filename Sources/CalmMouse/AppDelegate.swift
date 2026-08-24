@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItem: NSStatusItem!
     private var settingsWindow: SettingsWindowController?
+    private var onboardingWindow: OnboardingWindowController?
     private var permissionTimer: Timer?
     private var statusTimer: Timer?
     private var lowBatteryFlag = false
@@ -55,9 +56,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         ensurePermissionThenStart()
 
-        // First run (or permission revoked): don't sit silently in the menu bar doing nothing —
-        // show the window that explains what's missing.
-        if !AXIsProcessTrusted() {
+        NotificationCenter.default.addObserver(self, selector: #selector(openOnboarding),
+                                               name: .calmMouseShowOnboarding, object: nil)
+
+        // First run: the welcome tour walks through permission, presets and a try-out.
+        // Later runs with permission revoked: don't sit silently in the menu bar doing
+        // nothing — show the window that explains what's missing.
+        if !settings.onboardingCompleted {
+            openOnboarding()
+        } else if !AXIsProcessTrusted() {
             openSettings()
         }
 
@@ -321,6 +328,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindow?.window?.makeKeyAndOrderFront(nil)
         lowBatteryFlag = false
         refreshStatusIcon()
+    }
+
+    @objc private func openOnboarding() {
+        // A fresh controller per showing, so a re-run starts at the first step
+        // instead of wherever the last tour was closed.
+        if onboardingWindow?.window?.isVisible != true {
+            onboardingWindow = OnboardingWindowController(
+                settings: settings,
+                blockedCount: { [weak self] in self?.tap.swallowedCount ?? 0 })
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        onboardingWindow?.showWindow(nil)
+        onboardingWindow?.window?.makeKeyAndOrderFront(nil)
     }
 
     @objc private func openAccessibility() {
