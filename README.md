@@ -86,8 +86,12 @@ Building from source is the better option if you have any code-signing identity 
 real identity means macOS keeps your Accessibility grant across rebuilds (see below).
 
 On first launch a short welcome tour walks through the Accessibility permission, lets you pick a
-preset, and has you try the fix live. Re-run it any time from Settings → General → **Show Welcome
-Tour…**
+preset, and has you try the fix live — it counts the accidental scrolls it just caught for you.
+Re-run it any time from Settings → General → **Show Welcome Tour…**
+
+<p align="center">
+  <img src="docs/images/welcome-presets.png" width="560" alt="The welcome tour's preset step: Just fix clicking, Extra steady, Trackpad feel">
+</p>
 
 ## Accessibility permission
 
@@ -128,6 +132,10 @@ Settings…, Quit.
 - **Battery** — current level and the low-battery threshold
 
 Hover any setting (or its ⓘ) for a little animated preview of what it does.
+
+<p align="center">
+  <img src="docs/images/settings-presets.png" width="620" alt="The Presets tab: three built-in starting points and a field to save your own">
+</p>
 
 The menu-bar icon carries state: orange when it needs attention, dimmed when paused, yellow when the
 mouse battery is low.
