@@ -60,16 +60,11 @@ dropped so the page doesn't keep coasting under your click.
 ### Download
 
 Grab the latest `CalmMouse.zip` from [Releases](https://github.com/Malik1942/CalmMouse/releases),
-unzip it, and drag **CalmMouse.app** to `/Applications`.
-
-Current release builds are not yet notarized, so the first launch needs one extra step:
-
-```bash
-xattr -dr com.apple.quarantine /Applications/CalmMouse.app
-open /Applications/CalmMouse.app
-```
-
-Or right-click the app → **Open** → **Open** in the dialog.
+unzip it, and drag **CalmMouse.app** to `/Applications`. Releases from 0.5.0 on are signed
+with a Developer ID and notarized by Apple, so it opens like any other app — no security
+dialogs. (Installed 0.4.0 or earlier? Those builds were ad-hoc signed, so after replacing the
+app, re-grant Accessibility once — Settings → General → **Reset grant…** if the toggle looks
+on but nothing works.)
 
 ### Build from source
 
@@ -244,7 +239,6 @@ Ideas, not promises:
 
 - Scroll speed / acceleration curve for the Magic Mouse alone
 - Per-app rules driven by window title as well as bundle ID
-- A proper notarized release, if the project turns out to have users
 - Localisation
 
 ## Contributing

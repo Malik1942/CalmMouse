@@ -180,8 +180,14 @@ final class UpdateChecker: ObservableObject {
             }
 
             // The download came over HTTPS from the pinned repo, but verify anyway: a truncated
-            // download or a mangled asset must fail HERE, not as a half-broken installed app.
-            try run("/usr/bin/codesign", "--verify", "--strict", newApp.path)
+            // download, a mangled asset, or a zip signed by anyone else must fail HERE, not as
+            // a half-broken (or hostile) installed app. The requirement pins the update to OUR
+            // Developer ID team — releases are Developer-ID signed from 0.5.0 on, so a build
+            // that fails this is not one of ours. (Local unsigned builds fail too; the error
+            // surfaces the manual-download fallback, which is the right answer for them.)
+            try run("/usr/bin/codesign", "--verify", "--strict",
+                    "-R=anchor apple generic and certificate leaf[subject.OU] = MVAUZXPK9M",
+                    newApp.path)
             let info = NSDictionary(contentsOf: newApp.appendingPathComponent("Contents/Info.plist"))
             guard info?["CFBundleIdentifier"] as? String == "com.calmmouse.app" else {
                 throw InstallError(message: "The downloaded app isn't CalmMouse.")
