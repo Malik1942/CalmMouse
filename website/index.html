@@ -6,7 +6,7 @@
     <title>CalmMouse — Magic Mouse UX fixes for macOS</title>
     <meta
       name="description"
-      content="CalmMouse stops your Magic Mouse from scrolling the page every time you click — plus tap to click, drag gestures, straight-line scrolling, per-app rules, and more. Free and open source for macOS."
+      content="CalmMouse stops your Magic Mouse from scrolling the page every time you click — plus tap to click, tap to right-click, drag gestures, straight-line scrolling, per-app rules, and more. Free and open source for macOS."
     />
     <link rel="icon" type="image/png" href="/icon-256.png" />
     <meta property="og:type" content="website" />
@@ -36,6 +36,7 @@
           <a class="site-nav__link" href="#problem">The&nbsp;fix</a>
           <a class="site-nav__link" href="#features">Features</a>
           <a class="site-nav__link" href="#privacy">Privacy</a>
+          <a class="site-nav__link" href="#whats-new">What's&nbsp;new</a>
           <a class="site-nav__link" href="https://github.com/Malik1942/CalmMouse" target="_blank" rel="noopener">GitHub</a>
           <a
             class="btn btn--primary btn--sm"
@@ -227,7 +228,8 @@
                 A light single-finger tap left-clicks — no need to press the mouse down. Adjustable
                 Firm↔Light sensitivity, and taps are auto-rejected while you're scrolling, clicking,
                 resting a finger, or just grazing the shell. Double- and triple-taps become real
-                double- and triple-clicks.
+                double- and triple-clicks. And tapping can learn the right button too: a tap on the
+                right side of the surface right-clicks, or a double-tap — your pick.
               </p>
             </article>
 
@@ -419,6 +421,95 @@
             <li class="tile"><strong>No data.</strong> It stores nothing but its own settings.</li>
             <li class="tile"><strong>No secrets.</strong> The whole thing is open source, MIT-licensed.</li>
           </ul>
+        </div>
+      </section>
+
+      <!-- ============ What's new ============ -->
+      <section class="section" id="whats-new">
+        <div class="container">
+          <div class="section__copy">
+            <h2 class="section__title reveal">What's new</h2>
+            <p class="lede reveal">
+              From 0.5.0 on, CalmMouse notices new versions by itself and updates in place —
+              Settings → General → <em>Update Now</em>. One click, no browser, no unzipping.
+            </p>
+          </div>
+
+          <ol class="changelog reveal">
+            <li class="changelog__entry">
+              <div class="changelog__meta">
+                <span class="changelog__version">0.5.0</span>
+                <time class="changelog__date" datetime="2026-08-27">Aug 2026</time>
+              </div>
+              <div>
+                <h3 class="changelog__title">Tap to right-click, and updates that install themselves</h3>
+                <p class="changelog__body">
+                  Tapping learns the right button: a tap on the right side of the surface
+                  right-clicks — the same side a physical right click uses — or switch it to a
+                  double-tap instead. The Trackpad feel preset now includes it. And CalmMouse now
+                  tells you when a new version is out and installs it from inside the app.
+                </p>
+              </div>
+            </li>
+            <li class="changelog__entry">
+              <div class="changelog__meta">
+                <span class="changelog__version">0.4.0</span>
+                <time class="changelog__date" datetime="2026-08-24">Aug 2026</time>
+              </div>
+              <div>
+                <h3 class="changelog__title">Presets and a welcome tour</h3>
+                <p class="changelog__body">
+                  Three one-click starting points — Just fix clicking, Extra steady, Trackpad
+                  feel — plus your own saved setups, and a first-launch tour that walks through
+                  the permission, a preset, and a live try-out.
+                </p>
+              </div>
+            </li>
+            <li class="changelog__entry">
+              <div class="changelog__meta">
+                <span class="changelog__version">0.3.0</span>
+                <time class="changelog__date" datetime="2026-08-24">Aug 2026</time>
+              </div>
+              <div>
+                <h3 class="changelog__title">Godmouse becomes CalmMouse</h3>
+                <p class="changelog__body">
+                  New name, new icon, settings rewritten in plain English with animated hover
+                  previews — and the whole "scrolling stops working" family of bugs fixed.
+                </p>
+              </div>
+            </li>
+            <li class="changelog__entry">
+              <div class="changelog__meta">
+                <span class="changelog__version">0.2.0</span>
+                <time class="changelog__date" datetime="2026-08-20">Aug 2026</time>
+              </div>
+              <div>
+                <h3 class="changelog__title">Gestures on the surface</h3>
+                <p class="changelog__body">
+                  Tap to click, tap and drag, two-finger drag, and a tap zone that keeps gripping
+                  fingers from clicking. All off by default.
+                </p>
+              </div>
+            </li>
+            <li class="changelog__entry">
+              <div class="changelog__meta">
+                <span class="changelog__version">0.1.0</span>
+                <time class="changelog__date" datetime="2026-08-19">Aug 2026</time>
+              </div>
+              <div>
+                <h3 class="changelog__title">The headline fix</h3>
+                <p class="changelog__body">
+                  No more scrolling while you click — plus dead zone, axis lock, momentum control,
+                  per-app rules and modifier shortcuts.
+                </p>
+              </div>
+            </li>
+          </ol>
+
+          <p class="section__note reveal" style="text-align: center">
+            Every detail lives in the
+            <a class="link-quiet" href="https://github.com/Malik1942/CalmMouse/releases" target="_blank" rel="noopener">full release notes</a>.
+          </p>
         </div>
       </section>
 
