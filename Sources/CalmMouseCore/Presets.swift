@@ -19,6 +19,8 @@ public struct PresetValues: Equatable, Sendable {
     public var blockHorizontalScroll: Bool = false
     public var tapToClick: Bool = false
     public var tapSensitivity: Double = 0.5
+    public var tapRightClick: Bool = false
+    public var tapRightClickMode: RightClickMode = .rightSide
     public var tapAndDrag: Bool = false
     public var twoFingerDrag: Bool = false
     public var tapZoneEnabled: Bool = false
@@ -32,8 +34,8 @@ public struct PresetValues: Equatable, Sendable {
 extension PresetValues: Codable {
     private enum CodingKeys: String, CodingKey {
         case blockScrollWhileClicked, releaseGraceMs, deadZone, axisLock, axisLockThreshold,
-             momentumEnabled, blockHorizontalScroll, tapToClick, tapSensitivity, tapAndDrag,
-             twoFingerDrag, tapZoneEnabled, tapZoneDepth
+             momentumEnabled, blockHorizontalScroll, tapToClick, tapSensitivity, tapRightClick,
+             tapRightClickMode, tapAndDrag, twoFingerDrag, tapZoneEnabled, tapZoneDepth
     }
 
     public init(from decoder: Decoder) throws {
@@ -48,6 +50,8 @@ extension PresetValues: Codable {
         v.blockHorizontalScroll = try c.decodeIfPresent(Bool.self, forKey: .blockHorizontalScroll) ?? v.blockHorizontalScroll
         v.tapToClick = try c.decodeIfPresent(Bool.self, forKey: .tapToClick) ?? v.tapToClick
         v.tapSensitivity = try c.decodeIfPresent(Double.self, forKey: .tapSensitivity) ?? v.tapSensitivity
+        v.tapRightClick = try c.decodeIfPresent(Bool.self, forKey: .tapRightClick) ?? v.tapRightClick
+        v.tapRightClickMode = try c.decodeIfPresent(RightClickMode.self, forKey: .tapRightClickMode) ?? v.tapRightClickMode
         v.tapAndDrag = try c.decodeIfPresent(Bool.self, forKey: .tapAndDrag) ?? v.tapAndDrag
         v.twoFingerDrag = try c.decodeIfPresent(Bool.self, forKey: .twoFingerDrag) ?? v.twoFingerDrag
         v.tapZoneEnabled = try c.decodeIfPresent(Bool.self, forKey: .tapZoneEnabled) ?? v.tapZoneEnabled
@@ -104,15 +108,16 @@ extension Preset {
             values: v)
     }()
 
-    /// Taps and tap-drags, like a trackpad grafted onto the mouse.
+    /// Taps, right-taps and tap-drags, like a trackpad grafted onto the mouse.
     public static let trackpadFeel: Preset = {
         var v = PresetValues()
         v.tapToClick = true
+        v.tapRightClick = true
         v.tapAndDrag = true
         return Preset(
             id: UUID(uuidString: "6E1B49F2-0001-4000-8000-000000000003")!,
             name: "Trackpad feel",
-            summary: "A light tap clicks, and tap-then-drag moves things — your mouse starts acting like a trackpad.",
+            summary: "A light tap clicks, a tap on the right side right-clicks, and tap-then-drag moves things — your mouse starts acting like a trackpad.",
             symbolName: "hand.tap",
             values: v)
     }()

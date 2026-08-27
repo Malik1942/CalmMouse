@@ -18,6 +18,16 @@ public struct TouchSample: Equatable, Sendable {
 
 // MARK: - Config
 
+/// How a tap becomes a RIGHT click when tap-right-click is on.
+public enum RightClickMode: String, Codable, CaseIterable, Sendable {
+    /// Taps landing on the right part of the surface right-click — the same place a
+    /// physical Magic Mouse right click lives, and the default for exactly that reason.
+    case rightSide
+    /// A second quick tap in the same spot right-clicks. Chosen explicitly: it takes over
+    /// the tap-tap gesture, so double-clicks need a physical press (or slower taps).
+    case doubleTap
+}
+
 public struct TapConfig: Equatable, Sendable {
     public var enabled: Bool = false
 
@@ -55,6 +65,21 @@ public struct TapConfig: Equatable, Sendable {
     /// Hardware orientation: whether the front of the mouse is y == 1 in normalized touch
     /// coordinates. Set by the app layer from a real-device calibration; both cases are tested.
     public var frontIsHighY: Bool = true
+
+    /// Tap-to-right-click: some taps post a right click instead of a left one, per
+    /// `rightClickMode`. Off by default; requires `enabled` like everything else here.
+    public var tapRightClick: Bool = false
+    public var rightClickMode: RightClickMode = .rightSide
+    /// Right-side mode: taps at x ≥ this (fraction of the surface from the left) right-click.
+    /// 0.6 leaves the centre — where index-finger taps land — as left click, and catches the
+    /// middle-finger territory (real captures put those at x 0.82–0.98).
+    public var rightSideStart: Double = 0.6
+    /// Double-tap mode: the follow-up tap must complete within this of the previous tap.
+    /// The app layer sets it to the system double-click interval.
+    public var doubleTapWindow: TimeInterval = 0.35
+    /// ...and land within this of it (normalized surface units). Same figure as
+    /// `dragMaxDistance`, for the same reason: a follow-up lands where the first tap was.
+    public var doubleTapMaxDistance: Double = 0.18
 
     /// Tap-and-drag: tap, then touch again within `dragWindow` and hold — the second touch
     /// presses the button down until it lifts. Off by default.
@@ -122,6 +147,8 @@ public struct TapConfig: Equatable, Sendable {
 public enum TapEvent: Equatable, Sendable {
     /// Post a click (down+up) at the cursor.
     case tap
+    /// Post a RIGHT click (down+up) at the cursor — tap-to-right-click matched this tap.
+    case rightTap
     /// Tap-and-drag: press the button down and keep it down.
     case dragBegan
     /// The drag finger lifted. If the press was already posted, release the button; if the
@@ -379,10 +406,17 @@ public final class TapRecognizer {
                 }
             } else if isTap(track, liftedAt: t) {
                 tapCount += 1
-                lastTapAt = t
-                lastTapX = track.startX
-                lastTapY = track.startY
-                events.append(.tap)
+                let kind = tapKind(track, at: t)
+                if kind == .rightTap {
+                    // A right tap anchors nothing: it must not arm tap-and-drag, and — like a
+                    // real right click — it breaks any tap chain (no left-right-left "double").
+                    lastTapAt = -.infinity
+                } else {
+                    lastTapAt = t
+                    lastTapX = track.startX
+                    lastTapY = track.startY
+                }
+                events.append(kind)
             }
         }
         return events
@@ -434,6 +468,33 @@ public final class TapRecognizer {
         let dx = touch.x - lastTapX
         let dy = touch.y - lastTapY
         return (dx * dx + dy * dy).squareRoot() <= config.dragMaxDistance
+    }
+
+    /// An ACCEPTED tap is a left or a right click, decided here. Runs before the tap anchor
+    /// updates, so in double-tap mode `lastTap*` still describes the PREVIOUS tap.
+    ///
+    /// Double-tap mode with tap-and-drag on never reaches this for the follow-up: that touch
+    /// arms a drag instead, and its quick lift surfaces as an unpressed `.dragEnded` — the
+    /// caller maps that to a right click when this mode is active (the arm gates — window and
+    /// landing distance — already match the double-tap ones).
+    private func tapKind(_ track: Track, at t: TimeInterval) -> TapEvent {
+        guard config.tapRightClick else { return .tap }
+        switch config.rightClickMode {
+        case .rightSide:
+            return onRightSide(x: track.startX) ? .rightTap : .tap
+        case .doubleTap:
+            let dx = track.startX - lastTapX
+            let dy = track.startY - lastTapY
+            let isFollowUp = t - lastTapAt <= config.doubleTapWindow
+                && (dx * dx + dy * dy).squareRoot() <= config.doubleTapMaxDistance
+            return isFollowUp ? .rightTap : .tap
+        }
+    }
+
+    /// `frontIsHighY` is a 180° hardware-orientation calibration, so when it flips, left and
+    /// right swap along with front and back.
+    private func onRightSide(x: Double) -> Bool {
+        config.frontIsHighY ? x >= config.rightSideStart : x <= 1 - config.rightSideStart
     }
 
     private func isTap(_ track: Track, liftedAt t: TimeInterval) -> Bool {

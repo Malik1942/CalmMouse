@@ -39,9 +39,13 @@ final class PresetTests: XCTestCase {
     func testTrackpadFeelEnablesTapsWithoutChangingScrollFeel() {
         let v = Preset.trackpadFeel.values
         XCTAssertTrue(v.tapToClick)
+        XCTAssertTrue(v.tapRightClick)
+        XCTAssertEqual(v.tapRightClickMode, .rightSide,
+                       "the default mode — double-tap would silently eat double-clicks")
         XCTAssertTrue(v.tapAndDrag)
         var scrollOnly = v
         scrollOnly.tapToClick = false
+        scrollOnly.tapRightClick = false
         scrollOnly.tapAndDrag = false
         XCTAssertEqual(scrollOnly, PresetValues(), "everything except taps stays factory")
     }
@@ -67,5 +71,7 @@ final class PresetTests: XCTestCase {
         XCTAssertFalse(values.momentumEnabled)
         XCTAssertEqual(values.releaseGraceMs, 200)
         XCTAssertTrue(values.blockScrollWhileClicked)
+        XCTAssertFalse(values.tapRightClick, "settings newer than the saved preset stay factory")
+        XCTAssertEqual(values.tapRightClickMode, .rightSide)
     }
 }

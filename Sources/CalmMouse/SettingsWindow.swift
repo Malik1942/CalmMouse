@@ -4,8 +4,8 @@ import ServiceManagement
 import CalmMouseCore
 
 final class SettingsWindowController: NSWindowController {
-    init(settings: Settings, battery: BatteryMonitor) {
-        let root = SettingsView(settings: settings, battery: battery)
+    init(settings: Settings, battery: BatteryMonitor, updater: UpdateChecker) {
+        let root = SettingsView(settings: settings, battery: battery, updater: updater)
         let hosting = NSHostingController(rootView: root)
         let window = NSWindow(contentViewController: hosting)
         window.title = "CalmMouse Settings"
@@ -25,12 +25,13 @@ final class SettingsWindowController: NSWindowController {
 struct SettingsView: View {
     @ObservedObject var settings: Settings
     let battery: BatteryMonitor
+    let updater: UpdateChecker
     /// Remembers which tab was open last time the window was shown.
     @AppStorage("settingsTab") private var tab = 0
 
     var body: some View {
         TabView(selection: $tab) {
-            GeneralTab(settings: settings).tabItem { Label("General", systemImage: "gearshape") }.tag(0)
+            GeneralTab(settings: settings, updater: updater).tabItem { Label("General", systemImage: "gearshape") }.tag(0)
             PresetsTab(settings: settings).tabItem { Label("Presets", systemImage: "slider.horizontal.3") }.tag(6)
             ScrollingTab(settings: settings).tabItem { Label("Scrolling", systemImage: "arrow.up.and.down") }.tag(1)
             ClickingTab(settings: settings).tabItem { Label("Clicking", systemImage: "hand.tap") }.tag(2)
@@ -47,6 +48,7 @@ struct SettingsView: View {
 
 private struct GeneralTab: View {
     @ObservedObject var settings: Settings
+    @ObservedObject var updater: UpdateChecker
     @State private var launchAtLogin = SettingsHelpers.launchAtLoginEnabled()
     @State private var trusted = AXIsProcessTrusted()
     private let timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
@@ -68,6 +70,8 @@ private struct GeneralTab: View {
                     }
                 }
             }
+
+            UpdatesSection(updater: updater)
 
             Section("Permission") {
                 HStack {
@@ -105,6 +109,90 @@ private struct GeneralTab: View {
         }
         .formStyle(.grouped)
         .onReceive(timer) { _ in trusted = AXIsProcessTrusted() }
+    }
+}
+
+// MARK: - Updates
+
+/// The Updates block on the General tab: current version, a check button, and — when a newer
+/// release exists — its what's-new notes and an Update Now button that installs in place.
+private struct UpdatesSection: View {
+    @ObservedObject var updater: UpdateChecker
+
+    var body: some View {
+        Section("Updates") {
+            HStack {
+                Text("CalmMouse \(UpdateChecker.currentVersion)")
+                Spacer()
+                switch updater.state {
+                case .checking:
+                    ProgressView().controlSize(.small)
+                case .downloading, .installing:
+                    EmptyView()
+                default:
+                    Button("Check for Updates") { updater.check(userInitiated: true) }
+                }
+            }
+
+            switch updater.state {
+            case .idle, .checking:
+                Text("Checked automatically twice a day. Updates install right here — no browser, no unzipping, no dragging.")
+                    .font(.caption).foregroundStyle(.secondary)
+            case .upToDate:
+                Label("You're up to date.", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green).font(.callout)
+            case .available(let release):
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Label("CalmMouse \(release.version) is available.", systemImage: "sparkles")
+                            .fontWeight(.medium)
+                        Spacer()
+                        Button("Update Now") { updater.install() }
+                            .keyboardShortcut(.defaultAction)
+                    }
+                    if !whatsNew(release).isEmpty {
+                        Text(whatsNew(release))
+                            .font(.caption).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Link("Full release notes ›", destination: release.pageURL)
+                        .font(.caption)
+                    Text("CalmMouse relaunches itself when the update finishes. If clicking stops working afterwards, macOS re-keyed the Accessibility grant to the new build — the Reset grant button below fixes it.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            case .downloading(let progress):
+                VStack(alignment: .leading, spacing: 4) {
+                    ProgressView(value: progress)
+                    Text("Downloading…").font(.caption).foregroundStyle(.secondary)
+                }
+            case .installing:
+                Label("Installing — CalmMouse will relaunch itself in a moment.",
+                      systemImage: "arrow.triangle.2.circlepath")
+                    .font(.callout)
+            case .failed(let message):
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(message, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange).font(.callout)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Link("Download from the website instead ›",
+                         destination: UpdateChecker.fallbackPageURL)
+                        .font(.caption)
+                }
+            }
+        }
+    }
+
+    /// The release body, trimmed for a settings pane: everything before the Install section,
+    /// minus markdown headings and bold markers.
+    private func whatsNew(_ release: UpdateChecker.Release) -> String {
+        let full = release.notes
+        let cut = full.range(of: "\n## Install").map { String(full[..<$0.lowerBound]) } ?? full
+        return cut
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("#") }
+            .joined(separator: "\n")
+            .replacingOccurrences(of: "**", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
@@ -287,6 +375,22 @@ private struct ClickingTab: View {
                 .disabled(!settings.tapToClick)
             }
 
+            Section("Right-clicking") {
+                ExplainedRow(preview: .tapRightClick(doubleTap: settings.tapRightClickMode == .doubleTap),
+                             caption: rightClickCaption) {
+                    Toggle("Tap to right-click", isOn: $settings.tapRightClick)
+                }
+                .disabled(!settings.tapToClick)
+                Picker("Right-click with", selection: $settings.tapRightClickMode) {
+                    Text("A tap on the right side").tag(RightClickMode.rightSide)
+                    Text("A double-tap").tag(RightClickMode.doubleTap)
+                }
+                .pickerStyle(.segmented)
+                .disabled(!settings.tapToClick || !settings.tapRightClick)
+                Text(rightClickFootnote)
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             Section("Where taps count") {
                 ExplainedRow(preview: .tapZone(depth: settings.tapZoneDepth),
                              caption: "Taps only count on the front part of the surface — where deliberate fingertip taps land. The fingers gripping the sides can't click by accident. Pressing to click and dragging still work everywhere.") {
@@ -336,6 +440,18 @@ private struct ClickingTab: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private var rightClickCaption: String {
+        settings.tapRightClickMode == .doubleTap
+            ? "One tap clicks; a second quick tap in the same spot opens the right-click menu instead."
+            : "A tap on the right part of the surface right-clicks — the same side a physical right click uses. Taps everywhere else stay normal clicks."
+    }
+
+    private var rightClickFootnote: String {
+        settings.tapRightClickMode == .doubleTap
+            ? "Heads-up: with double-tap chosen, tap-tap no longer double-clicks. Double-click by pressing the mouse down, or by tapping twice a little slower."
+            : "The right side is where the physical right click already lives, so nothing new to learn — and quick double-taps keep double-clicking."
     }
 
     private func bullet(_ text: String) -> some View {

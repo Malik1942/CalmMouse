@@ -12,6 +12,7 @@ enum SettingPreview {
     case momentum(on: Bool)
     case ignoreSideways
     case tapToClick
+    case tapRightClick(doubleTap: Bool)
     case tapZone(depth: Double)
     case tapAndDrag
     case twoFingerDrag
@@ -27,6 +28,7 @@ enum SettingPreview {
         case .momentum:           return 3.2
         case .ignoreSideways:     return 2.8
         case .tapToClick:         return 2.6
+        case .tapRightClick:      return 3.4
         case .tapZone:            return 3.0
         case .tapAndDrag:         return 4.0
         case .twoFingerDrag:      return 3.8
@@ -160,7 +162,8 @@ private struct PreviewScene {
         }
     }
 
-    func drawMouse(_ r: CGRect, pressed: Bool = false, zoneDepth: CGFloat? = nil) {
+    func drawMouse(_ r: CGRect, pressed: Bool = false, zoneDepth: CGFloat? = nil,
+                   rightSplit: CGFloat? = nil) {
         let body = Path(roundedRect: r, cornerRadius: r.width * 0.42)
         ctx.fill(body, with: .color(Color.primary.opacity(pressed ? 0.12 : 0.05)))
         if let depth = zoneDepth {
@@ -172,6 +175,19 @@ private struct PreviewScene {
             var boundary = Path()
             boundary.move(to: CGPoint(x: r.minX + 4, y: zone.maxY))
             boundary.addLine(to: CGPoint(x: r.maxX - 4, y: zone.maxY))
+            c.stroke(boundary, with: .color(accent.opacity(0.7)),
+                     style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+        }
+        if let split = rightSplit {
+            // The right-click strip along the right side of the surface.
+            var c = ctx
+            c.clip(to: body)
+            let zone = CGRect(x: r.minX + r.width * split, y: r.minY,
+                              width: r.width * (1 - split), height: r.height)
+            c.fill(Path(zone), with: .color(accent.opacity(0.14)))
+            var boundary = Path()
+            boundary.move(to: CGPoint(x: zone.minX, y: r.minY + 4))
+            boundary.addLine(to: CGPoint(x: zone.minX, y: r.maxY - 4))
             c.stroke(boundary, with: .color(accent.opacity(0.7)),
                      style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
         }
@@ -195,6 +211,23 @@ private struct PreviewScene {
         let r = 8 + 16 * progress
         let ring = Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: 2 * r, height: 2 * r))
         ctx.stroke(ring, with: .color(accent.opacity(1 - progress)), lineWidth: 2)
+    }
+
+    /// A little context menu popping open on the page — the visible result of a right click.
+    func drawMenu(at p: CGPoint, alpha: Double) {
+        guard alpha > 0.01 else { return }
+        let r = CGRect(x: p.x, y: p.y, width: 46, height: 36)
+        ctx.fill(Path(roundedRect: r, cornerRadius: 5),
+                 with: .color(Color.primary.opacity(0.10 * alpha)))
+        ctx.stroke(Path(roundedRect: r, cornerRadius: 5), with: .color(ink.opacity(alpha)), lineWidth: 1)
+        for (i, inset) in [8.0, 14.0, 11.0].enumerated() {
+            var line = Path()
+            let y = r.minY + 9 + Double(i) * 9
+            line.move(to: CGPoint(x: r.minX + 6, y: y))
+            line.addLine(to: CGPoint(x: r.maxX - inset, y: y))
+            ctx.stroke(line, with: .color((i == 0 ? accent : ink).opacity((i == 0 ? 0.9 : 0.5) * alpha)),
+                       style: StrokeStyle(lineWidth: 3, lineCap: .round))
+        }
     }
 
     /// "Nothing happens" mark.
@@ -234,6 +267,7 @@ private struct PreviewScene {
         case .momentum(let on):   momentum(t, on: on)
         case .ignoreSideways:     ignoreSideways(t)
         case .tapToClick:         tapToClick(t)
+        case .tapRightClick(let d): tapRightClick(t, doubleTap: d)
         case .tapZone(let d):     tapZone(t, depth: d)
         case .tapAndDrag:         tapAndDrag(t)
         case .twoFingerDrag:      twoFingerDrag(t)
@@ -345,6 +379,35 @@ private struct PreviewScene {
         for tapState in [first, second] {
             drawFinger(at: touchPoint, alpha: tapState.finger)
             drawRipple(at: touchPoint, progress: tapState.ripple)
+        }
+    }
+
+    /// Right side of the surface (or a double-tap) opens the right-click menu.
+    private func tapRightClick(_ t: Double, doubleTap: Bool) {
+        let menuSpot = CGPoint(x: pageRect.minX + 30, y: pageRect.midY - 20)
+        if doubleTap {
+            // Two quick taps in the same spot, then the menu pops.
+            let menu = seg(t, 0.95, 1.15) * (1 - seg(t, 2.9, 3.2))
+            drawPage(pageRect)
+            drawMenu(at: menuSpot, alpha: menu)
+            drawMouse(mouseRect)
+            drawFinger(at: touchPoint, alpha: max(pulse(t, 0.3, 0.5, fade: 0.07),
+                                                  pulse(t, 0.7, 0.9, fade: 0.07)))
+            drawRipple(at: touchPoint, progress: seg(t, 0.4, 0.75))
+            drawRipple(at: touchPoint, progress: seg(t, 0.8, 1.15))
+        } else {
+            // A tap on the right strip opens the menu; a tap elsewhere is a normal click.
+            let menu = seg(t, 0.55, 0.75) * (1 - seg(t, 1.8, 2.0))
+            let leftClick = pulse(t, 2.35, 2.75)
+            drawPage(pageRect, buttonFlash: leftClick)
+            drawMenu(at: menuSpot, alpha: menu)
+            drawMouse(mouseRect, rightSplit: 0.55)
+            let right = CGPoint(x: mouseRect.maxX - 12, y: mouseRect.minY + 32)
+            drawFinger(at: right, alpha: pulse(t, 0.4, 0.62, fade: 0.08))
+            drawRipple(at: right, progress: seg(t, 0.5, 0.95))
+            let left = CGPoint(x: mouseRect.minX + 16, y: mouseRect.minY + 32)
+            drawFinger(at: left, alpha: pulse(t, 2.2, 2.42, fade: 0.08))
+            drawRipple(at: left, progress: seg(t, 2.3, 2.75))
         }
     }
 

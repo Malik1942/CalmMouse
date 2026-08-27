@@ -22,6 +22,8 @@ enum StatusReporter {
         var tapToClick: Bool
         var tapToClickListening: Bool
         var tapsPosted: Int
+        var tapRightClick: Bool
+        var rightTapsPosted: Int
         var tapAndDrag: Bool
         var dragsPosted: Int
         var tapFramesReceived: Int

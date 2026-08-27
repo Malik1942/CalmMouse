@@ -27,6 +27,8 @@ final class Settings: ObservableObject {
         static let appRules = "appRules"
         static let tapToClick = "tapToClick"
         static let tapSensitivity = "tapSensitivity"
+        static let tapRightClick = "tapRightClick"
+        static let tapRightClickMode = "tapRightClickMode"
         static let tapAndDrag = "tapAndDrag"
         static let twoFingerDrag = "twoFingerDrag"
         static let tapZoneEnabled = "tapZoneEnabled"
@@ -63,6 +65,8 @@ final class Settings: ObservableObject {
     @Published var customPresets: [Preset] { didSet { saveCustomPresets(); changed() } }
     @Published var tapToClick: Bool { didSet { d.set(tapToClick, forKey: Key.tapToClick); changed() } }
     @Published var tapSensitivity: Double { didSet { d.set(tapSensitivity, forKey: Key.tapSensitivity); changed() } }
+    @Published var tapRightClick: Bool { didSet { d.set(tapRightClick, forKey: Key.tapRightClick); changed() } }
+    @Published var tapRightClickMode: RightClickMode { didSet { d.set(tapRightClickMode.rawValue, forKey: Key.tapRightClickMode); changed() } }
     @Published var tapAndDrag: Bool { didSet { d.set(tapAndDrag, forKey: Key.tapAndDrag); changed() } }
     @Published var twoFingerDrag: Bool { didSet { d.set(twoFingerDrag, forKey: Key.twoFingerDrag); changed() } }
     @Published var tapZoneEnabled: Bool { didSet { d.set(tapZoneEnabled, forKey: Key.tapZoneEnabled); changed() } }
@@ -85,6 +89,8 @@ final class Settings: ObservableObject {
             Key.blockHorizontalScroll: false,
             Key.tapToClick: false,
             Key.tapSensitivity: 0.5,
+            Key.tapRightClick: false,
+            Key.tapRightClickMode: RightClickMode.rightSide.rawValue,
             Key.tapAndDrag: false,
             Key.twoFingerDrag: false,
             Key.tapZoneEnabled: false,
@@ -107,6 +113,8 @@ final class Settings: ObservableObject {
         blockHorizontalScroll = d.bool(forKey: Key.blockHorizontalScroll)
         tapToClick = d.bool(forKey: Key.tapToClick)
         tapSensitivity = d.double(forKey: Key.tapSensitivity)
+        tapRightClick = d.bool(forKey: Key.tapRightClick)
+        tapRightClickMode = RightClickMode(rawValue: d.string(forKey: Key.tapRightClickMode) ?? "") ?? .rightSide
         tapAndDrag = d.bool(forKey: Key.tapAndDrag)
         twoFingerDrag = d.bool(forKey: Key.twoFingerDrag)
         tapZoneEnabled = d.bool(forKey: Key.tapZoneEnabled)
@@ -139,9 +147,12 @@ final class Settings: ObservableObject {
     var tapConfig: TapConfig {
         var c = TapConfig(sensitivity: tapSensitivity)
         c.enabled = tapToClick
+        c.tapRightClick = tapRightClick
+        c.rightClickMode = tapRightClickMode
         c.tapAndDrag = tapAndDrag
-        // The follow-up touch window matches the user's own double-click speed setting.
+        // Follow-up windows (drag arm, double-tap) match the user's own double-click speed setting.
         c.dragWindow = NSEvent.doubleClickInterval
+        c.doubleTapWindow = NSEvent.doubleClickInterval
         c.twoFingerDrag = twoFingerDrag
         c.tapZoneEnabled = tapZoneEnabled
         c.tapZoneDepth = min(max(tapZoneDepth, 0.25), 0.75)
@@ -173,6 +184,8 @@ final class Settings: ObservableObject {
         v.blockHorizontalScroll = blockHorizontalScroll
         v.tapToClick = tapToClick
         v.tapSensitivity = tapSensitivity
+        v.tapRightClick = tapRightClick
+        v.tapRightClickMode = tapRightClickMode
         v.tapAndDrag = tapAndDrag
         v.twoFingerDrag = twoFingerDrag
         v.tapZoneEnabled = tapZoneEnabled
@@ -200,6 +213,8 @@ final class Settings: ObservableObject {
         blockHorizontalScroll = v.blockHorizontalScroll
         tapToClick = v.tapToClick
         tapSensitivity = v.tapSensitivity
+        tapRightClick = v.tapRightClick
+        tapRightClickMode = v.tapRightClickMode
         tapAndDrag = v.tapAndDrag
         twoFingerDrag = v.twoFingerDrag
         tapZoneEnabled = v.tapZoneEnabled

@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let battery = BatteryMonitor()
     private let tapRecognizer = TapRecognizer()
     private lazy var tapToClick = TapController(recognizer: tapRecognizer)
+    private let updater = UpdateChecker()
 
     private var statusItem: NSStatusItem!
     private var settingsWindow: SettingsWindowController?
@@ -21,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let batteryLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let permissionItem = NSMenuItem(title: "Grant Accessibility permission…", action: #selector(openAccessibility), keyEquivalent: "")
+    private let updateItem = NSMenuItem(title: "", action: #selector(openUpdate), keyEquivalent: "")
     private let enabledItem = NSMenuItem(title: "CalmMouse enabled", action: #selector(toggleEnabled), keyEquivalent: "")
     private let blockItem = NSMenuItem(title: "Don't scroll while clicking", action: #selector(toggleBlock), keyEquivalent: "")
     private let momentumItem = NSMenuItem(title: "Keep gliding after a swipe", action: #selector(toggleMomentum), keyEquivalent: "")
@@ -53,6 +55,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async { self?.refreshStatusIcon() }
         }
         battery.start()
+
+        updater.onAvailabilityChanged = { [weak self] in self?.refreshMenu() }
+        updater.start()
 
         ensurePermissionThenStart()
 
@@ -165,6 +170,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(statusLine)
         menu.addItem(batteryLine)
         menu.addItem(permissionItem)
+        updateItem.isHidden = true
+        menu.addItem(updateItem)
         menu.addItem(.separator())
 
         // Frequently-flipped switches live here; everything else is in the settings window.
@@ -238,6 +245,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         permissionItem.isHidden = trusted
 
+        if let release = updater.availableRelease {
+            updateItem.title = "Update available — CalmMouse \(release.version)…"
+            updateItem.isHidden = false
+        } else {
+            updateItem.isHidden = true
+        }
+
         if let reading = battery.latest {
             batteryLine.title = "Battery \(reading.percent)%"
             batteryLine.isHidden = false
@@ -290,6 +304,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             tapToClick: settings.tapToClick,
             tapToClickListening: tapToClick.isListening,
             tapsPosted: tapToClick.tapsPosted,
+            tapRightClick: settings.tapRightClick,
+            rightTapsPosted: tapToClick.rightTapsPosted,
             tapAndDrag: settings.tapAndDrag,
             dragsPosted: tapToClick.dragsPosted,
             tapFramesReceived: tapToClick.framesReceived,
@@ -319,9 +335,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settings.setScrollDisabled(!currentlyDisabled, forBundleID: bundleID, name: name)
     }
 
+    /// Menu-bar entry for a pending update: open Settings on General, where the Updates
+    /// section shows the notes and the Update Now button.
+    @objc private func openUpdate() {
+        UserDefaults.standard.set(0, forKey: "settingsTab")
+        openSettings()
+    }
+
     @objc private func openSettings() {
         if settingsWindow == nil {
-            settingsWindow = SettingsWindowController(settings: settings, battery: battery)
+            settingsWindow = SettingsWindowController(settings: settings, battery: battery,
+                                                      updater: updater)
         }
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.showWindow(nil)

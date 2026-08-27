@@ -52,6 +52,7 @@ final class TapController {
     private var lastCursorPosition: CGPoint?
 
     private(set) var tapsPosted = 0
+    private(set) var rightTapsPosted = 0
     private(set) var dragsPosted = 0
 
     /// Fired with the press's click state on drag-down and nil on release, so the EventTap can
@@ -171,6 +172,8 @@ final class TapController {
             switch event {
             case .tap:
                 postClick()
+            case .rightTap:
+                postRightClick()
             case .dragBegan:
                 // Arm only. The press is posted by driveArmedDrag when the cursor moves.
                 armCursorPosition = CGEvent(source: nil)?.location
@@ -178,6 +181,11 @@ final class TapController {
             case .dragEnded:
                 if dragClickState != nil {
                     postDragUp()
+                } else if recognizer.config.tapRightClick && recognizer.config.rightClickMode == .doubleTap {
+                    // Lifted while still armed: a quick second tap. In double-tap mode that IS
+                    // the right-click gesture — the arm's own gates (drag window = double-click
+                    // interval, landing near the tap) already matched it.
+                    postRightClick()
                 } else {
                     // Lifted while still armed: a quick second tap. postClick escalates the
                     // click state itself, so tap-tap lands as a genuine double-click.
@@ -215,7 +223,8 @@ final class TapController {
         return clickState
     }
 
-    private func mouseEvent(_ type: CGEventType, at location: CGPoint, clickState: Int64) -> CGEvent? {
+    private func mouseEvent(_ type: CGEventType, at location: CGPoint, clickState: Int64,
+                            button: CGMouseButton = .left) -> CGEvent? {
         let source = CGEventSource(stateID: .combinedSessionState)
         source?.userData = Self.syntheticTag
         // By default macOS suppresses local hardware events for 250 ms after a synthetic post —
@@ -223,7 +232,7 @@ final class TapController {
         // fighting it: never suppress.
         source?.localEventsSuppressionInterval = 0
         let event = CGEvent(mouseEventSource: source, mouseType: type,
-                            mouseCursorPosition: location, mouseButton: .left)
+                            mouseCursorPosition: location, mouseButton: button)
         event?.setIntegerValueField(.mouseEventClickState, value: clickState)
         return event
     }
@@ -243,6 +252,25 @@ final class TapController {
         up.post(tap: .cghidEventTap)
         tapsPosted += 1
         log.debug("tap → click (state \(state)) at \(location.x, format: .fixed(precision: 0)),\(location.y, format: .fixed(precision: 0))")
+    }
+
+    private func postRightClick() {
+        guard dragClickState == nil else { return } // never click while holding a drag
+        guard let location = CGEvent(source: nil)?.location else { return }
+        guard
+            let down = mouseEvent(.rightMouseDown, at: location, clickState: 1, button: .right),
+            let up = mouseEvent(.rightMouseUp, at: location, clickState: 1, button: .right)
+        else { return }
+        // Same tag as tap clicks: invisible to the scroll blocker and the tap recognizer.
+        down.setIntegerValueField(.eventSourceUserData, value: Self.syntheticClickTag)
+        up.setIntegerValueField(.eventSourceUserData, value: Self.syntheticClickTag)
+        down.post(tap: .cghidEventTap)
+        up.post(tap: .cghidEventTap)
+        rightTapsPosted += 1
+        // A right click breaks the left double-click chain, exactly as a physical one would.
+        lastTapAt = -.infinity
+        clickState = 1
+        log.debug("tap → right click at \(location.x, format: .fixed(precision: 0)),\(location.y, format: .fixed(precision: 0))")
     }
 
     private func postDragDown() {
