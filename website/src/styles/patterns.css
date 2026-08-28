@@ -325,6 +325,12 @@
   gap: var(--space-5);
 }
 
+/* Tiles read as cards, not display copy — keep them left-aligned even
+   inside a centred section (the download FAQ). */
+.section--center .tile-grid {
+  text-align: left;
+}
+
 /* ---------- Steps ---------------------------------------------------- */
 .steps {
   list-style: none;
@@ -366,7 +372,8 @@
 }
 
 @media (max-width: 640px) {
-  .site-nav__link {
+  /* Keep one anchor link on phones; shed only the secondary ones. */
+  .site-nav__link--extra {
     display: none;
   }
 
@@ -374,8 +381,29 @@
     grid-template-columns: 1fr;
   }
 
+  /* Stacked vertically, the caption must come first or the reader sees an
+     unlabelled animation and only learns which side it was a screen later. */
+  .compare__item {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  .compare__caption {
+    margin: 0 0 var(--space-3);
+  }
+
   .bento > .card,
   .bento > .card--wide {
     grid-column: span 6;
+  }
+
+  .bento,
+  .figure-center,
+  .compare {
+    margin-top: var(--space-10);
+  }
+
+  .hero__visual {
+    width: 132px;
   }
 }

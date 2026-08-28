@@ -18,13 +18,15 @@ if (prefersReducedMotion || !("IntersectionObserver" in window)) {
         }
       }
     },
-    { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
+    // Start the fade well before the element reaches the viewport, so content
+    // is already settling in by the time a fast scroll lands on it.
+    { threshold: 0, rootMargin: "0px 0px 25% 0px" }
   );
   revealables.forEach((el) => observer.observe(el));
 }
 
-// Downloading is only half the job: the release isn't notarized, so the first
-// launch needs the right-click → Open step. The click is never intercepted —
+// Downloading is only half the job: the app still needs to be dragged to
+// Applications and granted Accessibility. The click is never intercepted —
 // the href starts the download on its own — we just bring the install steps
 // into view behind it, so the instructions are waiting once the file lands.
 const installSteps = document.querySelector(".steps");

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CalmMouse — Magic Mouse UX fixes for macOS</title>
+    <title>CalmMouse — Magic Mouse fixes for macOS</title>
     <meta
       name="description"
       content="CalmMouse stops your Magic Mouse from scrolling the page every time you click — plus tap to click, tap to right-click, drag gestures, straight-line scrolling, per-app rules, and more. Free and open source for macOS."
@@ -12,14 +12,14 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://calmmouse.malikzhang.com/" />
     <meta property="og:title" content="CalmMouse" />
-    <meta property="og:description" content="Magic Mouse UX fixes for macOS. Free and open source." />
+    <meta property="og:description" content="Magic Mouse fixes for macOS. Free and open source." />
     <meta property="og:image" content="https://calmmouse.malikzhang.com/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="CalmMouse — a Magic Mouse with a blue tap ripple. Magic Mouse UX fixes for macOS." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="CalmMouse" />
-    <meta name="twitter:description" content="Magic Mouse UX fixes for macOS. Free and open source." />
+    <meta name="twitter:description" content="Magic Mouse fixes for macOS. Free and open source." />
     <meta name="twitter:image" content="https://calmmouse.malikzhang.com/og-image.png" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
@@ -33,11 +33,11 @@
           CalmMouse
         </a>
         <div class="site-nav__links">
-          <a class="site-nav__link" href="#problem">The&nbsp;fix</a>
+          <a class="site-nav__link site-nav__link--extra" href="#problem">The&nbsp;fix</a>
           <a class="site-nav__link" href="#features">Features</a>
-          <a class="site-nav__link" href="#privacy">Privacy</a>
-          <a class="site-nav__link" href="#whats-new">What's&nbsp;new</a>
-          <a class="site-nav__link" href="https://github.com/Malik1942/CalmMouse" target="_blank" rel="noopener">GitHub</a>
+          <a class="site-nav__link site-nav__link--extra" href="#privacy">Privacy</a>
+          <a class="site-nav__link site-nav__link--extra" href="#whats-new">What's&nbsp;new</a>
+          <a class="site-nav__link site-nav__link--extra" href="https://github.com/Malik1942/CalmMouse" target="_blank" rel="noopener">GitHub</a>
           <a
             class="btn btn--primary btn--sm"
             href="https://github.com/Malik1942/CalmMouse/releases/latest/download/CalmMouse.zip"
@@ -50,9 +50,9 @@
     <header class="hero" id="top">
       <p class="eyebrow reveal">Free &amp; open source</p>
       <h1 class="hero__title reveal">CalmMouse</h1>
-      <p class="hero__tagline reveal">Magic&nbsp;Mouse UX fixes for macOS.</p>
+      <p class="hero__tagline reveal">A small menu-bar app for the Magic&nbsp;Mouse on macOS.</p>
       <p class="hero__statement reveal">
-        The main one: <strong>your mouse stops scrolling the page every&nbsp;time you&nbsp;click.</strong>
+        <strong>It stops the page from scrolling every&nbsp;time you&nbsp;click.</strong>
       </p>
       <div class="actions actions--center reveal">
         <a
@@ -120,9 +120,9 @@
               document scrolls out from under it. Click a link and the link moves first.
             </p>
             <p class="lede reveal">
-              macOS has no setting for this. <strong>CalmMouse is that setting</strong> — a small menu-bar app
-              that swallows Magic&nbsp;Mouse scrolling while any of its buttons is held, and keeps swallowing
-              for a moment after, to catch the trailing swipe your finger makes as it lifts.
+              macOS has no setting for this. <strong>CalmMouse is that setting.</strong> It ignores
+              Magic&nbsp;Mouse scrolling while you're clicking, and for a split second after, so the
+              page stays put.
             </p>
           </div>
 
@@ -178,7 +178,7 @@
       <section class="section section--alt" id="features">
         <div class="container">
           <div class="section__copy">
-            <h2 class="section__title reveal">And the rest of the<br />rough edges.</h2>
+            <h2 class="section__title reveal">Everything else<br />it fixes.</h2>
             <p class="lede reveal">
               Everything applies <strong>only to the Magic&nbsp;Mouse</strong>. CalmMouse identifies the
               physical device behind every event, so your trackpad and any other mouse pass through untouched.
@@ -188,48 +188,14 @@
           <div class="bento">
             <article class="card card--wide reveal">
               <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="0.45" />
-                <circle cx="9" cy="7" r="2.4" fill="currentColor" />
-                <circle cx="15.5" cy="12" r="2.4" fill="currentColor" />
-                <circle cx="7" cy="17" r="2.4" fill="currentColor" />
-              </svg>
-              <h3 class="card__title">Three presets to start from</h3>
-              <p class="card__body">
-                Not in the mood to read a settings window? Pick <strong>Just fix clicking</strong>,
-                <strong>Extra steady</strong>, or <strong>Trackpad feel</strong> and you're set up in one
-                click. Every switch is still yours to tweak afterwards — a preset is a starting point,
-                not a mode — and you can save your own setup as a named preset.
-              </p>
-            </article>
-
-            <article class="card card--wide reveal">
-              <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="5" cy="12" r="2.2" fill="currentColor" />
-                <circle cx="12" cy="12" r="2.2" fill="currentColor" opacity="0.55" />
-                <circle cx="19" cy="12" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6" />
-                <path d="M7.7 12h1.6M14.7 12h1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-              </svg>
-              <h3 class="card__title">A welcome tour, once</h3>
-              <p class="card__body">
-                The first launch walks you through the permission, lets you pick a preset, and then has
-                you try the fix for real — clicking and sliding while it counts the accidental scrolls
-                it just caught for you. After that it gets out of the way and lives in the menu bar.
-              </p>
-            </article>
-
-            <article class="card card--wide reveal">
-              <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="12" cy="12" r="3" fill="currentColor" />
                 <circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5" />
                 <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.25" />
               </svg>
               <h3 class="card__title">Tap to click</h3>
               <p class="card__body">
-                A light single-finger tap left-clicks — no need to press the mouse down. Adjustable
-                Firm↔Light sensitivity, and taps are auto-rejected while you're scrolling, clicking,
-                resting a finger, or just grazing the shell. Double- and triple-taps become real
-                double- and triple-clicks. And tapping can learn the right button too: a tap on the
-                right side of the surface right-clicks, or a double-tap — your pick.
+                Tap the surface lightly instead of pressing the mouse down. A tap on the right side
+                can right-click. Taps while you scroll or grip the mouse don't count.
               </p>
             </article>
 
@@ -238,26 +204,25 @@
                 <circle cx="7" cy="16" r="3" fill="currentColor" />
                 <path d="M11 13L19 5m0 0h-5m5 0v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              <h3 class="card__title">Tap and drag</h3>
+              <h3 class="card__title">Drag without holding the button</h3>
               <p class="card__body">
-                Tap, touch again, and go: the button presses down when you actually start moving and
-                releases when your finger lifts. A finger that just comes back to rest never presses
-                anything — and a quick second tap is still a double-click, so selecting a word and
-                extending it works.
+                Tap twice and move, or rest two fingers and hold. CalmMouse keeps the button pressed
+                for you and lets go when you lift your finger.
               </p>
             </article>
 
             <article class="card card--wide reveal">
               <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="8.5" cy="10" r="3" fill="currentColor" />
-                <circle cx="15.5" cy="10" r="3" fill="currentColor" />
-                <path d="M12 16v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="0.45" />
+                <circle cx="9" cy="7" r="2.4" fill="currentColor" />
+                <circle cx="15.5" cy="12" r="2.4" fill="currentColor" />
+                <circle cx="7" cy="17" r="2.4" fill="currentColor" />
               </svg>
-              <h3 class="card__title">Two-finger drag</h3>
+              <h3 class="card__title">Start from a preset</h3>
               <p class="card__body">
-                Rest two fingers on the surface together and hold — after a moment the button presses
-                down. Move to drag, lift either finger to drop. Fingers that land one after the other
-                are grip, not gesture, and never trigger it.
+                Pick <strong>Just fix clicking</strong>, <strong>Extra steady</strong>, or
+                <strong>Trackpad feel</strong> and you're done in one click. Change anything later,
+                or save your own.
               </p>
             </article>
 
@@ -268,60 +233,55 @@
                 <rect x="3" y="13" width="8" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" />
                 <rect x="13" y="13" width="8" height="8" rx="2" fill="currentColor" />
               </svg>
-              <h3 class="card__title">Per-app rules</h3>
+              <h3 class="card__title">Different rules per app</h3>
               <p class="card__body">
-                Any setting, overridden per application. Disable Magic&nbsp;Mouse scrolling entirely in
-                Figma, block horizontal scroll in Excel, drop momentum in your code editor. Rules
-                follow whichever app is in front.
+                Turn scrolling off in Figma, or block sideways scroll in Excel. Settings switch with
+                whichever app is in front.
               </p>
             </article>
 
-            <article class="card reveal">
+            <article class="card card--compact reveal">
               <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3v18m0-18l-3.5 3.5M12 3l3.5 3.5M12 21l-3.5-3.5M12 21l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
               <h3 class="card__title">Scroll in straight lines</h3>
               <p class="card__body">
-                Once a scroll commits to vertical or horizontal, the other axis is zeroed for the rest
-                of the gesture. No more diagonal drift.
+                Scrolling stays vertical or horizontal, never diagonal.
               </p>
             </article>
 
-            <article class="card reveal">
+            <article class="card card--compact reveal">
               <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 14c2-3 4-3 6 0s4 3 6 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.4" />
                 <path d="M5 5l14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
               </svg>
               <h3 class="card__title">Ignore tiny nudges</h3>
               <p class="card__body">
-                A gesture has to travel a minimum distance before it counts — so a finger merely
-                resting on the shell can't jitter the page.
+                A finger resting on the mouse can't move the page.
               </p>
             </article>
 
-            <article class="card reveal">
+            <article class="card card--compact reveal">
               <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M3 12h6l2-6 3 12 2-6h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              <h3 class="card__title">Keep gliding — or don't</h3>
+              <h3 class="card__title">Stop the glide</h3>
               <p class="card__body">
-                Turn off the coasting tail after a flick, for the Magic&nbsp;Mouse alone. macOS's own
-                momentum setting is all-or-nothing, system-wide.
+                Turn off coasting after a flick, on this mouse only.
               </p>
             </article>
 
-            <article class="card reveal">
+            <article class="card card--compact reveal">
               <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M8 8a3 3 0 113 3H8V8zm8 0a3 3 0 10-3 3h3V8zm-8 8a3 3 0 103 3v-3H8zm8 0a3 3 0 11-3 3v-3h3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
               </svg>
-              <h3 class="card__title">Hold a key, scroll differently</h3>
+              <h3 class="card__title">Scroll with a key held</h3>
               <p class="card__body">
-                Map ⌘, ⌥, ⌃, or ⇧ + scroll to horizontal scrolling, inverted scrolling, zoom — or
-                nothing at all.
+                ⌘, ⌥, ⌃, or ⇧ plus scroll can go sideways, invert, or zoom.
               </p>
             </article>
 
-            <article class="card reveal">
+            <article class="card card--compact reveal">
               <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
                 <rect x="4" y="9" width="15" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" />
                 <rect x="6" y="11" width="4" height="3" rx="0.5" fill="currentColor" />
@@ -329,23 +289,26 @@
               </svg>
               <h3 class="card__title">Battery warning</h3>
               <p class="card__body">
-                A notification when the mouse drops below a threshold you choose, so it doesn't die
-                mid-afternoon.
+                A heads-up before the mouse dies mid-afternoon.
               </p>
             </article>
 
-            <article class="card reveal">
+            <article class="card card--compact reveal">
               <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true">
                 <rect x="7" y="2.5" width="10" height="19" rx="5" fill="none" stroke="currentColor" stroke-width="1.6" />
                 <path d="M9 5.5a3 3 0 016 0V9H9V5.5z" fill="currentColor" opacity="0.55" />
               </svg>
               <h3 class="card__title">Tap zone</h3>
               <p class="card__body">
-                Restrict taps to the front of the surface, away from the side edges — so the fingers
-                gripping the mouse can't click. Adjustable depth.
+                Only the front of the surface accepts taps, so gripping fingers can't click.
               </p>
             </article>
           </div>
+
+          <p class="section__note reveal">
+            The first launch walks you through setup once, and shows the accidental scrolls it just
+            caught while you try it. After that, CalmMouse stays out of the way in the menu bar.
+          </p>
         </div>
       </section>
 
@@ -353,12 +316,11 @@
       <section class="section" id="settings">
         <div class="container">
           <div class="section__copy">
-            <h2 class="section__title reveal">Settings in plain English.<br />Previews you can watch.</h2>
+            <h2 class="section__title reveal">You won't need a manual.</h2>
             <p class="lede reveal">
-              No jargon, no manual. Every switch says what it does — and hovering any setting plays a
-              little animated preview of the behavior it changes. The switches you flip often live right
-              in the menu bar. And if you'd rather not visit at all, a preset sets the whole thing in one
-              click.
+              Every setting is written in normal words, and if you're not sure what one does, hover over
+              it and a short animation shows you. The settings you change most often sit in the menu bar.
+              If you'd rather not touch settings at all, pick a preset and you're done.
             </p>
           </div>
 
@@ -409,29 +371,116 @@
       <section class="section section--alt" id="privacy">
         <div class="container">
           <div class="section__copy">
-            <h2 class="section__title reveal">Your mouse. Only your mouse.</h2>
+            <h2 class="section__title reveal">Nothing leaves your Mac.</h2>
             <p class="lede reveal">
-              CalmMouse reads mouse events through a system event tap, which macOS gates behind an
-              Accessibility permission — you stay in control.
+              CalmMouse asks for <strong>one macOS permission</strong>, called Accessibility. That's
+              what lets an app see and adjust mouse input, and it's all CalmMouse uses it for.
             </p>
           </div>
           <ul class="tile-grid reveal">
-            <li class="tile"><strong>No keystrokes.</strong> It never sees what you type.</li>
-            <li class="tile"><strong>No network.</strong> Nothing is sent anywhere, ever.</li>
-            <li class="tile"><strong>No data.</strong> It stores nothing but its own settings.</li>
-            <li class="tile"><strong>No secrets.</strong> The whole thing is open source, MIT-licensed.</li>
+            <li class="tile">
+              <strong>No keystrokes</strong>
+              It never watches the keyboard or what you type.
+            </li>
+            <li class="tile">
+              <strong>No internet</strong>
+              It never connects to anything. Nothing is sent, ever.
+            </li>
+            <li class="tile">
+              <strong>No collected data</strong>
+              It stores nothing except your own settings.
+            </li>
+            <li class="tile">
+              <strong>Open source</strong>
+              The code is public on GitHub, so you can check all of this yourself.
+            </li>
           </ul>
         </div>
       </section>
 
+      <!-- ============ Download ============ -->
+      <section class="section section--center" id="download">
+        <div class="container">
+          <div class="section__copy">
+            <h2 class="section__title reveal">Free. As in actually free.</h2>
+            <p class="lede reveal">No trial, no license key, no email. Download it, drag it in, done.</p>
+          </div>
+          <div class="actions actions--center reveal">
+            <a
+              class="btn btn--primary btn--lg"
+              href="https://github.com/Malik1942/CalmMouse/releases/latest/download/CalmMouse.zip"
+              >Download CalmMouse for macOS</a
+            >
+            <a class="link-arrow" href="https://github.com/Malik1942/CalmMouse/releases" target="_blank" rel="noopener"
+              >All releases <span aria-hidden="true">›</span></a
+            >
+          </div>
+          <p class="fineprint reveal">Requires macOS 13 or later and a Magic Mouse.</p>
+
+          <ol class="steps reveal">
+            <li class="step">
+              <span class="step__num">1</span>
+              <div>
+                <strong class="step__title">Unzip &amp; drag to Applications.</strong>
+                <p class="step__body">You get <code>CalmMouse.app</code> — drop it in <code>/Applications</code>.</p>
+              </div>
+            </li>
+            <li class="step">
+              <span class="step__num">2</span>
+              <div>
+                <strong class="step__title">Open it. No warnings.</strong>
+                <p class="step__body">
+                  Releases are signed with a Developer&nbsp;ID and notarized by Apple, so
+                  CalmMouse opens like any other app.
+                </p>
+              </div>
+            </li>
+            <li class="step">
+              <span class="step__num">3</span>
+              <div>
+                <strong class="step__title">Turn on Accessibility access.</strong>
+                <p class="step__body">
+                  Open CalmMouse and it walks you to the right switch in System Settings. It starts
+                  working within two seconds, no relaunch needed.
+                </p>
+              </div>
+            </li>
+          </ol>
+
+          <ul class="tile-grid reveal">
+            <li class="tile">
+              <strong>Will it affect my trackpad?</strong>
+              No. It only changes the Magic Mouse. Every other device works as before.
+            </li>
+            <li class="tile">
+              <strong>What do I need?</strong>
+              A Mac on macOS 13 or later, and a Magic Mouse.
+            </li>
+            <li class="tile">
+              <strong>Is it really free?</strong>
+              Yes. No trial, no account, and the code is open source.
+            </li>
+            <li class="tile">
+              <strong>How do updates work?</strong>
+              CalmMouse tells you when a new version is out and installs it in one click.
+            </li>
+          </ul>
+
+          <p class="section__note reveal">
+            Prefer to build from source? <code>git clone</code> the
+            <a class="link-quiet" href="https://github.com/Malik1942/CalmMouse" target="_blank" rel="noopener">repo</a>
+            and run <code>./install.sh</code>.
+          </p>
+        </div>
+      </section>
       <!-- ============ What's new ============ -->
       <section class="section" id="whats-new">
         <div class="container">
           <div class="section__copy">
             <h2 class="section__title reveal">What's new</h2>
             <p class="lede reveal">
-              From 0.5.0 on, CalmMouse notices new versions by itself and updates in place —
-              Settings → General → <em>Update Now</em>. One click, no browser, no unzipping.
+              CalmMouse keeps itself up to date: when a new version is out, it tells you, and one
+              click in Settings installs it.
             </p>
           </div>
 
@@ -513,62 +562,6 @@
         </div>
       </section>
 
-      <!-- ============ Download ============ -->
-      <section class="section section--center" id="download">
-        <div class="container">
-          <div class="section__copy">
-            <h2 class="section__title reveal">Free. As in actually free.</h2>
-            <p class="lede reveal">No trial, no license key, no email. Download it, drag it in, done.</p>
-          </div>
-          <div class="actions actions--center reveal">
-            <a
-              class="btn btn--primary btn--lg"
-              href="https://github.com/Malik1942/CalmMouse/releases/latest/download/CalmMouse.zip"
-              >Download CalmMouse for macOS</a
-            >
-            <a class="link-arrow" href="https://github.com/Malik1942/CalmMouse/releases" target="_blank" rel="noopener"
-              >All releases <span aria-hidden="true">›</span></a
-            >
-          </div>
-          <p class="fineprint reveal">Requires macOS 13 or later and a Magic Mouse.</p>
-
-          <ol class="steps reveal">
-            <li class="step">
-              <span class="step__num">1</span>
-              <div>
-                <strong class="step__title">Unzip &amp; drag to Applications.</strong>
-                <p class="step__body">You get <code>CalmMouse.app</code> — drop it in <code>/Applications</code>.</p>
-              </div>
-            </li>
-            <li class="step">
-              <span class="step__num">2</span>
-              <div>
-                <strong class="step__title">Open it. No warnings.</strong>
-                <p class="step__body">
-                  Releases are signed with a Developer&nbsp;ID and notarized by Apple, so
-                  CalmMouse opens like any other app.
-                </p>
-              </div>
-            </li>
-            <li class="step">
-              <span class="step__num">3</span>
-              <div>
-                <strong class="step__title">Grant Accessibility.</strong>
-                <p class="step__body">
-                  System Settings → Privacy&nbsp;&amp;&nbsp;Security → Accessibility → enable CalmMouse.
-                  It starts working within two seconds — no relaunch needed.
-                </p>
-              </div>
-            </li>
-          </ol>
-
-          <p class="section__note reveal">
-            Prefer to build from source? <code>git clone</code> the
-            <a class="link-quiet" href="https://github.com/Malik1942/CalmMouse" target="_blank" rel="noopener">repo</a>
-            and run <code>./install.sh</code>.
-          </p>
-        </div>
-      </section>
     </main>
 
     <footer class="site-footer">

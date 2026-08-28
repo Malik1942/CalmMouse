@@ -3,9 +3,11 @@
    ============================================================= */
 
 /* ---------- Reveal on scroll ------------------------------------ */
+/* Content is never fully hidden: the reveal starts at readable opacity and
+   settles in, so fast scrollers always land on legible text. */
 .reveal {
-  opacity: 0;
-  transform: translateY(26px);
+  opacity: 0.55;
+  transform: translateY(14px);
   transition: opacity var(--duration-slow) var(--ease-out-expo),
     transform var(--duration-slow) var(--ease-out-expo);
 }

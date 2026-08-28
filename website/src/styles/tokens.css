@@ -138,6 +138,17 @@
   color-scheme: light dark;
 }
 
+/* On phones the desktop cadence turns into screens of empty scrolling —
+   halve the rhythm so content stays within a thumb-flick of itself. */
+@media (max-width: 640px) {
+  :root {
+    --space-section: 3.25rem;
+    --space-block: 2rem;
+    --space-hero-top: 3.5rem;
+    --space-hero-visual: 2.75rem;
+  }
+}
+
 /* =============================================================
    Dark theme — remaps roles only. No component rule below this
    file needs to know which theme is active.

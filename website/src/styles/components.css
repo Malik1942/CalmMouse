@@ -123,6 +123,25 @@
   color: var(--color-text-secondary);
 }
 
+/* Compact card — the second tier of the features bento */
+.card--compact {
+  padding: var(--space-5);
+}
+
+.card--compact .card__icon {
+  width: 24px;
+  height: 24px;
+  margin-bottom: var(--space-3);
+}
+
+.card--compact .card__title {
+  font-size: var(--text-lg);
+}
+
+.card--compact .card__body {
+  font-size: var(--text-sm);
+}
+
 /* ---------- Tile (compact statement card) ---------------------- */
 .tile {
   background: var(--color-surface);
