@@ -42,11 +42,13 @@ CalmMouse is that checkbox, plus the rest of the Magic Mouse's rough edges, in a
 | **Per-app rules** | Any of the above, overridden per application. Disable Magic Mouse scrolling entirely in Figma, block horizontal scroll in Excel, drop momentum in a code editor. Rules follow the frontmost app. |
 | **Modifier actions** | Map ⌘/⌥/⌃/⇧ + scroll to horizontal scrolling, inverted scrolling, zoom (⌘-scroll or system ⌃-scroll), or nothing at all. |
 | **Tap to click** | A light single-finger tap left-clicks — no need to press the mouse down. Adjustable Firm↔Light sensitivity; taps are auto-rejected while (and shortly after) scrolling, during and right after physical clicks, for multi-finger touches, resting fingers, and grazes. Double- and triple-taps become real double-/triple-clicks. Off by default. |
+| **Tap to right-click** | Give tapping the right button too, in one of two ways: **a tap on the right side** of the surface right-clicks — the same side a physical right click uses (the default) — or **a double-tap**, where a second quick tap in the same spot opens the right-click menu (in that mode, double-click by pressing or by tapping twice a little slower). Right taps respect the tap zone, never start a drag, and reset the double-click chain like a real right click. Off by default. |
 | **Tap zone** | Restrict taps to the front part of the surface, away from the side edges, so the fingers gripping the mouse can't click. Adjustable depth. |
 | **Tap and drag** | Tap, then touch again and hold: the button presses down **when you start moving the mouse** and releases when the finger lifts. Because the press is deferred until you actually move, a finger that just comes back to rest — or swipes to scroll — never presses anything. A quick second tap is still a double-click, so double-click-drag (selecting a word, then extending it) works. |
 | **Two-finger drag (long press)** | Rest two fingers on the surface together and hold; after a moment the button presses down. Move to drag, lift either finger to drop. Fingers that land one after the other are grip, not gesture, and never trigger it. |
 | **Battery warning** | A notification when the Magic Mouse drops below a threshold you set, so it doesn't die mid-afternoon. |
 | **Presets** | Three one-click starting points — *Just fix clicking*, *Extra steady*, *Trackpad feel* — that set the Scrolling and Clicking options in one go. Everything stays tweakable afterwards, and you can save your own setups as named presets. Per-app rules and shortcuts are never touched. |
+| **In-app updates** | CalmMouse checks the releases feed twice a day; a new version shows up as a menu-bar item and in Settings → General with its release notes. One click downloads, verifies the signature is ours, swaps the app in place, and relaunches. |
 
 Everything applies **only to the Magic Mouse**. CalmMouse identifies the physical device behind each
 event, so your trackpad, your other mouse, and anything synthetic are passed through untouched.
@@ -118,10 +120,10 @@ Settings…, Quit.
 
 **Settings window** — seven tabs:
 
-- **General** — enable, launch at login, permission status, troubleshooting toggles
+- **General** — enable, launch at login, updates, permission status, troubleshooting toggles
 - **Presets** — one-click starting points, plus your own saved setups
 - **Scrolling** — don't scroll while clicking, nudge filtering, straight-line scrolling, momentum
-- **Clicking** — tap to click, tap area, tap-and-drag, two-finger drag
+- **Clicking** — tap to click, tap to right-click, tap area, tap-and-drag, two-finger drag
 - **Apps** — per-app rules
 - **Shortcuts** — hold a modifier key while scrolling to scroll sideways, zoom, and more
 - **Battery** — current level and the low-battery threshold
