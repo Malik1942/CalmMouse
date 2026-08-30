@@ -30,6 +30,8 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/CalmMouse"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+# Localizations: the app picks the .lproj matching the system language (English fallback).
+cp -R Resources/*.lproj "$APP/Contents/Resources/"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 # Prefer a real identity (stable TCC grant); fall back to ad-hoc with a warning.

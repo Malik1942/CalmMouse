@@ -85,7 +85,7 @@ final class UpdateChecker: ObservableObject {
         let hadUpdate = availableRelease != nil
         guard let release = data.flatMap(Self.parseRelease) else {
             if userInitiated {
-                state = .failed(error?.localizedDescription ?? "Couldn't read the releases feed.")
+                state = .failed(error?.localizedDescription ?? L("Couldn't read the releases feed."))
             } else if !hadUpdate {
                 state = .idle
             }
@@ -124,7 +124,7 @@ final class UpdateChecker: ObservableObject {
     func install() {
         guard case .available(let release) = state else { return }
         guard let zip = release.zipURL else {
-            state = .failed("This release has no download attached — grab it from the website.")
+            state = .failed(L("This release has no download attached — grab it from the website."))
             return
         }
         state = .downloading(0)
@@ -133,7 +133,7 @@ final class UpdateChecker: ObservableObject {
             DispatchQueue.main.async { self.progressObservation = nil }
             guard let url, error == nil else {
                 DispatchQueue.main.async {
-                    self.state = .failed(error?.localizedDescription ?? "Download failed.")
+                    self.state = .failed(error?.localizedDescription ?? L("Download failed."))
                 }
                 return
             }
@@ -176,7 +176,7 @@ final class UpdateChecker: ObservableObject {
             try run("/usr/bin/ditto", "-x", "-k", zip.path, work.path)
             let newApp = work.appendingPathComponent("CalmMouse.app")
             guard fm.fileExists(atPath: newApp.path) else {
-                throw InstallError(message: "The downloaded archive didn't contain CalmMouse.app.")
+                throw InstallError(message: L("The downloaded archive didn't contain CalmMouse.app."))
             }
 
             // The download came over HTTPS from the pinned repo, but verify anyway: a truncated
@@ -190,7 +190,7 @@ final class UpdateChecker: ObservableObject {
                     newApp.path)
             let info = NSDictionary(contentsOf: newApp.appendingPathComponent("Contents/Info.plist"))
             guard info?["CFBundleIdentifier"] as? String == "com.calmmouse.app" else {
-                throw InstallError(message: "The downloaded app isn't CalmMouse.")
+                throw InstallError(message: L("The downloaded app isn't CalmMouse."))
             }
 
             let target = Bundle.main.bundleURL
@@ -198,8 +198,8 @@ final class UpdateChecker: ObservableObject {
             do {
                 try fm.moveItem(at: target, to: parked)
             } catch {
-                throw InstallError(message: "Couldn't replace \(target.path) — "
-                    + "download the update from the website instead. (\(error.localizedDescription))")
+                throw InstallError(message: L("Couldn't replace %@ — download the update from the website instead. (%@)",
+                                              target.path, error.localizedDescription))
             }
             do {
                 try fm.copyItem(at: newApp, to: target)
@@ -235,8 +235,8 @@ final class UpdateChecker: ObservableObject {
         guard p.terminationStatus == 0 else {
             let detail = String(data: err.fileHandleForReading.readDataToEndOfFile(),
                                 encoding: .utf8) ?? ""
-            throw InstallError(message: "\((tool as NSString).lastPathComponent) failed: "
-                + detail.trimmingCharacters(in: .whitespacesAndNewlines))
+            throw InstallError(message: L("%@ failed: %@", (tool as NSString).lastPathComponent,
+                                          detail.trimmingCharacters(in: .whitespacesAndNewlines)))
         }
     }
 }

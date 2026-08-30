@@ -8,7 +8,7 @@ final class SettingsWindowController: NSWindowController {
         let root = SettingsView(settings: settings, battery: battery, updater: updater)
         let hosting = NSHostingController(rootView: root)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "CalmMouse Settings"
+        window.title = L("CalmMouse Settings")
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.setContentSize(NSSize(width: 620, height: 520))
         window.center()
@@ -246,9 +246,11 @@ private struct PresetRow: View {
                 .foregroundStyle(Color.accentColor)
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
-                Text(preset.name).fontWeight(.medium)
+                // Built-in preset names/summaries have .strings entries; a custom preset's
+                // name misses the table and falls back to itself, which is what we want.
+                Text(LocalizedStringKey(preset.name)).fontWeight(.medium)
                 if !preset.summary.isEmpty {
-                    Text(preset.summary)
+                    Text(LocalizedStringKey(preset.summary))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -282,18 +284,18 @@ private struct ScrollingTab: View {
         Form {
             Section("Clicking") {
                 ExplainedRow(preview: .blockWhileClick,
-                             caption: "While a mouse button is held down, your finger resting on the surface can't scroll the page out from under your click.") {
+                             caption: L("While a mouse button is held down, your finger resting on the surface can't scroll the page out from under your click.")) {
                     Toggle("Don't scroll while clicking", isOn: $settings.blockScrollWhileClicked)
                 }
                 ExplainedRow(preview: .settleAfterRelease,
-                             caption: "As your finger lifts off after a click it usually drags the page a tiny bit. This gives it a moment to settle before scrolling works again.") {
+                             caption: L("As your finger lifts off after a click it usually drags the page a tiny bit. This gives it a moment to settle before scrolling works again.")) {
                     HStack {
                         Text("Hold still after you let go")
                         Slider(value: Binding(
                             get: { Double(settings.releaseGraceMs) },
                             set: { settings.releaseGraceMs = Int($0.rounded()) }),
                                in: 0...800, step: 50)
-                        Text(settings.releaseGraceMs == 0 ? "Off" : String(format: "%.2g s", Double(settings.releaseGraceMs) / 1000))
+                        Text(settings.releaseGraceMs == 0 ? L("Off") : String(format: "%.2g s", Double(settings.releaseGraceMs) / 1000))
                             .monospacedDigit().frame(width: 60, alignment: .trailing)
                     }
                 }
@@ -302,17 +304,17 @@ private struct ScrollingTab: View {
 
             Section("Steadiness") {
                 ExplainedRow(preview: .ignoreNudges,
-                             caption: "The page only starts scrolling once your finger has moved at least this far — so a finger just resting on the mouse can't nudge anything.") {
+                             caption: L("The page only starts scrolling once your finger has moved at least this far — so a finger just resting on the mouse can't nudge anything.")) {
                     HStack {
                         Text("Ignore small finger nudges")
                         Slider(value: $settings.deadZone, in: 0...40, step: 1)
-                        Text(settings.deadZone == 0 ? "Off" : "\(Int(settings.deadZone)) pt")
+                        Text(settings.deadZone == 0 ? L("Off") : "\(Int(settings.deadZone)) pt")
                             .monospacedDigit().frame(width: 60, alignment: .trailing)
                     }
                 }
 
                 ExplainedRow(preview: .straightLines,
-                             caption: "Scrolling sticks to straight up-down or left-right. A swipe that drifts a little diagonally won't wander sideways.") {
+                             caption: L("Scrolling sticks to straight up-down or left-right. A swipe that drifts a little diagonally won't wander sideways.")) {
                     Toggle("Scroll in straight lines", isOn: $settings.axisLock)
                 }
                 HStack {
@@ -327,11 +329,11 @@ private struct ScrollingTab: View {
 
             Section("Feel") {
                 ExplainedRow(preview: .momentum(on: settings.momentumEnabled),
-                             caption: "On: the page keeps gliding after a quick swipe, like a trackpad. Off: it stops the moment your finger does. Only affects the Magic Mouse — macOS's own setting changes every device.") {
+                             caption: L("On: the page keeps gliding after a quick swipe, like a trackpad. Off: it stops the moment your finger does. Only affects the Magic Mouse — macOS's own setting changes every device.")) {
                     Toggle("Keep gliding after a swipe", isOn: $settings.momentumEnabled)
                 }
                 ExplainedRow(preview: .ignoreSideways,
-                             caption: "Sideways swipes are ignored completely. Scrolling up and down still works.") {
+                             caption: L("Sideways swipes are ignored completely. Scrolling up and down still works.")) {
                     Toggle("Ignore sideways scrolling", isOn: $settings.blockHorizontalScroll)
                 }
             }
@@ -349,11 +351,11 @@ private struct ClickingTab: View {
         Form {
             Section("Tap to click") {
                 ExplainedRow(preview: .tapToClick,
-                             caption: "A light single-finger tap on the surface clicks — no need to press the mouse down. Pressing to click keeps working as before.") {
+                             caption: L("A light single-finger tap on the surface clicks — no need to press the mouse down. Pressing to click keeps working as before.")) {
                     Toggle("Tap to click", isOn: $settings.tapToClick)
                 }
                 ExplainedRow(preview: .tapToClick,
-                             caption: "Firm: only quick, deliberate taps count — the fewest accidental clicks. Light: gentler, slower taps work too.") {
+                             caption: L("Firm: only quick, deliberate taps count — the fewest accidental clicks. Light: gentler, slower taps work too.")) {
                     HStack {
                         Text("Firm")
                             .font(.caption).foregroundStyle(.secondary)
@@ -367,7 +369,7 @@ private struct ClickingTab: View {
 
             Section("Right-clicking") {
                 ExplainedRow(preview: .tapRightClick(doubleTap: settings.tapRightClickMode == .doubleTap),
-                             caption: rightClickCaption) {
+                             caption: L(rightClickCaption)) {
                     Toggle("Tap to right-click", isOn: $settings.tapRightClick)
                 }
                 .disabled(!settings.tapToClick)
@@ -377,20 +379,20 @@ private struct ClickingTab: View {
                 }
                 .pickerStyle(.segmented)
                 .disabled(!settings.tapToClick || !settings.tapRightClick)
-                Text(rightClickFootnote)
+                Text(L(rightClickFootnote))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Where taps count") {
                 ExplainedRow(preview: .tapZone(depth: settings.tapZoneDepth),
-                             caption: "Taps only count on the front part of the surface — where deliberate fingertip taps land. The fingers gripping the sides can't click by accident. Pressing to click and dragging still work everywhere.") {
+                             caption: L("Taps only count on the front part of the surface — where deliberate fingertip taps land. The fingers gripping the sides can't click by accident. Pressing to click and dragging still work everywhere.")) {
                     Toggle("Front of the mouse only", isOn: $settings.tapZoneEnabled)
                 }
                 .disabled(!settings.tapToClick)
                 HStack {
                     Text("Size of the tap area")
                     Slider(value: $settings.tapZoneDepth, in: 0.25...0.75, step: 0.05)
-                    Text("front \(Int((settings.tapZoneDepth * 100).rounded()))%")
+                    Text(L("front %ld%%", Int((settings.tapZoneDepth * 100).rounded())))
                         .monospacedDigit().frame(width: 76, alignment: .trailing)
                 }
                 .disabled(!settings.tapToClick || !settings.tapZoneEnabled)
@@ -398,12 +400,12 @@ private struct ClickingTab: View {
 
             Section("Dragging") {
                 ExplainedRow(preview: .tapAndDrag,
-                             caption: "Tap, then touch again and move the mouse — whatever is under the cursor comes along, and lifting your finger drops it. A quick second tap is still a double-click.") {
+                             caption: L("Tap, then touch again and move the mouse — whatever is under the cursor comes along, and lifting your finger drops it. A quick second tap is still a double-click.")) {
                     Toggle("Tap and drag", isOn: $settings.tapAndDrag)
                 }
                 .disabled(!settings.tapToClick)
                 ExplainedRow(preview: .twoFingerDrag,
-                             caption: "Rest two fingers on the surface and hold for a moment — then move the mouse to drag, and lift to drop. Fingers that land one after the other are just your grip, and never trigger it.") {
+                             caption: L("Rest two fingers on the surface and hold for a moment — then move the mouse to drag, and lift to drop. Fingers that land one after the other are just your grip, and never trigger it.")) {
                     Toggle("Two-finger drag", isOn: $settings.twoFingerDrag)
                 }
                 .disabled(!settings.tapToClick)
@@ -413,10 +415,10 @@ private struct ClickingTab: View {
                 Text("Taps are ignored automatically:")
                     .font(.caption).foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 4) {
-                    bullet("while — and just after — you're scrolling")
-                    bullet("while a button is held down, and right after a real click")
-                    bullet("when two or more fingers are on the surface")
-                    bullet("for fingers that rest too long, or barely brush the surface")
+                    bullet(L("while — and just after — you're scrolling"))
+                    bullet(L("while a button is held down, and right after a real click"))
+                    bullet(L("when two or more fingers are on the surface"))
+                    bullet(L("for fingers that rest too long, or barely brush the surface"))
                 }
                 Text("Double- and triple-taps become real double- and triple-clicks.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -542,11 +544,11 @@ private struct RuleEditor: View {
                 }
             }
             Section("In this app") {
-                TriToggle(title: "Ignore Magic Mouse scrolling", value: $rule.disableScrollEntirely)
-                TriToggle(title: "Don't scroll while clicking", value: $rule.blockScrollWhileClicked)
-                TriToggle(title: "Ignore sideways scrolling", value: $rule.blockHorizontalScroll)
-                TriToggle(title: "Keep gliding after a swipe", value: $rule.momentumEnabled)
-                TriToggle(title: "Scroll in straight lines", value: $rule.axisLock)
+                TriToggle(title: L("Ignore Magic Mouse scrolling"), value: $rule.disableScrollEntirely)
+                TriToggle(title: L("Don't scroll while clicking"), value: $rule.blockScrollWhileClicked)
+                TriToggle(title: L("Ignore sideways scrolling"), value: $rule.blockHorizontalScroll)
+                TriToggle(title: L("Keep gliding after a swipe"), value: $rule.momentumEnabled)
+                TriToggle(title: L("Scroll in straight lines"), value: $rule.axisLock)
             }
         }
         .formStyle(.grouped)
@@ -582,19 +584,19 @@ private struct ModifiersTab: View {
         Form {
             Section {
                 ForEach(combos, id: \.rawValue) { combo in
-                    Picker("While holding " + combo.label, selection: Binding(
+                    Picker(L("While holding %@", combo.label), selection: Binding(
                         get: { settings.modifierActions[combo] ?? .normal },
                         set: { action in
                             var m = settings.modifierActions
                             if action == .normal { m.removeValue(forKey: combo) } else { m[combo] = action }
                             settings.modifierActions = m
                         })) {
-                            ForEach(ScrollAction.allCases, id: \.self) { Text($0.label).tag($0) }
+                            ForEach(ScrollAction.allCases, id: \.self) { Text(LocalizedStringKey($0.label)).tag($0) }
                         }
                 }
             } header: {
                 ExplainedRow(preview: .keyZoom,
-                             caption: "Hold the key and scroll on the Magic Mouse to get the action you picked — here, zooming instead of scrolling.") {
+                             caption: L("Hold the key and scroll on the Magic Mouse to get the action you picked — here, zooming instead of scrolling.")) {
                     Text("Hold a key while you scroll to change what it does")
                     Spacer()
                 }
@@ -676,8 +678,9 @@ enum SettingsHelpers {
             if enable { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
         } catch {
             let alert = NSAlert()
-            alert.messageText = "Couldn't change the login item"
-            alert.informativeText = "\(error.localizedDescription)\n\nLaunch at login only works when CalmMouse runs from an app bundle (e.g. /Applications)."
+            alert.messageText = L("Couldn't change the login item")
+            alert.informativeText = error.localizedDescription + "\n\n"
+                + L("Launch at login only works when CalmMouse runs from an app bundle (e.g. /Applications).")
             alert.runModal()
         }
         return SMAppService.mainApp.status == .enabled

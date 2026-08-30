@@ -15,7 +15,7 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
         let root = OnboardingView(settings: settings, blockedCount: blockedCount)
         let hosting = NSHostingController(rootView: root)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "Welcome to CalmMouse"
+        window.title = L("Welcome to CalmMouse")
         window.styleMask = [.titled, .closable]
         window.setContentSize(NSSize(width: 560, height: 500))
         window.center()
@@ -128,8 +128,8 @@ private struct WelcomeStep: View {
         VStack(spacing: 18) {
             Image(nsImage: NSApp.applicationIconImage)
                 .resizable().frame(width: 76, height: 76)
-            StepTitle(title: "Welcome to CalmMouse",
-                      subtitle: "Your Magic Mouse's whole top is a touch surface — and it stays live while you click, so pages jump around. CalmMouse fixes that.")
+            StepTitle(title: L("Welcome to CalmMouse"),
+                      subtitle: L("Your Magic Mouse's whole top is a touch surface — and it stays live while you click, so pages jump around. CalmMouse fixes that."))
             PreviewCanvas(preview: .blockWhileClick)
                 .frame(width: 280, height: 168)
             Text("The page holds still while you click. That's the main fix — the next steps set it up.")
@@ -149,16 +149,16 @@ private struct PermissionStep: View {
         VStack(spacing: 18) {
             Image(systemName: "hand.raised.circle")
                 .font(.system(size: 56)).foregroundStyle(Color.accentColor)
-            StepTitle(title: "Allow CalmMouse to see mouse events",
-                      subtitle: "macOS calls this Accessibility access. It's how CalmMouse can tell a click from a scroll — it never sees keystrokes and never touches the network.")
+            StepTitle(title: L("Allow CalmMouse to see mouse events"),
+                      subtitle: L("macOS calls this Accessibility access. It's how CalmMouse can tell a click from a scroll — it never sees keystrokes and never touches the network."))
 
             GroupBox {
                 HStack(spacing: 10) {
                     Image(systemName: trusted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .font(.title2)
                         .foregroundStyle(trusted ? .green : .orange)
-                    Text(trusted ? "Access granted — you're all set."
-                                 : "Turn on CalmMouse in System Settings → Privacy & Security → Accessibility.")
+                    Text(trusted ? L("Access granted — you're all set.")
+                                 : L("Turn on CalmMouse in System Settings → Privacy & Security → Accessibility."))
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer()
                     if !trusted {
@@ -185,8 +185,8 @@ private struct PresetStep: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            StepTitle(title: "Pick a starting point",
-                      subtitle: "One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Presets.")
+            StepTitle(title: L("Pick a starting point"),
+                      subtitle: L("One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Presets."))
 
             VStack(spacing: 8) {
                 ForEach(Preset.builtIn) { preset in
@@ -212,8 +212,8 @@ private struct ChoiceCard: View {
                     .foregroundStyle(selected ? Color.white : Color.accentColor)
                     .frame(width: 30)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(preset.name).fontWeight(.semibold)
-                    Text(preset.summary)
+                    Text(LocalizedStringKey(preset.name)).fontWeight(.semibold)
+                    Text(LocalizedStringKey(preset.summary))
                         .font(.caption)
                         .foregroundStyle(selected ? Color.white.opacity(0.85) : Color.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -254,15 +254,15 @@ private struct TryItStep: View {
 
     var body: some View {
         VStack(spacing: 18) {
-            StepTitle(title: "Try it",
-                      subtitle: "Grab your Magic Mouse and put the cursor over any page you can scroll — this window's background works too.")
+            StepTitle(title: L("Try it"),
+                      subtitle: L("Grab your Magic Mouse and put the cursor over any page you can scroll — this window's background works too."))
 
             VStack(alignment: .leading, spacing: 10) {
-                tryRow(number: "1", text: "Click and hold the mouse button.")
-                tryRow(number: "2", text: "Slide your finger along the surface, like a scroll.")
-                tryRow(number: "3", text: "The page stays put — that scroll was swallowed.")
+                tryRow(number: "1", text: L("Click and hold the mouse button."))
+                tryRow(number: "2", text: L("Slide your finger along the surface, like a scroll."))
+                tryRow(number: "3", text: L("The page stays put — that scroll was swallowed."))
                 if settings.tapToClick {
-                    tryRow(number: "4", text: "Also try a light tap — no press needed. That's tap to click.")
+                    tryRow(number: "4", text: L("Also try a light tap — no press needed. That's tap to click."))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -278,7 +278,10 @@ private struct TryItStep: View {
                     } else if blockedHere > 0 {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.title2).foregroundStyle(.green)
-                        Text("It works! **\(blockedHere)** accidental \(blockedHere == 1 ? "scroll" : "scrolls") calmed just now.")
+                        // LocalizedStringKey so the ** markdown still renders after translation.
+                        Text(LocalizedStringKey(blockedHere == 1
+                            ? L("It works! **1** accidental scroll calmed just now.")
+                            : L("It works! **%ld** accidental scrolls calmed just now.", blockedHere)))
                             .font(.callout)
                     } else {
                         Image(systemName: "ellipsis.circle")
@@ -316,16 +319,16 @@ private struct DoneStep: View {
         VStack(spacing: 18) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 56)).foregroundStyle(.green)
-            StepTitle(title: "That's it",
-                      subtitle: "CalmMouse lives in your menu bar and keeps working in the background.")
+            StepTitle(title: L("That's it"),
+                      subtitle: L("CalmMouse lives in your menu bar and keeps working in the background."))
 
             VStack(alignment: .leading, spacing: 14) {
                 tip(symbol: "magicmouse.fill",
-                    text: "Look for the mouse icon in the menu bar — the everyday switches live there. Orange means it needs attention, dimmed means paused.")
+                    text: L("Look for the mouse icon in the menu bar — the everyday switches live there. Orange means it needs attention, dimmed means paused."))
                 tip(symbol: "info.circle",
-                    text: "In Settings, hover any option for a little animated preview of what it does.")
+                    text: L("In Settings, hover any option for a little animated preview of what it does."))
                 tip(symbol: "slider.horizontal.3",
-                    text: "Changed your mind about the feel? Settings → Presets switches the whole setup in one click, or saves your own.")
+                    text: L("Changed your mind about the feel? Settings → Presets switches the whole setup in one click, or saves your own."))
             }
             .padding(.horizontal, 8)
         }

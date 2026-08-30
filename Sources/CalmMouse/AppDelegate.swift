@@ -21,14 +21,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Menu items refreshed on open.
     private let statusLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let batteryLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-    private let permissionItem = NSMenuItem(title: "Grant Accessibility permission…", action: #selector(openAccessibility), keyEquivalent: "")
+    private let permissionItem = NSMenuItem(title: L("Grant Accessibility permission…"), action: #selector(openAccessibility), keyEquivalent: "")
     private let updateItem = NSMenuItem(title: "", action: #selector(openUpdate), keyEquivalent: "")
-    private let enabledItem = NSMenuItem(title: "CalmMouse enabled", action: #selector(toggleEnabled), keyEquivalent: "")
-    private let blockItem = NSMenuItem(title: "Don't scroll while clicking", action: #selector(toggleBlock), keyEquivalent: "")
-    private let momentumItem = NSMenuItem(title: "Keep gliding after a swipe", action: #selector(toggleMomentum), keyEquivalent: "")
-    private let axisLockItem = NSMenuItem(title: "Scroll in straight lines", action: #selector(toggleAxisLock), keyEquivalent: "")
-    private let tapToClickItem = NSMenuItem(title: "Tap to click", action: #selector(toggleTapToClick), keyEquivalent: "")
-    private let perAppItem = NSMenuItem(title: "Ignore scrolling in this app", action: #selector(togglePerApp), keyEquivalent: "")
+    private let enabledItem = NSMenuItem(title: L("CalmMouse enabled"), action: #selector(toggleEnabled), keyEquivalent: "")
+    private let blockItem = NSMenuItem(title: L("Don't scroll while clicking"), action: #selector(toggleBlock), keyEquivalent: "")
+    private let momentumItem = NSMenuItem(title: L("Keep gliding after a swipe"), action: #selector(toggleMomentum), keyEquivalent: "")
+    private let axisLockItem = NSMenuItem(title: L("Scroll in straight lines"), action: #selector(toggleAxisLock), keyEquivalent: "")
+    private let tapToClickItem = NSMenuItem(title: L("Tap to click"), action: #selector(toggleTapToClick), keyEquivalent: "")
+    private let perAppItem = NSMenuItem(title: L("Ignore scrolling in this app"), action: #selector(togglePerApp), keyEquivalent: "")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -192,9 +192,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(perAppItem)
         menu.addItem(.separator())
 
-        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(title: L("Settings…"), action: #selector(openSettings), keyEquivalent: ",")
         menu.addItem(settingsItem)
-        menu.addItem(NSMenuItem(title: "Quit CalmMouse", action: #selector(quit), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: L("Quit CalmMouse"), action: #selector(quit), keyEquivalent: "q"))
 
         for item in menu.items where item.action != nil { item.target = self }
         statusItem.menu = menu
@@ -215,23 +215,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !trusted {
             button.image = Self.icon(named: "magicmouse.fill")
             button.contentTintColor = .systemOrange
-            button.toolTip = "CalmMouse needs Accessibility permission"
+            button.toolTip = L("CalmMouse needs Accessibility permission")
         } else if !settings.enabled {
             button.image = Self.icon(named: "magicmouse")
             button.contentTintColor = nil
-            button.toolTip = "CalmMouse is paused"
+            button.toolTip = L("CalmMouse is paused")
         } else if !tap.isRunning {
             button.image = Self.icon(named: "magicmouse.fill")
             button.contentTintColor = .systemOrange
-            button.toolTip = "CalmMouse couldn't start its event tap"
+            button.toolTip = L("CalmMouse couldn't start its event tap")
         } else if lowBatteryFlag {
             button.image = Self.icon(named: "magicmouse.fill")
             button.contentTintColor = .systemYellow
-            button.toolTip = "CalmMouse — active · Magic Mouse battery low"
+            button.toolTip = L("CalmMouse — active · Magic Mouse battery low")
         } else {
             button.image = Self.icon(named: "magicmouse.fill")
             button.contentTintColor = nil
-            button.toolTip = "CalmMouse — active"
+            button.toolTip = L("CalmMouse — active")
         }
         // Only a deliberate pause dims the icon. Something that needs the user's attention must
         // stay at full strength — a faint warning in a crowded menu bar is no warning at all.
@@ -241,27 +241,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func refreshMenu() {
         let trusted = AXIsProcessTrusted()
         if !trusted {
-            statusLine.title = "⚠︎ Accessibility permission needed"
+            statusLine.title = L("⚠︎ Accessibility permission needed")
         } else if !settings.enabled {
-            statusLine.title = "Paused"
+            statusLine.title = L("Paused")
         } else if !tap.isRunning {
-            statusLine.title = "⚠︎ Event tap failed to start"
+            statusLine.title = L("⚠︎ Event tap failed to start")
         } else if let dev = tap.lastSeenDevice {
-            statusLine.title = "Active · \(dev) · \(tap.swallowedCount) scrolls blocked"
+            statusLine.title = L("Active · %@ · %ld scrolls blocked", dev, tap.swallowedCount)
         } else {
-            statusLine.title = "Active · waiting for Magic Mouse input"
+            statusLine.title = L("Active · waiting for Magic Mouse input")
         }
         permissionItem.isHidden = trusted
 
         if let release = updater.availableRelease {
-            updateItem.title = "Update available — CalmMouse \(release.version)…"
+            updateItem.title = L("Update available — CalmMouse %@…", release.version)
             updateItem.isHidden = false
         } else {
             updateItem.isHidden = true
         }
 
         if let reading = battery.latest {
-            batteryLine.title = "Battery \(reading.percent)%"
+            batteryLine.title = L("Battery %ld%%", reading.percent)
             batteryLine.isHidden = false
         } else {
             batteryLine.isHidden = true
@@ -277,12 +277,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let app = NSWorkspace.shared.frontmostApplication,
            let bundleID = app.bundleIdentifier, bundleID != Bundle.main.bundleIdentifier {
             let name = app.localizedName ?? bundleID
-            perAppItem.title = "Ignore scrolling in \(name)"
+            perAppItem.title = L("Ignore scrolling in %@", name)
             perAppItem.isEnabled = true
             perAppItem.state = (settings.rule(for: bundleID)?.disableScrollEntirely == true) ? .on : .off
             perAppItem.representedObject = [bundleID, name]
         } else {
-            perAppItem.title = "Ignore scrolling in this app"
+            perAppItem.title = L("Ignore scrolling in this app")
             perAppItem.isEnabled = false
             perAppItem.state = .off
             perAppItem.representedObject = nil
