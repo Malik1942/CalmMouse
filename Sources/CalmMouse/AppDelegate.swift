@@ -15,7 +15,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: SettingsWindowController?
     private var onboardingWindow: OnboardingWindowController?
     private var permissionTimer: Timer?
-    private var statusTimer: Timer?
     private var lowBatteryFlag = false
 
     // Menu items refreshed on open.
@@ -73,9 +72,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             openSettings()
         }
 
-        statusTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
-            self?.writeStatusFile()
-        }
+        // `CalmMouse --status` asks for a snapshot from outside the process.
+        DistributedNotificationCenter.default().addObserver(
+            self, selector: #selector(statusRequested),
+            name: StatusReporter.refreshRequest, object: nil)
     }
 
     /// Re-opening the app from Finder/Spotlight while it's already running shows the settings
@@ -140,7 +140,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func applySettings() {
         blocker.rules = settings.ruleSet
         tapRecognizer.config = settings.tapConfig
-        tap.debugLogging = settings.debugLogging
         tap.treatUnknownContinuousAsMagicMouse = settings.treatUnknownContinuousAsMagicMouse
         battery.enabled = settings.batteryWarningEnabled
         battery.threshold = settings.batteryWarningThreshold
@@ -158,6 +157,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         blocker.setActiveApp(bundleID: app?.bundleIdentifier)
         refreshStatusIcon()
     }
+
+    @objc private func statusRequested() { writeStatusFile() }
 
     @objc private func batteryWarned(_ note: Notification) {
         lowBatteryFlag = true

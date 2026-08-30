@@ -33,12 +33,9 @@ final class Settings: ObservableObject {
         static let twoFingerDrag = "twoFingerDrag"
         static let tapZoneEnabled = "tapZoneEnabled"
         static let tapZoneDepth = "tapZoneDepth"
-        static let tapZoneEdgeMargin = "tapZoneEdgeMargin"
-        static let tapZoneFrontIsHighY = "tapZoneFrontIsHighY"
         static let batteryWarningEnabled = "batteryWarningEnabled"
         static let batteryWarningThreshold = "batteryWarningThreshold"
         static let treatUnknownContinuousAsMagicMouse = "treatUnknownContinuousAsMagicMouse"
-        static let debugLogging = "debugLogging"
         static let customPresets = "customPresets"
         static let onboardingCompleted = "onboardingCompleted"
         static let accessibilityPromptShown = "accessibilityPromptShown"
@@ -83,7 +80,6 @@ final class Settings: ObservableObject {
     @Published var batteryWarningEnabled: Bool { didSet { d.set(batteryWarningEnabled, forKey: Key.batteryWarningEnabled); changed() } }
     @Published var batteryWarningThreshold: Int { didSet { d.set(batteryWarningThreshold, forKey: Key.batteryWarningThreshold); changed() } }
     @Published var treatUnknownContinuousAsMagicMouse: Bool { didSet { d.set(treatUnknownContinuousAsMagicMouse, forKey: Key.treatUnknownContinuousAsMagicMouse); changed() } }
-    @Published var debugLogging: Bool { didSet { d.set(debugLogging, forKey: Key.debugLogging); changed() } }
 
     private init() {
         Settings.migrateFromGodmouseIfNeeded(d)
@@ -104,12 +100,11 @@ final class Settings: ObservableObject {
             Key.twoFingerDrag: false,
             Key.tapZoneEnabled: false,
             Key.tapZoneDepth: 0.5,
-            Key.tapZoneEdgeMargin: 0.04,   // advanced: defaults-only, no UI
-            Key.tapZoneFrontIsHighY: true, // hardware calibration; defaults-only escape hatch
             Key.batteryWarningEnabled: true,
             Key.batteryWarningThreshold: 15,
+            // Documented escape hatch (README → Troubleshooting) for Magic Mouse variants the
+            // device identification doesn't recognise; defaults-only, no UI.
             Key.treatUnknownContinuousAsMagicMouse: false,
-            Key.debugLogging: false,
         ])
         loading = true
         enabled = d.bool(forKey: Key.enabled)
@@ -131,7 +126,6 @@ final class Settings: ObservableObject {
         batteryWarningEnabled = d.bool(forKey: Key.batteryWarningEnabled)
         batteryWarningThreshold = d.integer(forKey: Key.batteryWarningThreshold)
         treatUnknownContinuousAsMagicMouse = d.bool(forKey: Key.treatUnknownContinuousAsMagicMouse)
-        debugLogging = d.bool(forKey: Key.debugLogging)
         modifierActions = Settings.loadModifierActions(d)
         appRules = Settings.loadAppRules(d)
         customPresets = Settings.loadCustomPresets(d)
@@ -165,8 +159,6 @@ final class Settings: ObservableObject {
         c.twoFingerDrag = twoFingerDrag
         c.tapZoneEnabled = tapZoneEnabled
         c.tapZoneDepth = min(max(tapZoneDepth, 0.25), 0.75)
-        c.tapZoneEdgeMargin = min(max(d.double(forKey: Key.tapZoneEdgeMargin), 0), 0.3)
-        c.frontIsHighY = d.bool(forKey: Key.tapZoneFrontIsHighY)
         return c
     }
 

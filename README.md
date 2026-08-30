@@ -163,7 +163,6 @@ The app picks changes up live. There's also a small CLI inside the bundle:
 ```bash
 CalmMouse --status      # JSON: permission, tap state, events swallowed, active app, battery
 CalmMouse --battery     # Magic Mouse battery level
-CalmMouse --resolve <id># resolve an IORegistry entry ID to a device (device-ID debugging)
 ```
 
 ## How it works

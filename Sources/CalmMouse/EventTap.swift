@@ -14,7 +14,6 @@ final class EventTap {
     private var movedRunLoopSource: CFRunLoopSource?
     private let log = Logger(subsystem: "com.calmmouse.app", category: "tap")
 
-    var debugLogging = false
     var treatUnknownContinuousAsMagicMouse = false
 
     /// Tap-to-click context feeds. Called on the tap's run loop (main) for Magic Mouse events.
@@ -227,9 +226,6 @@ final class EventTap {
         let button = Int(event.getIntegerValueField(.mouseEventButtonNumber))
         blocker.magicMouseButton(button, isDown: isDown, at: seconds(event))
         onMagicButton?(isDown, seconds(event))
-        if debugLogging {
-            log.debug("button \(button) \(isDown ? "down" : "up") blocking=\(self.blocker.isBlocking(at: self.seconds(event)))")
-        }
     }
 
     private func handleScroll(_ event: CGEvent) -> Unmanaged<CGEvent>? {
@@ -258,11 +254,6 @@ final class EventTap {
             // Feed tap-to-click regardless of the decision: physically, the finger IS moving,
             // even when the scroll is being swallowed.
             onMagicScroll?(abs(e.deltaX) + abs(e.deltaY), t)
-        }
-
-        if debugLogging {
-            let sender = identifier.senderID(of: event)
-            log.debug("scroll sender=\(sender, format: .hex) magic=\(magic) phase=\(String(describing: e.phase)) mom=\(String(describing: e.momentum)) dx=\(e.deltaX, format: .fixed(precision: 1)) dy=\(e.deltaY, format: .fixed(precision: 1)) -> \(String(describing: decision))")
         }
 
         switch decision {

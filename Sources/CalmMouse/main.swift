@@ -5,14 +5,23 @@ let args = CommandLine.arguments
 if args.count >= 2 {
     switch args[1] {
     case "--status":
-        // Runtime state of the *running* app, written to Application Support every 2s.
-        if let json = StatusReporter.read() {
-            print(json)
-        } else {
-            print("no status file — is CalmMouse running?")
-            exit(1)
+        // Ask the running app for a fresh snapshot (it doesn't write one on its own), then
+        // watch the file's modification date so a stale file from a dead app can't answer.
+        let asked = Date()
+        let deadline = Date().addingTimeInterval(3)
+        while Date() < deadline {
+            // Re-post each round so an app that finishes launching mid-wait still hears us.
+            DistributedNotificationCenter.default().postNotificationName(
+                StatusReporter.refreshRequest, object: nil, userInfo: nil, deliverImmediately: true)
+            usleep(150_000)
+            if let updated = StatusReporter.lastUpdated(), updated >= asked,
+               let json = StatusReporter.read() {
+                print(json)
+                exit(0)
+            }
         }
-        exit(0)
+        print("no response from CalmMouse — is it running?")
+        exit(1)
 
     case "--battery":
         if let r = BatteryMonitor.read() {
@@ -23,27 +32,12 @@ if args.count >= 2 {
         }
         exit(0)
 
-    case "--resolve":
-        // Resolve an IORegistry entry ID the way the event tap does (CGEvent field 87).
-        guard args.count >= 3 else { print("usage: CalmMouse --resolve <id>"); exit(2) }
-        let raw = args[2]
-        guard let id = raw.hasPrefix("0x") ? UInt64(raw.dropFirst(2), radix: 16) : UInt64(raw) else {
-            print("bad id"); exit(2)
-        }
-        if let info = DeviceIdentifier().info(forSenderID: id) {
-            print("sender 0x\(String(id, radix: 16)) → product=\"\(info.product)\" vendor=\(info.vendorID) productID=\(info.productID) transport=\(info.transport) isMagicMouse=\(info.isMagicMouse)")
-        } else {
-            print("sender 0x\(String(id, radix: 16)) → unresolved")
-        }
-        exit(0)
-
     case "--help", "-h":
         print("""
         CalmMouse — Magic Mouse UX fixes.
           (no args)          run the menu bar app
           --status           print the running app's runtime state
           --battery          print the Magic Mouse battery level
-          --resolve <id>     resolve an IORegistry entry ID to a device
         """)
         exit(0)
 

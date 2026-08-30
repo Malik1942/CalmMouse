@@ -3,7 +3,15 @@ import Foundation
 /// Writes a small JSON snapshot of runtime state to
 /// ~/Library/Application Support/CalmMouse/status.json so `CalmMouse --status` (and you, and any
 /// script) can see what the running app actually thinks — no guessing whether the tap is live.
+///
+/// Snapshots are written on demand: `--status` posts `refreshRequest` as a distributed
+/// notification, the running app answers with a fresh write, and the CLI watches the file's
+/// modification date to know the answer arrived. The app also writes one whenever the tap
+/// lifecycle changes, so the file never sits around going stale by two-second increments.
 enum StatusReporter {
+    /// Posted (distributed) by the CLI to ask the running app for a fresh snapshot.
+    static let refreshRequest = Notification.Name("com.calmmouse.app.refreshStatus")
+
     struct Snapshot: Codable {
         var updatedAt: Date
         var version: String
@@ -54,5 +62,9 @@ enum StatusReporter {
     static func read() -> String? {
         guard let data = try? Data(contentsOf: fileURL) else { return nil }
         return String(data: data, encoding: .utf8)
+    }
+
+    static func lastUpdated() -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: fileURL.path))?[.modificationDate] as? Date
     }
 }
