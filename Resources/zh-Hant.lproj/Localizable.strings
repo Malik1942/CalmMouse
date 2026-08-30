@@ -1,0 +1,202 @@
+/* CalmMouse — 繁體中文.
+   Terminology follows macOS zh-Hant conventions: 點按 (click), 輕點 (tap), 連按 (double-click),
+   拖移 (drag), 捲動 (scroll), 滑鼠 (mouse), 輔助使用 (Accessibility), 觸控式軌跡板 (trackpad). */
+
+/* Menu bar */
+"Grant Accessibility permission…" = "授予輔助使用權限…";
+"CalmMouse enabled" = "啟用 CalmMouse";
+"Don't scroll while clicking" = "點按時不捲動";
+"Keep gliding after a swipe" = "輕掃後繼續滑動";
+"Scroll in straight lines" = "沿直線捲動";
+"Tap to click" = "輕點來點按";
+"Ignore scrolling in this app" = "在目前 App 中忽略捲動";
+"Ignore scrolling in %@" = "在「%@」中忽略捲動";
+"Settings…" = "設定…";
+"Quit CalmMouse" = "結束 CalmMouse";
+"CalmMouse needs Accessibility permission" = "CalmMouse 需要輔助使用權限";
+"CalmMouse is paused" = "CalmMouse 已暫停";
+"CalmMouse couldn't start its event tap" = "CalmMouse 無法啟動事件監聽";
+"CalmMouse — active · Magic Mouse battery low" = "CalmMouse — 運作中 · Magic Mouse 電量不足";
+"CalmMouse — active" = "CalmMouse — 運作中";
+"⚠︎ Accessibility permission needed" = "⚠︎ 需要輔助使用權限";
+"Paused" = "已暫停";
+"⚠︎ Event tap failed to start" = "⚠︎ 事件監聽啟動失敗";
+"Active · %@ · %ld scrolls blocked" = "運作中 · %@ · 已攔截 %ld 次捲動";
+"Active · waiting for Magic Mouse input" = "運作中 · 等待 Magic Mouse 輸入";
+"Update available — CalmMouse %@…" = "有可用更新 — CalmMouse %@…";
+"Battery %ld%%" = "電量 %ld%%";
+
+/* Settings window + tabs */
+"CalmMouse Settings" = "CalmMouse 設定";
+"General" = "一般";
+"Presets" = "預置";
+"Scrolling" = "捲動";
+"Clicking" = "點按";
+"Apps" = "App";
+"Shortcuts" = "快速鍵";
+"Battery" = "電池";
+
+/* General tab */
+"Enable CalmMouse" = "啟用 CalmMouse";
+"Launch at login" = "登入時啟動";
+"New here? The tour covers permission, presets and a try-out." = "第一次使用？歡迎導覽會帶你完成授權、挑選預置並現場試用。";
+"Show Welcome Tour…" = "顯示歡迎導覽…";
+"Permission" = "權限";
+"Accessibility access granted." = "已授予輔助使用權限。";
+"CalmMouse needs Accessibility access to see mouse events." = "CalmMouse 需要輔助使用權限才能看到滑鼠事件。";
+"Open Settings…" = "打開設定…";
+"Toggle already ON in System Settings but still not working? The stored grant is stale (usually after a rebuild). Reset it and grant again." = "系統設定裡的開關已打開卻仍沒有作用？表示儲存的授權已失效（通常發生在重新建置之後）。重置後重新授權即可。";
+"Reset grant…" = "重置授權…";
+"Couldn't change the login item" = "無法更改登入項目";
+"Launch at login only works when CalmMouse runs from an app bundle (e.g. /Applications)." = "只有當 CalmMouse 從 App 套件（如 /Applications）執行時，「登入時啟動」才可用。";
+
+/* Updates */
+"Updates" = "更新";
+"Check for Updates" = "檢查更新";
+"Checked automatically twice a day. Updates install right here — no browser, no unzipping, no dragging." = "每天自動檢查兩次。更新直接在這裡安裝——無需瀏覽器、無需解壓縮、無需拖曳。";
+"You're up to date." = "已是最新版本。";
+"CalmMouse %@ is available." = "CalmMouse %@ 已推出。";
+"Update Now" = "立即更新";
+"Full release notes ›" = "完整更新說明 ›";
+"CalmMouse relaunches itself when the update finishes. If clicking stops working afterwards, macOS re-keyed the Accessibility grant to the new build — the Reset grant button below fixes it." = "更新完成後 CalmMouse 會自動重新啟動。如果之後點按失靈，是 macOS 把輔助使用授權綁定到了新建置——用下方的「重置授權」按鈕即可修復。";
+"Downloading…" = "正在下載…";
+"Installing — CalmMouse will relaunch itself in a moment." = "正在安裝——CalmMouse 稍後會自動重新啟動。";
+"Download from the website instead ›" = "改從網站下載 ›";
+"Couldn't read the releases feed." = "無法讀取發佈來源。";
+"This release has no download attached — grab it from the website." = "此版本沒有附帶下載檔案——請從網站取得。";
+"Download failed." = "下載失敗。";
+"The downloaded archive didn't contain CalmMouse.app." = "下載的壓縮檔中沒有 CalmMouse.app。";
+"The downloaded app isn't CalmMouse." = "下載的 App 不是 CalmMouse。";
+"Couldn't replace %@ — download the update from the website instead. (%@)" = "無法替換 %@——請改從網站下載更新。（%@）";
+"%@ failed: %@" = "%@ 執行失敗：%@";
+
+/* Presets tab */
+"Starting points" = "起點";
+"One click sets everything on the Scrolling and Clicking tabs. Tweak whatever you like afterwards — a preset is a starting point, not a mode. Per-app rules and shortcuts are never touched." = "一鍵設定「捲動」和「點按」標籤頁裡的全部選項。之後想改什麼都行——預置是起點，不是模式。各 App 規則和快速鍵不會被更動。";
+"Your presets" = "你的預置";
+"Name" = "名稱";
+"Preset name" = "預置名稱";
+"Save Current Settings" = "儲存目前設定";
+"Saves how the Scrolling and Clicking tabs are set right now. Saving with an existing name updates that preset." = "儲存「捲動」和「點按」標籤頁目前的設定。使用既有名稱儲存會更新那個預置。";
+"In use" = "使用中";
+"Use" = "使用";
+"Delete this preset" = "刪除此預置";
+
+/* Built-in presets (defined in CalmMouseCore, translated at display time) */
+"Just fix clicking" = "只修好點按";
+"Pages hold still while you click. Everything else stays the way macOS made it." = "點按時頁面保持不動。其餘一切保持 macOS 原樣。";
+"Extra steady" = "格外穩定";
+"Small nudges are ignored, scrolling sticks to straight lines, and the page stops the moment your finger does." = "忽略輕微觸碰，捲動沿直線進行，手指一停頁面就停。";
+"Trackpad feel" = "軌跡板手感";
+"A light tap clicks, a tap on the right side right-clicks, and tap-then-drag moves things — your mouse starts acting like a trackpad." = "輕點即點按，輕點右側即右鍵點按，輕點後拖移可移動物件——滑鼠用起來就像觸控式軌跡板。";
+
+/* Scrolling tab */
+"While a mouse button is held down, your finger resting on the surface can't scroll the page out from under your click." = "按住滑鼠按鈕時，搭在表面上的手指不會把頁面從你點按的位置捲走。";
+"Hold still after you let go" = "放開後稍作停頓";
+"As your finger lifts off after a click it usually drags the page a tiny bit. This gives it a moment to settle before scrolling works again." = "點按後手指抬起時通常會把頁面帶動一點點。這個選項給它一點安定下來的時間，之後捲動才恢復。";
+"Off" = "關";
+"Steadiness" = "穩定性";
+"Ignore small finger nudges" = "忽略手指的輕微觸碰";
+"The page only starts scrolling once your finger has moved at least this far — so a finger just resting on the mouse can't nudge anything." = "手指至少移動這麼遠頁面才開始捲動——只是搭在滑鼠上的手指碰不動任何東西。";
+"Scrolling sticks to straight up-down or left-right. A swipe that drifts a little diagonally won't wander sideways." = "捲動只沿垂直或水平方向進行。稍微斜一點的輕掃不會往旁邊跑。";
+"Lock direction after sliding" = "滑動多遠後鎖定方向";
+"A distance, not a time — once your finger has slid this far, the swipe commits to one direction. Lower locks in sooner." = "這是距離而不是時間——手指滑過這麼遠後，這次輕掃就固定在一個方向上。數值越小鎖定越早。";
+"Feel" = "手感";
+"On: the page keeps gliding after a quick swipe, like a trackpad. Off: it stops the moment your finger does. Only affects the Magic Mouse — macOS's own setting changes every device." = "開：快速輕掃後頁面繼續滑行，像觸控式軌跡板一樣。關：手指一停頁面就停。只影響 Magic Mouse——macOS 內建的設定會改變所有裝置。";
+"Ignore sideways scrolling" = "忽略橫向捲動";
+"Sideways swipes are ignored completely. Scrolling up and down still works." = "完全忽略橫向輕掃。上下捲動照常可用。";
+
+/* Clicking tab */
+"A light single-finger tap on the surface clicks — no need to press the mouse down. Pressing to click keeps working as before." = "單指在表面輕輕一點即可點按——無需按下滑鼠。按壓點按照常可用。";
+"Firm: only quick, deliberate taps count — the fewest accidental clicks. Light: gentler, slower taps work too." = "重：只有快速、刻意的輕點才算數——誤點最少。輕：更輕、更慢的輕點也有效。";
+"Firm" = "重";
+"Light" = "輕";
+"Right-clicking" = "右鍵點按";
+"Tap to right-click" = "輕點來右鍵點按";
+"One tap clicks; a second quick tap in the same spot opens the right-click menu instead." = "輕點一下是點按；在同一位置快速再點一下則打開右鍵選單。";
+"A tap on the right part of the surface right-clicks — the same side a physical right click uses. Taps everywhere else stay normal clicks." = "輕點表面右側即右鍵點按——與實體右鍵同一側。其他位置的輕點仍是普通點按。";
+"Right-click with" = "右鍵點按方式";
+"A tap on the right side" = "輕點右側";
+"A double-tap" = "連續輕點兩下";
+"Heads-up: with double-tap chosen, tap-tap no longer double-clicks. Double-click by pressing the mouse down, or by tapping twice a little slower." = "注意：選擇「連續輕點兩下」後，快速點兩下不再是連按。想連按兩下請按壓滑鼠，或把兩次輕點的間隔放慢一點。";
+"The right side is where the physical right click already lives, so nothing new to learn — and quick double-taps keep double-clicking." = "右側本來就是實體右鍵所在的位置，無需重新學習——快速輕點兩下仍是連按兩下。";
+"Where taps count" = "輕點生效區域";
+"Front of the mouse only" = "僅滑鼠前部";
+"Taps only count on the front part of the surface — where deliberate fingertip taps land. The fingers gripping the sides can't click by accident. Pressing to click and dragging still work everywhere." = "只有表面前部的輕點才算數——那是指尖刻意輕點的落點。握住兩側的手指不會誤觸點按。按壓點按和拖移在任何位置都照常可用。";
+"Size of the tap area" = "輕點區域大小";
+"front %ld%%" = "前 %ld%%";
+"Dragging" = "拖移";
+"Tap and drag" = "輕點拖移";
+"Tap, then touch again and move the mouse — whatever is under the cursor comes along, and lifting your finger drops it. A quick second tap is still a double-click." = "輕點後再次觸碰並移動滑鼠——游標下的物件會跟著走，抬起手指即放下。快速的第二次輕點仍是連按兩下。";
+"Two-finger drag" = "雙指拖移";
+"Rest two fingers on the surface and hold for a moment — then move the mouse to drag, and lift to drop. Fingers that land one after the other are just your grip, and never trigger it." = "兩根手指搭在表面並停留片刻——然後移動滑鼠即可拖移，抬起即放下。先後落下的手指只算握持，不會觸發。";
+"Accidental tap protection" = "防誤觸";
+"Taps are ignored automatically:" = "以下情況會自動忽略輕點：";
+"while — and just after — you're scrolling" = "正在捲動時，以及捲動剛結束時";
+"while a button is held down, and right after a real click" = "按住按鈕時，以及真實點按剛結束時";
+"when two or more fingers are on the surface" = "兩根或更多手指搭在表面時";
+"for fingers that rest too long, or barely brush the surface" = "停留過久或只是輕輕擦過表面的手指";
+"Double- and triple-taps become real double- and triple-clicks." = "兩次、三次輕點會成為真正的連按兩下和連按三下。";
+"This macOS build doesn't expose the multitouch framework — tap-to-click is unavailable." = "此 macOS 版本未提供多點觸控框架——輕點來點按無法使用。";
+
+/* Apps tab */
+"Rules apply while that app is in front. Anything left as “Default” follows the Scrolling tab." = "規則在對應 App 位於最前方時生效。保持「預設」的項目跟隨「捲動」標籤頁的設定。";
+"Select or add an app" = "選擇或加入一個 App";
+"Rule enabled" = "啟用規則";
+"App ID" = "App ID";
+"In this app" = "在此 App 中";
+"Ignore Magic Mouse scrolling" = "忽略 Magic Mouse 捲動";
+"Default" = "預設";
+"On" = "開";
+
+/* Shortcuts tab */
+"While holding %@" = "按住 %@ 時";
+"Hold a key while you scroll to change what it does" = "捲動時按住某個鍵，改變捲動的作用";
+"Hold the key and scroll on the Magic Mouse to get the action you picked — here, zooming instead of scrolling." = "按住該鍵並在 Magic Mouse 上捲動，就會執行你選的動作——這裡示範的是縮放而不是捲動。";
+"“Zoom in apps” is the zoom Figma, Sketch, Preview and most design apps use. “Zoom the whole screen” magnifies everything on screen (the macOS zoom). Only the Magic Mouse is affected — your trackpad and other mice keep working normally." = "「在 App 中縮放」是 Figma、Sketch、預覽程式等大多數設計類 App 使用的縮放。「縮放整個螢幕」會放大螢幕上的一切（即 macOS 的縮放功能）。只影響 Magic Mouse——觸控式軌跡板和其他滑鼠照常運作。";
+"Scroll normally" = "正常捲動";
+"Scroll sideways" = "橫向捲動";
+"Scroll in reverse" = "反向捲動";
+"Zoom in apps" = "在 App 中縮放";
+"Zoom the whole screen" = "縮放整個螢幕";
+"Do nothing" = "不執行任何動作";
+
+/* Battery tab */
+"Magic Mouse" = "Magic Mouse";
+"No Magic Mouse detected" = "未偵測到 Magic Mouse";
+"Refresh" = "重新整理";
+"Low battery warning" = "電量不足警告";
+"Warn me when the battery gets low" = "電量不足時提醒我";
+"Warn below" = "低於此值時提醒";
+"Checked every five minutes. The menu bar icon turns yellow once you've been warned, and clears when you open Settings." = "每五分鐘檢查一次。發出提醒後選單列圖像會變黃，打開設定後恢復。";
+
+/* Onboarding */
+"Welcome to CalmMouse" = "歡迎使用 CalmMouse";
+"Your Magic Mouse's whole top is a touch surface — and it stays live while you click, so pages jump around. CalmMouse fixes that." = "Magic Mouse 的整個頂面都是觸控表面——而且在點按時依然作用，所以頁面總是亂跳。CalmMouse 解決這個問題。";
+"The page holds still while you click. That's the main fix — the next steps set it up." = "點按時頁面保持不動。這就是核心修復——接下來幾步完成設定。";
+"Allow CalmMouse to see mouse events" = "允許 CalmMouse 看到滑鼠事件";
+"macOS calls this Accessibility access. It's how CalmMouse can tell a click from a scroll — it never sees keystrokes and never touches the network." = "macOS 稱之為輔助使用權限。CalmMouse 靠它分辨點按和捲動——它不會看到鍵盤輸入，也從不連網。";
+"Access granted — you're all set." = "已授權——一切就緒。";
+"Turn on CalmMouse in System Settings → Privacy & Security → Accessibility." = "在系統設定 → 隱私權與安全性 → 輔助使用中打開 CalmMouse。";
+"Open System Settings…" = "打開系統設定…";
+"You can also do this later — CalmMouse waits in the menu bar and starts working within two seconds of being allowed." = "也可以稍後再做——CalmMouse 會在選單列等著，授權後兩秒內開始運作。";
+"Pick a starting point" = "選擇一個起點";
+"One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Presets." = "一鍵完成全部設定。之後可以單獨調整任何選項——還能在設定 → 預置中儲存自己的預置。";
+"Try it" = "試一試";
+"Grab your Magic Mouse and put the cursor over any page you can scroll — this window's background works too." = "拿起 Magic Mouse，把游標放在任何可捲動的頁面上——這個視窗的背景也可以。";
+"Click and hold the mouse button." = "按住滑鼠按鈕不放。";
+"Slide your finger along the surface, like a scroll." = "手指沿表面滑動，就像捲動一樣。";
+"The page stays put — that scroll was swallowed." = "頁面紋絲不動——那次捲動被攔下了。";
+"Also try a light tap — no press needed. That's tap to click." = "再試試輕輕一點——無需按壓。這就是輕點來點按。";
+"Accessibility access isn't granted yet, so nothing is blocked. Go back one step to turn it on." = "尚未授予輔助使用權限，所以什麼都不會被攔截。回到上一步打開它。";
+"It works! **1** accidental scroll calmed just now." = "有效了！剛剛安撫了 **1** 次誤捲動。";
+"It works! **%ld** accidental scrolls calmed just now." = "有效了！剛剛安撫了 **%ld** 次誤捲動。";
+"Waiting for a click-and-slide on the Magic Mouse…" = "等待在 Magic Mouse 上按住並滑動…";
+"That's it" = "完成了";
+"CalmMouse lives in your menu bar and keeps working in the background." = "CalmMouse 常駐選單列，在背景持續運作。";
+"Look for the mouse icon in the menu bar — the everyday switches live there. Orange means it needs attention, dimmed means paused." = "在選單列找到滑鼠圖像——常用開關都在那裡。橙色表示需要處理，變暗表示已暫停。";
+"In Settings, hover any option for a little animated preview of what it does." = "在設定中，將指標懸停在任一選項上，就能看到示範其效果的小動畫。";
+"Changed your mind about the feel? Settings → Presets switches the whole setup in one click, or saves your own." = "想換種手感？設定 → 預置可以一鍵切換整套設定，也能儲存你自己的預置。";
+"Back" = "返回";
+"Continue" = "繼續";
+"Start Using CalmMouse" = "開始使用 CalmMouse";
