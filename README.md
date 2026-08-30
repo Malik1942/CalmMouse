@@ -49,6 +49,7 @@ CalmMouse is that checkbox, plus the rest of the Magic Mouse's rough edges, in a
 | **Battery warning** | A notification when the Magic Mouse drops below a threshold you set, so it doesn't die mid-afternoon. |
 | **Presets** | Three one-click starting points — *Just fix clicking*, *Extra steady*, *Trackpad feel* — that set the Scrolling and Clicking options in one go. Everything stays tweakable afterwards, and you can save your own setups as named presets. Per-app rules and shortcuts are never touched. |
 | **In-app updates** | CalmMouse checks the releases feed twice a day; a new version shows up as a menu-bar item and in Settings → General with its release notes. One click downloads, verifies the signature is ours, swaps the app in place, and relaunches. |
+| **Speaks your language** | English, 简体中文 and 繁體中文, following the system language setting — no in-app switch needed. |
 
 Everything applies **only to the Magic Mouse**. CalmMouse identifies the physical device behind each
 event, so your trackpad, your other mouse, and anything synthetic are passed through untouched.
