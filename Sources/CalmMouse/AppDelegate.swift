@@ -94,10 +94,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: Permission + tap lifecycle
 
     private func ensurePermissionThenStart() {
-        let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        if AXIsProcessTrustedWithOptions(opts) {
+        if AXIsProcessTrusted() {
             startTapIfWanted()
             return
+        }
+        // Ask for the system's grant dialog only on the first ungranted launch ever.
+        // Each `prompt: true` call queues a fresh dialog that survives until dismissed,
+        // so prompting every launch piles them up. After the one ask, our own windows
+        // (onboarding, Settings → Permission) carry the "Open System Settings…" path.
+        if !settings.accessibilityPromptShown {
+            settings.accessibilityPromptShown = true
+            let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            _ = AXIsProcessTrustedWithOptions(opts)
         }
         refreshStatusIcon()
         // Poll until the user flips the switch in System Settings; no relaunch needed.

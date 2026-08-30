@@ -703,6 +703,9 @@ enum SettingsHelpers {
         try? proc.run()
         proc.waitUntilExit()
         // Prompt again; the app's normal polling picks the grant up as soon as it's flipped.
+        // This deliberate click is the one system dialog for the freshly-reset grant — mark it
+        // shown so the next launch doesn't queue a second dialog on top.
+        Settings.shared.accessibilityPromptShown = true
         let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(opts)
         openAccessibilityPane()

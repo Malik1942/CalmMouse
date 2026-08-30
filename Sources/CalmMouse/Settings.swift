@@ -41,6 +41,7 @@ final class Settings: ObservableObject {
         static let debugLogging = "debugLogging"
         static let customPresets = "customPresets"
         static let onboardingCompleted = "onboardingCompleted"
+        static let accessibilityPromptShown = "accessibilityPromptShown"
     }
 
     /// Whether the first-launch welcome tour has been seen (or dismissed).
@@ -48,6 +49,14 @@ final class Settings: ObservableObject {
     var onboardingCompleted: Bool {
         get { d.bool(forKey: Key.onboardingCompleted) }
         set { d.set(newValue, forKey: Key.onboardingCompleted) }
+    }
+
+    /// Whether the system's own "grant Accessibility access" dialog has been requested once.
+    /// macOS queues one dialog per request and never merges them, so asking on every
+    /// ungranted launch stacks dialogs — close one and the next is waiting behind it.
+    var accessibilityPromptShown: Bool {
+        get { d.bool(forKey: Key.accessibilityPromptShown) }
+        set { d.set(newValue, forKey: Key.accessibilityPromptShown) }
     }
 
     // MARK: Published state
