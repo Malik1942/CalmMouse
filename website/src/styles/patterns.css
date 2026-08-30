@@ -316,15 +316,24 @@
   justify-content: center;
 }
 
-/* Two window mocks side by side, stacking when the row runs out of room. */
+/* Two window mocks side by side, stacking when the row runs out of room.
+   The real settings window is a fixed 620×520 frame: switching tabs swaps
+   the content and never resizes the window. So both mocks share one height
+   and a short tab simply leaves room below it, the way macOS renders it. */
 .figure-center--pair {
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: stretch;
   gap: var(--space-6);
 }
 
 .figure-center--pair .window {
   width: min(460px, 100%);
+  display: flex;
+  flex-direction: column;
+}
+
+.figure-center--pair .window__body {
+  flex: 1;
 }
 
 /* ---------- Tile grid ---------------------------------------------- */
