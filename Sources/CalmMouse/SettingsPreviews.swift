@@ -72,8 +72,9 @@ struct ExplainedRow<Content: View>: View {
             if hovering {
                 let work = DispatchWorkItem { showPopover = true }
                 pending = work
-                // Small delay so scrubbing past rows doesn't flash popovers.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: work)
+                // Delay so scrubbing past rows doesn't churn popovers open and closed —
+                // each present/dismiss is a burst of main-thread animation work.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.55, execute: work)
             } else {
                 showPopover = false
             }
@@ -87,7 +88,9 @@ struct PreviewCanvas: View {
     let preview: SettingPreview
 
     var body: some View {
-        TimelineView(.animation) { timeline in
+        // 30fps, not the display's full refresh rate: these are gentle looping sketches, and
+        // every frame is main-thread work the event tap's run loop has to wait behind.
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
             Canvas { ctx, size in
                 let t = timeline.date.timeIntervalSinceReferenceDate
                     .truncatingRemainder(dividingBy: preview.loop)

@@ -120,7 +120,7 @@ Settings…, Quit.
 
 **Settings window** — seven tabs:
 
-- **General** — enable, launch at login, updates, permission status, troubleshooting toggles
+- **General** — enable, launch at login, updates, permission status
 - **Presets** — one-click starting points, plus your own saved setups
 - **Scrolling** — don't scroll while clicking, nudge filtering, straight-line scrolling, momentum
 - **Clicking** — tap to click, tap to right-click, tap area, tap-and-drag, two-finger drag
@@ -215,11 +215,11 @@ swift test    # 99 tests, no device or permission needed
 | Symptom | Fix |
 |---|---|
 | Menu bar says "Accessibility permission needed" but the toggle is ON | Stale grant — Settings → General → **Reset grant…** |
-| Nothing is blocked, `--status` shows `lastSeenDevice: null` | Device identification isn't matching your mouse. Settings → General → **Treat unidentified touch scrolls as Magic Mouse**. Please [open an issue](https://github.com/Malik1942/CalmMouse/issues) with the output of `CalmMouse --status` — that's a bug worth fixing properly. |
-| Trackpad scrolling got caught too | Turn *off* "Treat unidentified touch scrolls as Magic Mouse". |
+| Nothing is blocked, `--status` shows `lastSeenDevice: null` | Device identification isn't matching your mouse. Run `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool true` and relaunch CalmMouse. Please [open an issue](https://github.com/Malik1942/CalmMouse/issues) with the output of `CalmMouse --status` — that's a bug worth fixing properly. |
+| Trackpad scrolling got caught too | `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool false`, then relaunch. |
 | Scrolling feels like it stops too long after a click | Settings → Scrolling → lower the release grace. |
 | A tap does nothing in one part of the surface | The tap zone is on. `CalmMouse --status` reports `outsideZone` in `tapRejections` plus the exact landing point in `tapLastRejectionAt` — widen the depth in Settings → Clicking, or turn the zone off. |
-| Want to see what's happening | Settings → General → Debug logging, then `log stream --predicate 'subsystem == "com.calmmouse.app"' --level debug` |
+| Want to see what's happening | `defaults write com.calmmouse.app debugLogging -bool true`, relaunch, then `log stream --predicate 'subsystem == "com.calmmouse.app"' --level debug` |
 
 ## Prior art
 

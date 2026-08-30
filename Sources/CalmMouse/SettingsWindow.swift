@@ -96,16 +96,6 @@ private struct GeneralTab: View {
                     }
                 }
             }
-
-            Section("Troubleshooting") {
-                Toggle("Assume unrecognised touch scrolling is the Magic Mouse", isOn: $settings.treatUnknownContinuousAsMagicMouse)
-                Text("Only needed if a macOS update stops CalmMouse recognising your mouse. Leave off — otherwise trackpad scrolling can get caught too.")
-                    .font(.caption).foregroundStyle(.secondary)
-                Toggle("Debug logging", isOn: $settings.debugLogging)
-                Text("log stream --predicate 'subsystem == \"com.calmmouse.app\"' --level debug")
-                    .font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-            }
         }
         .formStyle(.grouped)
         .onReceive(timer) { _ in trusted = AXIsProcessTrusted() }

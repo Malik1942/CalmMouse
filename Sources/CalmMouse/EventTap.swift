@@ -10,6 +10,8 @@ final class EventTap {
     private let identifier = DeviceIdentifier()
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
+    private var movedTap: CFMachPort?
+    private var movedRunLoopSource: CFRunLoopSource?
     private let log = Logger(subsystem: "com.calmmouse.app", category: "tap")
 
     var debugLogging = false
@@ -23,7 +25,15 @@ final class EventTap {
     /// macOS turns hardware motion into `leftMouseDragged` only for *physically* held buttons, so
     /// while this is set the tap rewrites every `mouseMoved` into a dragged event itself —
     /// without that, apps and window dragging only show the result when the button releases.
-    var syntheticDragClickState: Int64?
+    /// Set on the main thread (TapController hops there before calling us).
+    var syntheticDragClickState: Int64? {
+        didSet {
+            guard (syntheticDragClickState != nil) != (oldValue != nil) else { return }
+            if let port = movedTap {
+                CGEvent.tapEnable(tap: port, enable: syntheticDragClickState != nil)
+            }
+        }
+    }
 
     /// Set when we've seen at least one Magic Mouse event — surfaced in the menu as a sanity check.
     private(set) var lastSeenDevice: String?
@@ -48,8 +58,7 @@ final class EventTap {
             (1 << CGEventType.rightMouseUp.rawValue) |
             (1 << CGEventType.otherMouseDown.rawValue) |
             (1 << CGEventType.otherMouseUp.rawValue) |
-            (1 << CGEventType.scrollWheel.rawValue) |
-            (1 << CGEventType.mouseMoved.rawValue)
+            (1 << CGEventType.scrollWheel.rawValue)
 
         let callback: CGEventTapCallBack = { _, type, event, userInfo in
             guard let userInfo else { return Unmanaged.passUnretained(event) }
@@ -73,6 +82,34 @@ final class EventTap {
         runLoopSource = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: port, enable: true)
+
+        // Motion gets its own tap so it can stay OFF except while a synthetic drag needs
+        // `mouseMoved` rewritten into `leftMouseDragged`. A .defaultTap is synchronous — the
+        // WindowServer waits on our run loop for every tapped event — so keeping motion in the
+        // main mask meant any main-thread work (an animating settings popover, say) lagged the
+        // pointer for the whole system.
+        let movedCallback: CGEventTapCallBack = { _, type, event, userInfo in
+            guard let userInfo else { return Unmanaged.passUnretained(event) }
+            let tap = Unmanaged<EventTap>.fromOpaque(userInfo).takeUnretainedValue()
+            return tap.handleMoved(type: type, event: event)
+        }
+        if let movedPort = CGEvent.tapCreate(
+            tap: .cghidEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: 1 << CGEventType.mouseMoved.rawValue,
+            callback: movedCallback,
+            userInfo: Unmanaged.passUnretained(self).toOpaque()
+        ) {
+            movedTap = movedPort
+            let movedSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, movedPort, 0)
+            movedRunLoopSource = movedSource
+            CFRunLoopAddSource(CFRunLoopGetMain(), movedSource, .commonModes)
+            CGEvent.tapEnable(tap: movedPort, enable: syntheticDragClickState != nil)
+        } else {
+            log.error("motion tap creation failed — tap-and-drag motion won't render live")
+        }
+
         log.info("event tap started")
         return true
     }
@@ -85,6 +122,14 @@ final class EventTap {
         }
         runLoopSource = nil
         tap = nil
+        if let movedPort = movedTap {
+            CGEvent.tapEnable(tap: movedPort, enable: false)
+            if let source = movedRunLoopSource {
+                CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
+            }
+        }
+        movedRunLoopSource = nil
+        movedTap = nil
         log.info("event tap stopped")
     }
 
@@ -109,16 +154,26 @@ final class EventTap {
         case .scrollWheel:
             return handleScroll(event)
 
-        case .mouseMoved:
-            // Fast path: motion is untouched unless a synthetic drag is holding the button.
-            if let clickState = syntheticDragClickState {
-                Self.convertMovedToDragged(event, clickState: clickState)
-            }
-            return Unmanaged.passUnretained(event)
-
         default:
             return Unmanaged.passUnretained(event)
         }
+    }
+
+    /// The motion tap's callback — only live while a synthetic drag holds the button.
+    private func handleMoved(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+        switch type {
+        case .tapDisabledByTimeout, .tapDisabledByUserInput:
+            if let port = movedTap, syntheticDragClickState != nil {
+                CGEvent.tapEnable(tap: port, enable: true)
+            }
+        case .mouseMoved:
+            if let clickState = syntheticDragClickState {
+                Self.convertMovedToDragged(event, clickState: clickState)
+            }
+        default:
+            break
+        }
+        return Unmanaged.passUnretained(event)
     }
 
     private func isMagicMouse(_ event: CGEvent, isContinuous: Bool) -> Bool {
