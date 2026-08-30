@@ -316,6 +316,17 @@
   justify-content: center;
 }
 
+/* Two window mocks side by side, stacking when the row runs out of room. */
+.figure-center--pair {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-6);
+}
+
+.figure-center--pair .window {
+  width: min(460px, 100%);
+}
+
 /* ---------- Tile grid ---------------------------------------------- */
 .tile-grid {
   list-style: none;

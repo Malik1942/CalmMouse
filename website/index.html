@@ -324,11 +324,11 @@
             </p>
           </div>
 
-          <div class="figure-center reveal">
+          <div class="figure-center figure-center--pair reveal">
             <div
               class="window"
               role="img"
-              aria-label="The CalmMouse settings window, General tab: plain-English switches for enabling the app, launch at login, permission status, and troubleshooting"
+              aria-label="The CalmMouse settings window, General tab: plain-English switches for enabling the app and launch at login, a welcome tour button, in-app updates, and permission status"
             >
               <div class="window__titlebar">
                 <span class="window__light window__light--red"></span>
@@ -349,6 +349,17 @@
                 <div class="window__group">
                   <div class="window__row"><span>Enable CalmMouse</span><span class="switch switch--on"></span></div>
                   <div class="window__row"><span>Launch at login</span><span class="switch switch--on"></span></div>
+                  <div class="window__row">
+                    <span class="window__row-sub">New here? The tour covers permission, presets and a try-out.</span>
+                    <span class="window__btn">Show Welcome Tour…</span>
+                  </div>
+                </div>
+                <p class="window__label">Updates</p>
+                <div class="window__group">
+                  <div class="window__row"><span>CalmMouse 0.5.0</span><span class="window__btn">Check for Updates</span></div>
+                  <div class="window__row">
+                    <span class="window__row-sub">Checked automatically twice a day. Updates install right here — no browser, no unzipping, no dragging.</span>
+                  </div>
                 </div>
                 <p class="window__label">Permission</p>
                 <div class="window__group">
@@ -356,10 +367,81 @@
                     <span class="window__status"><span class="window__check">✓</span> Accessibility access granted.</span>
                   </div>
                 </div>
-                <p class="window__label">Troubleshooting</p>
+              </div>
+            </div>
+
+            <div
+              class="window"
+              role="img"
+              aria-label="The CalmMouse settings window, Presets tab: three built-in starting points with Use buttons, and a field for saving your own preset"
+            >
+              <div class="window__titlebar">
+                <span class="window__light window__light--red"></span>
+                <span class="window__light window__light--yellow"></span>
+                <span class="window__light window__light--green"></span>
+                <span class="window__title">CalmMouse Settings</span>
+              </div>
+              <div class="window__tabs">
+                <span class="window__tab">General</span>
+                <span class="window__tab window__tab--active">Presets</span>
+                <span class="window__tab">Scrolling</span>
+                <span class="window__tab">Clicking</span>
+                <span class="window__tab">Apps</span>
+                <span class="window__tab">Shortcuts</span>
+                <span class="window__tab">Battery</span>
+              </div>
+              <div class="window__body">
+                <p class="window__label">Starting points</p>
+                <p class="window__caption">
+                  One click sets everything on the Scrolling and Clicking tabs. Tweak whatever you
+                  like afterwards — a preset is a starting point, not a mode.
+                </p>
                 <div class="window__group">
-                  <div class="window__row"><span>Assume unrecognised touch scrolling is the Magic&nbsp;Mouse</span><span class="switch"></span></div>
-                  <div class="window__row"><span>Debug logging</span><span class="switch"></span></div>
+                  <div class="window__row">
+                    <svg class="window__preset-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M7 4l11 9.5-5 .8L10.5 19z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+                      <path d="M4.5 9.5a7 7 0 010-5m2.6 2.5a3.5 3.5 0 010-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                    </svg>
+                    <span class="window__row-text">
+                      <span>Just fix clicking</span>
+                      <span class="window__row-sub">Pages hold still while you click. Everything else stays the way macOS made it.</span>
+                    </span>
+                    <span class="window__inuse"><span class="window__check">✓</span> In use</span>
+                  </div>
+                  <div class="window__row">
+                    <svg class="window__preset-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6" />
+                      <circle cx="12" cy="12" r="1.8" fill="currentColor" />
+                      <path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                    </svg>
+                    <span class="window__row-text">
+                      <span>Extra steady</span>
+                      <span class="window__row-sub">Small nudges are ignored, scrolling sticks to straight lines, and the page stops the moment your finger does.</span>
+                    </span>
+                    <span class="window__btn">Use</span>
+                  </div>
+                  <div class="window__row">
+                    <svg class="window__preset-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle cx="12" cy="12" r="3" fill="currentColor" />
+                      <circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.55" />
+                      <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3" />
+                    </svg>
+                    <span class="window__row-text">
+                      <span>Trackpad feel</span>
+                      <span class="window__row-sub">A light tap clicks, a tap on the right side right-clicks, and tap-then-drag moves things.</span>
+                    </span>
+                    <span class="window__btn">Use</span>
+                  </div>
+                </div>
+                <p class="window__label">Your presets</p>
+                <div class="window__group">
+                  <div class="window__row">
+                    <span class="window__field">Preset name</span>
+                    <span class="window__btn">Save Current Settings</span>
+                  </div>
+                  <div class="window__row">
+                    <span class="window__row-sub">Saves how the Scrolling and Clicking tabs are set right now. Saving with an existing name updates that preset.</span>
+                  </div>
                 </div>
               </div>
             </div>

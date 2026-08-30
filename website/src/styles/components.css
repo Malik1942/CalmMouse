@@ -339,6 +339,65 @@
   justify-content: center;
 }
 
+/* Section caption under a group label, matching the app's header captions. */
+.window__caption {
+  font-size: var(--text-2xs);
+  color: var(--color-text-secondary);
+  margin: calc(-1 * var(--space-1)) var(--space-1) var(--space-2);
+}
+
+.window__preset-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--color-accent);
+}
+
+/* Preset rows inside the window mock: name over a one-line summary,
+   with a Use button or an "in use" check on the right. */
+.window__row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.window__row-sub {
+  font-size: var(--text-2xs);
+  color: var(--color-text-secondary);
+}
+
+.window__btn {
+  flex: none;
+  padding: 3px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-raised);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+}
+
+.window__inuse {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-2xs);
+  color: var(--palette-green-500);
+}
+
+.window__field {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--text-2xs);
+}
+
 /* ---------- Changelog entry (what's new) ----------------------- */
 .changelog {
   list-style: none;
