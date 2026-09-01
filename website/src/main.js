@@ -41,3 +41,28 @@ if (installSteps) {
     });
   });
 }
+
+// Agentation — click any element in `npm run dev` and leave a note for the
+// coding agent. `import.meta.env.DEV` is inlined at build time, so the whole
+// block (and React with it) is dropped from the production bundle: the shipped
+// site keeps its zero runtime dependencies.
+//
+// `endpoint` is the agentation-mcp HTTP server. Start it with
+// `npx agentation-mcp server` and annotations sync straight to the agent;
+// without it the toolbar still works and copies markdown to the clipboard.
+if (import.meta.env.DEV) {
+  Promise.all([import("react"), import("react-dom/client"), import("agentation")])
+    .then(([React, ReactDOM, { Agentation }]) => {
+      const mount = document.createElement("div");
+      mount.id = "agentation-root";
+      document.body.appendChild(mount);
+      // The toolbar persists its own session id under `agentation-session-<path>`,
+      // so it rejoins the same session across reloads without help from us.
+      ReactDOM.createRoot(mount).render(
+        React.createElement(Agentation, { endpoint: "http://localhost:4747" })
+      );
+    })
+    .catch((error) => {
+      console.warn("[agentation] toolbar failed to load", error);
+    });
+}
