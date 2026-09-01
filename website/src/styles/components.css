@@ -402,7 +402,7 @@
 .changelog {
   list-style: none;
   max-width: var(--measure-narrow);
-  margin: var(--space-16) auto 0;
+  margin: var(--space-16) 0 0;
   text-align: left;
   display: flex;
   flex-direction: column;

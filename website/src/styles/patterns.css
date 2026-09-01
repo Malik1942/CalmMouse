@@ -74,7 +74,11 @@
 .hero {
   padding: var(--space-hero-top) var(--container-gutter) 0;
   text-align: center;
-  overflow: hidden;
+  /* Clip the hero, but let the mouse's drop shadow finish fading outside it
+     instead of ending in a hard horizontal line. */
+  overflow: hidden;  /* Safari < 16.4 falls back to the old hard clip */
+  overflow: clip;
+  overflow-clip-margin: var(--space-object-shadow);
 }
 
 .hero__title {
@@ -355,7 +359,7 @@
 .steps {
   list-style: none;
   max-width: var(--measure-narrow);
-  margin: var(--space-16) auto 0;
+  margin: var(--space-16) 0 0;
   text-align: left;
   display: flex;
   flex-direction: column;

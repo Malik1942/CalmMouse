@@ -119,6 +119,13 @@
   --shadow-floating: 0 20px 60px rgba(0, 0, 0, 0.12);
   --shadow-object: 0 30px 50px rgba(0, 0, 0, 0.18);
 
+  /* How far --shadow-object actually reaches past the object casting it, for a
+     clipping edge that has to clear it. NOT offset + blur: drop-shadow() maps
+     its blur to a Gaussian of sigma = blur/2 and engines paint out to ~3 sigma,
+     so 30 + 3*(50/2) = 105px. Absolute px because --shadow-object is px — a rem
+     value would fall short of the reach at any root size below 16. */
+  --space-object-shadow: 105px;
+
   /* ---------- Motion --------------------------------------------- */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-fast: 0.2s;
