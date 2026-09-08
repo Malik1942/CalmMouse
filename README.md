@@ -1,18 +1,17 @@
 <p align="center">
-  <img src="docs/images/icon-256.png" width="128" alt="CalmMouse icon">
+  <img src="docs/images/icon-256.png" width="96" alt="">
 </p>
 
 <h1 align="center">CalmMouse</h1>
 
 <p align="center">
-  <b>Magic Mouse UX fixes for macOS.</b><br>
-  The main one: your mouse stops scrolling the page every time you click.
+  <b>Your Magic Mouse stops scrolling the page when you click.</b><br>
+  Free, open source, macOS 13+.
 </p>
 
 <p align="center">
   <a href="https://github.com/Malik1942/CalmMouse/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Malik1942/CalmMouse/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="macOS 13+" src="https://img.shields.io/badge/macOS-13%2B-black?logo=apple">
-  <img alt="Swift 5.9" src="https://img.shields.io/badge/Swift-5.9-orange?logo=swift&logoColor=white">
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
 </p>
 
@@ -20,18 +19,67 @@
   <img src="docs/images/hero-loop.gif" width="720" alt="A menu with Save above Delete. Without CalmMouse the page shifts under the click and Delete fires. With CalmMouse on, the same click lands on Save.">
 </p>
 
-## The problem
+<p align="center">
+  <a href="https://calmmouse.malikzhang.com">Website</a> ·
+  <a href="https://github.com/Malik1942/CalmMouse/releases/latest">Download</a> ·
+  <a href="#install">Homebrew</a>
+</p>
 
-The Magic Mouse's entire top shell is a touch surface, and it stays live while you click. So every
-click is also a tiny swipe: you press down, your finger rolls half a millimetre, and the page jumps.
-Drag a window and the document scrolls out from under it. Click a link and the link moves first.
+## Why
 
-macOS has no setting for this. [BetterTouchTool](https://folivora.ai) has one — the undocumented
-`BTTBlockMagicMouseScrollWhenClicked` — but that's a paid, do-everything app for one checkbox.
+The whole top of a Magic Mouse is a touch surface, and it stays live while you click. So every click
+is also a tiny swipe — the page moves *before* the click lands. macOS has no setting for it.
 
-CalmMouse is that checkbox, plus the rest of the Magic Mouse's rough edges, in a small menu-bar app.
+CalmMouse is that setting.
 
-## Features
+## Install
+
+```bash
+brew install --cask malik1942/calmmouse/calmmouse
+```
+
+Or [download CalmMouse.zip](https://github.com/Malik1942/CalmMouse/releases/latest) and drag it to
+Applications. Signed and notarized — it opens like any other app.
+
+Then allow it once: **System Settings → Privacy & Security → Accessibility → CalmMouse**.
+It starts working within two seconds, no relaunch.
+
+<p align="center">
+  <img src="docs/images/welcome-presets.png" width="560" alt="The welcome tour's preset step: Just fix clicking, Extra steady, Trackpad feel">
+  <br><sub>First launch: pick a preset, then try the fix live — it counts the accidental scrolls it just caught.</sub>
+</p>
+
+## What it fixes
+
+Everything here is **Magic Mouse only**. Your trackpad and any other mouse are untouched.
+
+**Scrolling**
+
+- **No scroll while clicking** — the fix. Clicks, drags and long presses hold the page still.
+- **Straight lines** — a scroll commits to one axis. No diagonal drift.
+- **Nudge filter** — a finger resting on the shell doesn't count as a scroll.
+- **Momentum off** — drop the coasting tail, for the Magic Mouse alone.
+
+**Clicking**
+
+- **Tap to click** — a light tap clicks, no press needed. Tap the right side to right-click.
+- **Tap and drag · two-finger drag** — drag without holding the button down.
+
+**And**
+
+- **Per-app rules** — no scrolling in Figma, no sideways scroll in Excel, no momentum in your editor.
+- **Modifier + scroll** — hold ⌘ ⌥ ⌃ or ⇧ to scroll sideways, invert, or zoom.
+- **Presets** to start from, a **low-battery warning**, **in-app updates**, and English / 简体中文 / 繁體中文.
+
+<p align="center">
+  <img src="docs/images/settings-general.png" width="620" alt="CalmMouse settings window">
+</p>
+
+The switches you flip often are in the menu bar; everything else is in Settings (⌘,).
+Hover any setting for a short animated preview of what it does.
+
+<details>
+<summary><b>Full feature reference</b></summary>
 
 | | What it does |
 |---|---|
@@ -51,153 +99,40 @@ CalmMouse is that checkbox, plus the rest of the Magic Mouse's rough edges, in a
 | **In-app updates** | CalmMouse checks the releases feed twice a day; a new version shows up as a menu-bar item and in Settings → General with its release notes. One click downloads, verifies the signature is ours, swaps the app in place, and relaunches. |
 | **Speaks your language** | English, 简体中文 and 繁體中文, following the system language setting — no in-app switch needed. |
 
-Everything applies **only to the Magic Mouse**. CalmMouse identifies the physical device behind each
-event, so your trackpad, your other mouse, and anything synthetic are passed through untouched.
-
 Clicks that land in the middle of a scroll are handled gracefully: the app that was scrolling gets a
 clean zero-delta `ended` event instead of a gesture that never finishes, and the momentum tail is
 dropped so the page doesn't keep coasting under your click.
 
-<p align="center">
-  <img src="docs/images/settings-general.png" width="620" alt="CalmMouse settings window">
-</p>
-
-## Install
-
-### Homebrew
-
-```bash
-brew install --cask malik1942/calmmouse/calmmouse
-```
-
-No `brew tap` first — Homebrew taps
-[Malik1942/homebrew-calmmouse](https://github.com/Malik1942/homebrew-calmmouse) on
-demand, and naming the cask in full is itself the trust decision, so nothing prompts
-you.
-
-### Download
-
-Grab the latest `CalmMouse.zip` from [Releases](https://github.com/Malik1942/CalmMouse/releases),
-unzip it, and drag **CalmMouse.app** to `/Applications`. Releases from 0.5.0 on are signed
-with a Developer ID and notarized by Apple, so it opens like any other app — no security
-dialogs. (Installed 0.4.0 or earlier? Those builds were ad-hoc signed, so after replacing the
-app, re-grant Accessibility once — Settings → General → **Reset grant…** if the toggle looks
-on but nothing works.)
-
-### Build from source
-
-Needs Xcode 15+ (or the Command Line Tools).
-
-```bash
-git clone https://github.com/Malik1942/CalmMouse.git
-cd CalmMouse
-./install.sh          # builds, installs to /Applications, launches, prints status
-```
-
-Building from source is the better option if you have any code-signing identity — even the free
-"Apple Development" one that comes with an Apple ID. `build.sh` picks it up automatically, and a
-real identity means macOS keeps your Accessibility grant across rebuilds (see below).
-
-On first launch a short welcome tour walks through the Accessibility permission, lets you pick a
-preset, and has you try the fix live — it counts the accidental scrolls it just caught for you.
-Re-run it any time from Settings → General → **Show Welcome Tour…**
-
-<p align="center">
-  <img src="docs/images/welcome-presets.png" width="560" alt="The welcome tour's preset step: Just fix clicking, Extra steady, Trackpad feel">
-</p>
-
-## Accessibility permission
-
-CalmMouse reads mouse events through a `CGEventTap`, which macOS gates behind Accessibility access:
-
-**System Settings → Privacy & Security → Accessibility → enable CalmMouse.**
-
-The app polls for the grant and starts working within two seconds — no relaunch needed.
-
-> **If the toggle is already ON but CalmMouse still says it has no permission**, the stored grant has
-> gone stale. macOS ties the grant to the app's code signature, so a rebuild or a new unsigned
-> release looks like a different app while the switch still reads ON.
->
-> Settings → General → **Reset grant…** fixes it (it clears the entry and re-asks). By hand:
-> ```bash
-> tccutil reset Accessibility com.calmmouse.app
-> ```
-
-CalmMouse never sees keystrokes, never touches the network, and stores nothing but its own settings.
-
-## Menu bar vs. settings window
-
-The switches you flip often live in the **menu bar**; everything else lives in the **settings
-window** (⌘, from the menu).
-
-**Menu bar** — status and battery line, CalmMouse enabled, Don't scroll while clicking, Keep
-gliding after a swipe (momentum), Scroll in straight lines, Tap to click, Per-app rules,
-Settings…, Quit.
-
-**Settings window** — seven tabs:
-
-- **General** — enable, launch at login, updates, permission status
-- **Presets** — one-click starting points, plus your own saved setups
-- **Scrolling** — don't scroll while clicking, nudge filtering, straight-line scrolling, momentum
-- **Clicking** — tap to click, tap to right-click, tap area, tap-and-drag, two-finger drag
-- **Apps** — per-app rules
-- **Shortcuts** — hold a modifier key while scrolling to scroll sideways, zoom, and more
-- **Battery** — current level and the low-battery threshold
-
-Hover any setting (or its ⓘ) for a little animated preview of what it does.
+The menu-bar icon carries state: orange when it needs attention, dimmed when paused, yellow when the
+mouse battery is low.
 
 <p align="center">
   <img src="docs/images/settings-presets.png" width="620" alt="The Presets tab: three built-in starting points and a field to save your own">
 </p>
 
-The menu-bar icon carries state: orange when it needs attention, dimmed when paused, yellow when the
-mouse battery is low.
+</details>
 
-## Scripting
+## Under the hood
 
-Every setting is plain `UserDefaults` under `com.calmmouse.app`:
+CalmMouse never sees keystrokes, never touches the network, and stores nothing but its own settings.
 
-```bash
-defaults write com.calmmouse.app blockScrollWhileClicked -bool YES
-defaults write com.calmmouse.app releaseGraceMs -int 200      # 0–800
-defaults write com.calmmouse.app deadZone -float 3            # points; 0 = off
-defaults write com.calmmouse.app axisLock -bool YES
-defaults write com.calmmouse.app momentumEnabled -bool NO
-defaults write com.calmmouse.app blockHorizontalScroll -bool YES
-defaults write com.calmmouse.app batteryWarningThreshold -int 15
-defaults write com.calmmouse.app tapToClick -bool YES
-defaults write com.calmmouse.app tapSensitivity -float 0.5   # 0 = firm ... 1 = light
-defaults write com.calmmouse.app tapAndDrag -bool YES
-defaults write com.calmmouse.app twoFingerDrag -bool YES
-defaults write com.calmmouse.app tapZoneEnabled -bool YES
-defaults write com.calmmouse.app tapZoneDepth -float 0.5     # front 25%...75% of the surface
-```
-
-The app picks changes up live. There's also a small CLI inside the bundle:
-
-```bash
-CalmMouse --status      # JSON: permission, tap state, events swallowed, active app, battery
-CalmMouse --battery     # Magic Mouse battery level
-```
-
-## How it works
+<details>
+<summary><b>How it works</b> — device attribution, deferred drag presses, gesture bookkeeping</summary>
 
 ```
 Sources/CalmMouseCore/     pure logic, no AppKit — the part that's unit-tested
   ScrollBlocker.swift     the state machine: gesture phases, blocking, dead zone, axis lock
   Config.swift            settings model, per-app rule resolution, modifier actions
+  TapRecognizer.swift     taps and drags: duration/movement/size gates, zone, scroll & click vetoes
 Sources/CalmMouse/
   EventTap.swift          CGEventTap ⇄ ScrollBlocker: pass / drop / rewrite each event
   DeviceIdentifier.swift  which physical device sent this event?
-  TapRecognizer.swift (Core) taps and drags: duration/movement/size gates, zone, scroll & click vetoes
   Multitouch.swift        dlopen bridge to the private MultitouchSupport framework (raw touches)
   TapController.swift     contact frames → TapRecognizer → synthetic clicks and drag press/release
   BatteryMonitor.swift    IORegistry battery polling + notification
   SettingsWindow.swift    SwiftUI settings window
   AppDelegate.swift       menu bar, permission polling, launch at login
 ```
-
-Two details do most of the work:
 
 **Device attribution.** A `CGEvent` doesn't say which mouse produced it — unless you read the
 undocumented sender-ID field (`CGEventField(87)`), which holds an IORegistry entry ID. CalmMouse walks
@@ -225,18 +160,71 @@ allowed to see and always closes the gesture it opened.
 swift test    # 99 tests, no device or permission needed
 ```
 
-## Troubleshooting
+</details>
+
+<details>
+<summary><b>Scripting</b> — every setting is a <code>defaults</code> key, plus a <code>--status</code> CLI</summary>
+
+Every setting is plain `UserDefaults` under `com.calmmouse.app`, picked up live:
+
+```bash
+defaults write com.calmmouse.app blockScrollWhileClicked -bool YES
+defaults write com.calmmouse.app releaseGraceMs -int 200      # 0–800
+defaults write com.calmmouse.app deadZone -float 3            # points; 0 = off
+defaults write com.calmmouse.app axisLock -bool YES
+defaults write com.calmmouse.app momentumEnabled -bool NO
+defaults write com.calmmouse.app blockHorizontalScroll -bool YES
+defaults write com.calmmouse.app batteryWarningThreshold -int 15
+defaults write com.calmmouse.app tapToClick -bool YES
+defaults write com.calmmouse.app tapSensitivity -float 0.5   # 0 = firm ... 1 = light
+defaults write com.calmmouse.app tapAndDrag -bool YES
+defaults write com.calmmouse.app twoFingerDrag -bool YES
+defaults write com.calmmouse.app tapZoneEnabled -bool YES
+defaults write com.calmmouse.app tapZoneDepth -float 0.5     # front 25%...75% of the surface
+```
+
+There's also a small CLI inside the bundle:
+
+```bash
+CalmMouse --status      # JSON: permission, tap state, events swallowed, active app, battery
+CalmMouse --battery     # Magic Mouse battery level
+```
+
+</details>
+
+<details>
+<summary><b>Build from source</b></summary>
+
+Needs Xcode 15+ (or the Command Line Tools).
+
+```bash
+git clone https://github.com/Malik1942/CalmMouse.git
+cd CalmMouse
+./install.sh          # builds, installs to /Applications, launches, prints status
+```
+
+Building from source is the better option if you have any code-signing identity — even the free
+"Apple Development" one that comes with an Apple ID. `build.sh` picks it up automatically, and a
+real identity means macOS keeps your Accessibility grant across rebuilds.
+
+</details>
+
+<details>
+<summary><b>Troubleshooting</b></summary>
 
 | Symptom | Fix |
 |---|---|
-| Menu bar says "Accessibility permission needed" but the toggle is ON | Stale grant — Settings → General → **Reset grant…** |
-| Nothing is blocked, `--status` shows `lastSeenDevice: null` | Device identification isn't matching your mouse. Run `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool true` and relaunch CalmMouse. Please [open an issue](https://github.com/Malik1942/CalmMouse/issues) with the output of `CalmMouse --status` — that's a bug worth fixing properly. |
+| Menu bar says "Accessibility permission needed" but the toggle is ON | The stored grant has gone stale — macOS ties it to the app's code signature, so a rebuild or an old ad-hoc-signed build looks like a different app. Settings → General → **Reset grant…** (or `tccutil reset Accessibility com.calmmouse.app`). |
+| Nothing is blocked, `--status` shows `lastSeenDevice: null` | Device identification isn't matching your mouse. Run `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool true` and relaunch. Please [open an issue](https://github.com/Malik1942/CalmMouse/issues) with the output of `CalmMouse --status` — that's a bug worth fixing properly. |
 | Trackpad scrolling got caught too | `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool false`, then relaunch. |
 | Scrolling feels like it stops too long after a click | Settings → Scrolling → lower the release grace. |
 | A tap does nothing in one part of the surface | The tap zone is on. `CalmMouse --status` reports `outsideZone` in `tapRejections` plus the exact landing point in `tapLastRejectionAt` — widen the depth in Settings → Clicking, or turn the zone off. |
 | Want to see what's happening | `defaults write com.calmmouse.app debugLogging -bool true`, relaunch, then `log stream --predicate 'subsystem == "com.calmmouse.app"' --level debug` |
 
-## Prior art
+</details>
+
+<details>
+<summary><b>Prior art</b></summary>
 
 Nothing on GitHub blocked Magic Mouse scroll-while-clicking on macOS when this was written
 (August 2026) — hence this project. Related, and worth your time:
@@ -250,18 +238,13 @@ CalmMouse doesn't do middle-click; MiddleClick already does it well. (Tap-to-cli
 CalmMouse anyway — having the scroll-state machine in the same process means taps can be vetoed by
 real scrolling and physical clicks, which standalone tap apps can't see.)
 
-## Roadmap
-
-Ideas, not promises:
-
-- Scroll speed / acceleration curve for the Magic Mouse alone
-- Per-app rules driven by window title as well as bundle ID
-- Localisation
+</details>
 
 ## Contributing
 
-Solo project, but issues and PRs are welcome — especially bug reports with `CalmMouse --status`
-output and a note about which Magic Mouse generation you have.
+Solo project; issues and PRs are welcome. The most useful bug report is `CalmMouse --status` output
+plus which Magic Mouse generation you have. On the table, not promised: a scroll-acceleration curve
+for the Magic Mouse alone, and per-app rules keyed on window title.
 
 ## License
 
