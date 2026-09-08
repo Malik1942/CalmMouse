@@ -7,3 +7,6 @@ node_modules/
 *.xcodeproj
 .swiftpm/
 .DS_Store
+
+# Agent/skill instructions for AI tooling — local only, not part of the app
+.agents/
