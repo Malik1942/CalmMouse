@@ -67,14 +67,13 @@ dropped so the page doesn't keep coasting under your click.
 ### Homebrew
 
 ```bash
-brew trust --tap malik1942/calmmouse
 brew install --cask malik1942/calmmouse/calmmouse
 ```
 
-`brew trust` is required once: Homebrew refuses to load casks from third-party taps
-until you trust them, and without it `brew tap` fails with a misleading `Invalid cask`
-error rather than a permission one. The tap lives at
-[Malik1942/homebrew-calmmouse](https://github.com/Malik1942/homebrew-calmmouse).
+No `brew tap` first — Homebrew taps
+[Malik1942/homebrew-calmmouse](https://github.com/Malik1942/homebrew-calmmouse) on
+demand, and naming the cask in full is itself the trust decision, so nothing prompts
+you.
 
 ### Download
 
