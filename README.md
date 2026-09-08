@@ -28,9 +28,14 @@
 ## Why
 
 The whole top of a Magic Mouse is a touch surface, and it stays live while you click. So every click
-is also a tiny swipe — the page moves *before* the click lands. macOS has no setting for it.
+is also a tiny swipe — the page moves *before* the click lands.
 
-CalmMouse is that setting.
+In a browser that's an annoyance. In Figma, Sketch or Illustrator the canvas pans as you grab a layer;
+in Rhino, Blender or Fusion 360 a click zooms the viewport; in a spreadsheet the wrong cell gets
+selected. macOS has no setting for it.
+
+CalmMouse is that setting — and per-app rules go further where it hurts most, like turning off
+Magic Mouse scrolling entirely in Figma.
 
 ## Install
 
