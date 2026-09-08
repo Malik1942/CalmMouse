@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/settings-general.png" width="620" alt="CalmMouse settings window">
+  <img src="docs/images/hero-loop.gif" width="720" alt="A menu with Save above Delete. Without CalmMouse the page shifts under the click and Delete fires. With CalmMouse on, the same click lands on Save.">
 </p>
 
 ## The problem
@@ -58,7 +58,23 @@ Clicks that land in the middle of a scroll are handled gracefully: the app that 
 clean zero-delta `ended` event instead of a gesture that never finishes, and the momentum tail is
 dropped so the page doesn't keep coasting under your click.
 
+<p align="center">
+  <img src="docs/images/settings-general.png" width="620" alt="CalmMouse settings window">
+</p>
+
 ## Install
+
+### Homebrew
+
+```bash
+brew trust --tap malik1942/calmmouse
+brew install --cask malik1942/calmmouse/calmmouse
+```
+
+`brew trust` is required once: Homebrew refuses to load casks from third-party taps
+until you trust them, and without it `brew tap` fails with a misleading `Invalid cask`
+error rather than a permission one. The tap lives at
+[Malik1942/homebrew-calmmouse](https://github.com/Malik1942/homebrew-calmmouse).
 
 ### Download
 
