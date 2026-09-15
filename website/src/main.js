@@ -1,4 +1,8 @@
 import "./style.css";
+import { inject } from "@vercel/analytics";
+
+// Vercel Web Analytics: page views only, no cookies. Sends nothing on localhost.
+inject();
 
 // Reveal-on-scroll: elements with .reveal fade in the first time they enter
 // the viewport. Motion-averse visitors and browsers without IntersectionObserver
