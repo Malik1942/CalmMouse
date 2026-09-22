@@ -10,3 +10,7 @@ node_modules/
 
 # Agent/skill instructions for AI tooling — local only, not part of the app
 .agents/
+
+# Local env files, such as the website's GitHub token. Only the example is tracked.
+.env*
+!.env.example
