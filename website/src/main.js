@@ -1,5 +1,6 @@
 import "./style.css";
 import { inject } from "@vercel/analytics";
+import { showDownloadCount } from "./download-count.js";
 
 // Vercel Web Analytics: page views only, no cookies. Sends nothing on localhost.
 inject();
@@ -45,6 +46,10 @@ if (installSteps) {
     });
   });
 }
+
+// The live download count under the hero's small print. It only fills a line
+// index.html already reserves, so nothing moves when the number arrives.
+showDownloadCount();
 
 // Agentation — click any element in `npm run dev` and leave a note for the
 // coding agent. `import.meta.env.DEV` is inlined at build time, so the whole

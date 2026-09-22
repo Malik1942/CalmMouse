@@ -123,6 +123,12 @@
   margin-top: var(--space-5);
 }
 
+/* A second line of fine print (the live download count under the hero) stays
+   close to the first, so the two read as one block. */
+.fineprint + .fineprint {
+  margin-top: var(--space-1);
+}
+
 .hero__visual {
   margin: var(--space-hero-visual) auto var(--space-2);
   width: clamp(170px, 24vw, 240px);
