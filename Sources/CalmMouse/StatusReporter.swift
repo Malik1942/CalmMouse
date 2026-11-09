@@ -25,6 +25,7 @@ enum StatusReporter {
         var connectedMice: [String]
         var otherDevicesSeen: [String]
         var unidentifiedScrolls: Int
+        var trackingSpeedWrites: [String]
         var eventsSwallowed: Int
         var activeApp: String?
         var activeRule: String?

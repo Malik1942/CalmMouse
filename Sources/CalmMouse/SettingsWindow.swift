@@ -150,9 +150,16 @@ private final class SettingsPanesController: NSTabViewController {
 
     private func showPanesForCurrentMice() {
         let wanted = visiblePanes
-        guard wanted != shownPanes else { return }
+        let shown = shownPanes
+        guard wanted != shown else { return }
         let previous = selectedPane
-        tabViewItems = wanted.compactMap { items[$0] }
+        // One at a time: assigning `tabViewItems` throws an exception once the toolbar exists.
+        for pane in shown where !wanted.contains(pane) {
+            if let item = items[pane] { removeTabViewItem(item) }
+        }
+        for (index, pane) in wanted.enumerated() where !shown.contains(pane) {
+            if let item = items[pane] { insertTabViewItem(item, at: index) }
+        }
         select(previous.flatMap { wanted.contains($0) ? $0 : nil } ?? .general)
     }
 
@@ -340,21 +347,26 @@ private struct MagicMousePane: View {
         Form {
             presetSection
 
+            Section("Pointer") {
+                SliderRow("Tracking speed", value: $settings.magicMouseTrackingSpeed, in: -1...1,
+                          step: 0.25, from: "Slow", to: "Fast")
+            }
+
             Section("Scrolling") {
                 ExplainedRow(preview: .blockWhileClick,
-                             caption: L("While a mouse button is held down, your finger resting on the surface can't scroll the page out from under your click.")) {
+                             caption: L("The page stays put while you click.")) {
                     Toggle("Don't scroll while clicking", isOn: $settings.blockScrollWhileClicked)
                 }
                 ExplainedRow(preview: .straightLines,
-                             caption: L("Scrolling sticks to straight up-down or left-right. A swipe that drifts a little diagonally won't wander sideways.")) {
+                             caption: L("A swipe that drifts stays straight.")) {
                     Toggle("Scroll in straight lines", isOn: $settings.axisLock)
                 }
                 ExplainedRow(preview: .momentum(on: settings.momentumEnabled),
-                             caption: L("On: the page keeps gliding after a quick swipe, like a trackpad. Off: it stops the moment your finger does. Only affects the Magic Mouse — macOS's own setting changes every device.")) {
+                             caption: L("On: the page glides after a swipe.\nOff: it stops when your finger does.")) {
                     Toggle("Keep gliding after a swipe", isOn: $settings.momentumEnabled)
                 }
                 ExplainedRow(preview: .ignoreSideways,
-                             caption: L("Sideways swipes are ignored completely. Scrolling up and down still works.")) {
+                             caption: L("Sideways swipes do nothing.")) {
                     Toggle("Ignore sideways scrolling", isOn: $settings.blockHorizontalScroll)
                 }
             }
@@ -415,7 +427,7 @@ private struct MagicMousePane: View {
     private var tapSection: some View {
         Section("Clicking") {
             ExplainedRow(preview: .tapToClick,
-                         caption: L("A light single-finger tap on the surface clicks — no need to press the mouse down. Pressing to click keeps working as before.")) {
+                         caption: L("A light tap clicks.\nPressing the mouse still works.")) {
                 Toggle("Tap to click", isOn: $settings.tapToClick)
             }
 
@@ -423,9 +435,8 @@ private struct MagicMousePane: View {
             if settings.tapToClick {
                 ExplainedRow(preview: .tapRightClick(doubleTap: settings.tapRightClickMode == .doubleTap),
                              caption: settings.tapRightClickMode == .doubleTap
-                                ? L("One tap clicks; a second quick tap in the same spot opens the right-click menu instead.") + " "
-                                    + L("Heads-up: with double-tap chosen, tap-tap no longer double-clicks. Double-click by pressing the mouse down, or by tapping twice a little slower.")
-                                : L("A tap on the right part of the surface right-clicks — the same side a physical right click uses. Taps everywhere else stay normal clicks.")) {
+                                ? L("Tap twice quickly to right-click.\nPress the mouse to double-click.")
+                                : L("Tap the right side to right-click.\nTaps elsewhere are normal clicks.")) {
                     Picker("Tap to right-click", selection: rightClickChoice) {
                         Text("Off").tag(0)
                         Text("A tap on the right side").tag(1)
@@ -433,15 +444,17 @@ private struct MagicMousePane: View {
                     }
                 }
                 ExplainedRow(preview: .tapAndDrag,
-                             caption: L("Tap, then touch again and move the mouse — whatever is under the cursor comes along, and lifting your finger drops it. A quick second tap is still a double-click.")) {
-                    Toggle("Tap and drag", isOn: $settings.tapAndDrag)
+                             caption: L("Tap twice and leave your finger down.\nMove the mouse right away to drag.\nLift your finger to drop.")
+                                + (settings.tapRightClick && settings.tapRightClickMode == .rightSide
+                                   ? "\n" + L("Use the left or middle of the mouse.") : "")) {
+                    Toggle("Double Tap Drag", isOn: $settings.tapAndDrag)
                 }
                 ExplainedRow(preview: .twoFingerDrag,
-                             caption: L("Rest two fingers on the surface and hold for a moment — then move the mouse to drag, and lift to drop. Fingers that land one after the other are just your grip, and never trigger it.")) {
+                             caption: L("Rest two fingers and hold a moment.\nMove the mouse to drag.\nLift your fingers to drop.")) {
                     Toggle("Two-finger drag", isOn: $settings.twoFingerDrag)
                 }
                 ExplainedRow(preview: .tapZone(depth: settings.tapZoneDepth),
-                             caption: L("Taps only count on the front part of the surface — where deliberate fingertip taps land. The fingers gripping the sides can't click by accident. Pressing to click and dragging still work everywhere.")) {
+                             caption: L("Only taps near the front count.\nYour grip can't click by accident.")) {
                     Toggle("Front of the mouse only", isOn: $settings.tapZoneEnabled)
                 }
             }
@@ -452,7 +465,7 @@ private struct MagicMousePane: View {
     @ViewBuilder private var fineTuningRows: some View {
         if settings.blockScrollWhileClicked {
             ExplainedRow(preview: .settleAfterRelease,
-                         caption: L("As your finger lifts off after a click it usually drags the page a tiny bit. This gives it a moment to settle before scrolling works again.")) {
+                         caption: L("A short pause after you let go,\nso a lifting finger can't scroll.")) {
                 SliderRow("Hold still after you let go",
                           value: Binding(get: { Double(settings.releaseGraceMs) },
                                          set: { settings.releaseGraceMs = Int($0.rounded()) }),
@@ -461,19 +474,19 @@ private struct MagicMousePane: View {
             }
         }
         ExplainedRow(preview: .ignoreNudges,
-                     caption: L("The page only starts scrolling once your finger has moved at least this far — so a finger just resting on the mouse can't nudge anything.")) {
+                     caption: L("Scrolling waits for this much travel.\nA resting finger can't move the page.")) {
             SliderRow("Ignore small finger nudges", value: $settings.deadZone, in: 0...40, step: 1,
                       reading: settings.deadZone == 0 ? L("Off") : "\(Int(settings.deadZone)) pt")
         }
         if settings.axisLock {
-            ExplainedRow(caption: L("A distance, not a time — once your finger has slid this far, the swipe commits to one direction. Lower locks in sooner.")) {
+            ExplainedRow(caption: L("How far a swipe goes before it locks.")) {
                 SliderRow("Lock direction after sliding", value: $settings.axisLockThreshold, in: 2...40, step: 1,
                           reading: "\(Int(settings.axisLockThreshold)) pt")
             }
         }
         if settings.tapToClick {
             ExplainedRow(preview: .tapToClick,
-                         caption: L("Firm: only quick, deliberate taps count — the fewest accidental clicks. Light: gentler, slower taps work too.")) {
+                         caption: L("Firm: only quick, deliberate taps.\nLight: gentler, slower taps too.")) {
                 SliderRow("Tap firmness", value: $settings.tapSensitivity, in: 0...1, from: "Firm", to: "Light")
             }
             if settings.tapZoneEnabled {
@@ -531,17 +544,22 @@ private struct WheelPane: View {
 
     var body: some View {
         Form {
-            Section {
-                ExplainedRow(caption: L("The page glides between notches instead of jumping. Zooming with ⌘, ⌃ or ⌥ held stays one step per notch.")) {
+            Section("Pointer") {
+                SliderRow("Tracking speed", value: $settings.wheelTrackingSpeed, in: -1...1,
+                          step: 0.25, from: "Slow", to: "Fast")
+            }
+            Section("Scrolling") {
+                ExplainedRow(caption: L("The page glides instead of jumping.\nZooming stays one step per notch.")) {
                     Toggle("Smooth scrolling", isOn: $settings.smoothWheelScroll)
                 }
                 if settings.smoothWheelScroll {
-                    SliderRow("Scrolling speed", value: $settings.wheelScrollSpeed, in: 1...6, from: "Slow", to: "Fast")
+                    SliderRow("Scrolling speed", value: $settings.wheelScrollSpeed,
+                              in: 1...Settings.maximumWheelScrollSpeed, from: "Slow", to: "Fast")
                 }
-                ExplainedRow(caption: L("Turns the wheel's scrolling the other way round, without touching your trackpad or Magic Mouse. macOS itself has one direction setting for every device.")) {
+                ExplainedRow(caption: L("Flips only the wheel's direction.\nOther devices stay as they are.")) {
                     Toggle("Reverse direction", isOn: $settings.reverseWheelScroll)
                 }
-                ExplainedRow(caption: L("Pressing the wheel down almost always turns it a little. While it's pressed, and for a moment after, that can't scroll the page.")) {
+                ExplainedRow(caption: L("Pressing a wheel often turns it too.\nThat won't scroll the page.")) {
                     Toggle("Don't scroll while pressed", isOn: $settings.blockScrollWhileWheelPressed)
                 }
             }
@@ -613,7 +631,7 @@ private struct AdvancedPane: View {
                 Button("Choose…") { addApp() }
             }
         } header: {
-            ExplainedRow(caption: L("Rules apply while that app is in front. Anything left as “Default” follows the Magic Mouse page.")) {
+            ExplainedRow(caption: L("Rules apply while that app is in front.\n“Default” follows the Magic Mouse page.")) {
                 Text("Apps")
                 Spacer()
             }
@@ -654,7 +672,7 @@ private struct AdvancedPane: View {
             }
         } header: {
             ExplainedRow(preview: .keyZoom,
-                         caption: L("Hold the key and scroll on the Magic Mouse to get the action you picked — here, zooming instead of scrolling.")) {
+                         caption: L("Hold a key while you scroll\nto do the action you picked.")) {
                 Text("Shortcuts")
                 Spacer()
             }

@@ -89,7 +89,7 @@ extension Preset {
     public static let justFixClicking = Preset(
         id: UUID(uuidString: "6E1B49F2-0001-4000-8000-000000000001")!,
         name: "Just fix clicking",
-        summary: "Pages hold still while you click. Everything else stays the way macOS made it.",
+        summary: "Pages hold still while you click.\nNothing else changes.",
         symbolName: "cursorarrow.click.2",
         values: PresetValues())
 
@@ -103,7 +103,7 @@ extension Preset {
         return Preset(
             id: UUID(uuidString: "6E1B49F2-0001-4000-8000-000000000002")!,
             name: "Extra steady",
-            summary: "Small nudges are ignored, scrolling sticks to straight lines, and the page stops the moment your finger does.",
+            summary: "Ignores nudges and diagonal drift.\nThe page stops when your finger does.",
             symbolName: "scope",
             values: v)
     }()
@@ -117,7 +117,7 @@ extension Preset {
         return Preset(
             id: UUID(uuidString: "6E1B49F2-0001-4000-8000-000000000003")!,
             name: "Trackpad feel",
-            summary: "A light tap clicks, a tap on the right side right-clicks, and tap-then-drag moves things — your mouse starts acting like a trackpad.",
+            summary: "Tap to click and right-click.\nDouble Tap Drag to move things.",
             symbolName: "hand.tap",
             values: v)
     }()

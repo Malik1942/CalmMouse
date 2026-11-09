@@ -68,7 +68,7 @@ Everything here is **Magic Mouse only**. Your trackpad and any other mouse are u
 **Clicking**
 
 - **Tap to click**: a light tap clicks, no press needed. Tap the right side to right-click.
-- **Tap and drag · two-finger drag**: drag without holding the button down.
+- **Double Tap Drag · two-finger drag**: drag without holding the button down.
 
 **And**
 
@@ -97,7 +97,7 @@ Hover any setting for a short animated preview of what it does.
 | **Tap to click** | A light single-finger tap left-clicks; no need to press the mouse down. Adjustable Firm↔Light sensitivity; taps are auto-rejected while (and shortly after) scrolling, during and right after physical clicks, for multi-finger touches, resting fingers, and grazes. Double- and triple-taps become real double-/triple-clicks. Off by default. |
 | **Tap to right-click** | Give tapping the right button too, in one of two ways: **a tap on the right side** of the surface right-clicks, the same side a physical right click uses (the default), or **a double-tap**, where a second quick tap in the same spot opens the right-click menu (in that mode, double-click by pressing or by tapping twice a little slower). Right taps respect the tap zone, never start a drag, and reset the double-click chain like a real right click. Off by default. |
 | **Tap zone** | Restrict taps to the front part of the surface, away from the side edges, so the fingers gripping the mouse can't click. Adjustable depth. |
-| **Tap and drag** | Tap, then touch again and hold: the button presses down **when you start moving the mouse** and releases when the finger lifts. Because the press is deferred until you actually move, a finger that just comes back to rest, or swipes to scroll, never presses anything. A quick second tap is still a double-click, so double-click-drag (selecting a word, then extending it) works. |
+| **Double Tap Drag** | Tap twice and keep your finger down on the second tap: the button presses down **when you start moving the mouse** and releases when the finger lifts. Because the press is deferred until you actually move, a finger that just comes back to rest, or swipes to scroll, never presses anything. A quick second tap is still a double-click, so double-click-drag (selecting a word, then extending it) works. |
 | **Two-finger drag (long press)** | Rest two fingers on the surface together and hold; after a moment the button presses down. Move to drag, lift either finger to drop. Fingers that land one after the other are grip, not gesture, and never trigger it. |
 | **Battery warning** | A notification when the Magic Mouse drops below a threshold you set, so it doesn't die mid-afternoon. |
 | **Presets** | Three one-click starting points (*Just fix clicking*, *Extra steady*, *Trackpad feel*) that set the Scrolling and Clicking options in one go. Everything stays tweakable afterwards, and you can save your own setups as named presets. Per-app rules and shortcuts are never touched. |
@@ -146,7 +146,7 @@ lookup happens once per device. That's how a Magic Mouse scroll is told apart fr
 (The technique comes from [Mac Mouse Fix](https://github.com/noah-nuebling/mac-mouse-fix)'s
 `EventUtility.m`.)
 
-**Deferred drag presses.** Tap-and-drag arms on the follow-up touch but posts nothing until the
+**Deferred drag presses.** Double Tap Drag arms on the follow-up touch but posts nothing until the
 cursor actually moves. Pressing immediately (the obvious implementation) makes every accidental
 arm a real mouse-down in whatever app is in front; in a canvas app like Figma that grabs objects
 you never meant to touch. Deferring means an arm that turns out to be a resting finger or a scroll

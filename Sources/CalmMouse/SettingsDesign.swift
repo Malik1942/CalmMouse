@@ -31,7 +31,7 @@ enum Theme {
 }
 
 extension View {
-    /// Secondary text: a preview's caption, a slider's end label.
+    /// Secondary text: a slider's end label, a short status.
     func detailText() -> some View {
         font(Theme.Text.detail).foregroundStyle(.secondary)
     }
@@ -61,11 +61,11 @@ struct SliderRow: View {
     }
 
     init(_ title: LocalizedStringKey, value: Binding<Double>, in range: ClosedRange<Double>,
-         from low: LocalizedStringKey, to high: LocalizedStringKey) {
+         step: Double? = nil, from low: LocalizedStringKey, to high: LocalizedStringKey) {
         self.title = title
         self._value = value
         self.range = range
-        self.step = nil
+        self.step = step
         self.reading = nil
         self.ends = (low, high)
     }

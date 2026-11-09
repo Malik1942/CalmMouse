@@ -46,6 +46,10 @@ if args.count >= 2 {
     }
 }
 
+// macOS 26 puts a symbol beside any menu item it recognizes (a gear on Settings…), which opens an
+// icon column and pushes those titles out of line with the rest. AppKit reads this at startup.
+UserDefaults.standard.register(defaults: ["NSMenuEnableActionImages": false])
+
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate

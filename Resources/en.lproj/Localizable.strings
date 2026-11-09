@@ -19,13 +19,8 @@
 "CalmMouse couldn't start its event tap" = "CalmMouse couldn't start its event tap";
 "CalmMouse — active · Magic Mouse battery low" = "CalmMouse — active · Magic Mouse battery low";
 "CalmMouse — active" = "CalmMouse — active";
-"⚠︎ Accessibility permission needed" = "⚠︎ Accessibility permission needed";
-"Paused" = "Paused";
 "⚠︎ Event tap failed to start" = "⚠︎ Event tap failed to start";
-"Active · %@ · %ld scrolls blocked" = "Active · %@ · %ld scrolls blocked";
-"Active · waiting for Magic Mouse input" = "Active · waiting for Magic Mouse input";
 "Update available — CalmMouse %@…" = "Update available — CalmMouse %@…";
-"Battery %ld%%" = "Battery %ld%%";
 
 /* Settings window + tabs */
 "General" = "General";
@@ -65,44 +60,44 @@
 
 /* Built-in presets (defined in CalmMouseCore, translated at display time) */
 "Just fix clicking" = "Just fix clicking";
-"Pages hold still while you click. Everything else stays the way macOS made it." = "Pages hold still while you click. Everything else stays the way macOS made it.";
+"Pages hold still while you click.\nNothing else changes." = "Pages hold still while you click.\nNothing else changes.";
 "Extra steady" = "Extra steady";
-"Small nudges are ignored, scrolling sticks to straight lines, and the page stops the moment your finger does." = "Small nudges are ignored, scrolling sticks to straight lines, and the page stops the moment your finger does.";
+"Ignores nudges and diagonal drift.\nThe page stops when your finger does." = "Ignores nudges and diagonal drift.\nThe page stops when your finger does.";
 "Trackpad feel" = "Trackpad feel";
-"A light tap clicks, a tap on the right side right-clicks, and tap-then-drag moves things — your mouse starts acting like a trackpad." = "A light tap clicks, a tap on the right side right-clicks, and tap-then-drag moves things — your mouse starts acting like a trackpad.";
+"Tap to click and right-click.\nDouble Tap Drag to move things." = "Tap to click and right-click.\nDouble Tap Drag to move things.";
 
 /* Scrolling tab */
-"While a mouse button is held down, your finger resting on the surface can't scroll the page out from under your click." = "While a mouse button is held down, your finger resting on the surface can't scroll the page out from under your click.";
+"The page stays put while you click." = "The page stays put while you click.";
 "Hold still after you let go" = "Hold still after you let go";
-"As your finger lifts off after a click it usually drags the page a tiny bit. This gives it a moment to settle before scrolling works again." = "As your finger lifts off after a click it usually drags the page a tiny bit. This gives it a moment to settle before scrolling works again.";
+"A short pause after you let go,\nso a lifting finger can't scroll." = "A short pause after you let go,\nso a lifting finger can't scroll.";
 "Off" = "Off";
 "Ignore small finger nudges" = "Ignore small finger nudges";
-"The page only starts scrolling once your finger has moved at least this far — so a finger just resting on the mouse can't nudge anything." = "The page only starts scrolling once your finger has moved at least this far — so a finger just resting on the mouse can't nudge anything.";
-"Scrolling sticks to straight up-down or left-right. A swipe that drifts a little diagonally won't wander sideways." = "Scrolling sticks to straight up-down or left-right. A swipe that drifts a little diagonally won't wander sideways.";
+"Scrolling waits for this much travel.\nA resting finger can't move the page." = "Scrolling waits for this much travel.\nA resting finger can't move the page.";
+"A swipe that drifts stays straight." = "A swipe that drifts stays straight.";
 "Lock direction after sliding" = "Lock direction after sliding";
-"A distance, not a time — once your finger has slid this far, the swipe commits to one direction. Lower locks in sooner." = "A distance, not a time — once your finger has slid this far, the swipe commits to one direction. Lower locks in sooner.";
-"On: the page keeps gliding after a quick swipe, like a trackpad. Off: it stops the moment your finger does. Only affects the Magic Mouse — macOS's own setting changes every device." = "On: the page keeps gliding after a quick swipe, like a trackpad. Off: it stops the moment your finger does. Only affects the Magic Mouse — macOS's own setting changes every device.";
+"How far a swipe goes before it locks." = "How far a swipe goes before it locks.";
+"On: the page glides after a swipe.\nOff: it stops when your finger does." = "On: the page glides after a swipe.\nOff: it stops when your finger does.";
 "Ignore sideways scrolling" = "Ignore sideways scrolling";
-"Sideways swipes are ignored completely. Scrolling up and down still works." = "Sideways swipes are ignored completely. Scrolling up and down still works.";
+"Sideways swipes do nothing." = "Sideways swipes do nothing.";
 
 /* Clicking tab */
-"A light single-finger tap on the surface clicks — no need to press the mouse down. Pressing to click keeps working as before." = "A light single-finger tap on the surface clicks — no need to press the mouse down. Pressing to click keeps working as before.";
-"Firm: only quick, deliberate taps count — the fewest accidental clicks. Light: gentler, slower taps work too." = "Firm: only quick, deliberate taps count — the fewest accidental clicks. Light: gentler, slower taps work too.";
+"A light tap clicks.\nPressing the mouse still works." = "A light tap clicks.\nPressing the mouse still works.";
+"Firm: only quick, deliberate taps.\nLight: gentler, slower taps too." = "Firm: only quick, deliberate taps.\nLight: gentler, slower taps too.";
 "Firm" = "Firm";
 "Light" = "Light";
 "Tap to right-click" = "Tap to right-click";
-"One tap clicks; a second quick tap in the same spot opens the right-click menu instead." = "One tap clicks; a second quick tap in the same spot opens the right-click menu instead.";
-"A tap on the right part of the surface right-clicks — the same side a physical right click uses. Taps everywhere else stay normal clicks." = "A tap on the right part of the surface right-clicks — the same side a physical right click uses. Taps everywhere else stay normal clicks.";
+"Tap twice quickly to right-click.\nPress the mouse to double-click." = "Tap twice quickly to right-click.\nPress the mouse to double-click.";
+"Tap the right side to right-click.\nTaps elsewhere are normal clicks." = "Tap the right side to right-click.\nTaps elsewhere are normal clicks.";
 "A tap on the right side" = "A tap on the right side";
 "A double-tap" = "A double-tap";
-"Heads-up: with double-tap chosen, tap-tap no longer double-clicks. Double-click by pressing the mouse down, or by tapping twice a little slower." = "Heads-up: with double-tap chosen, tap-tap no longer double-clicks. Double-click by pressing the mouse down, or by tapping twice a little slower.";
 "Front of the mouse only" = "Front of the mouse only";
-"Taps only count on the front part of the surface — where deliberate fingertip taps land. The fingers gripping the sides can't click by accident. Pressing to click and dragging still work everywhere." = "Taps only count on the front part of the surface — where deliberate fingertip taps land. The fingers gripping the sides can't click by accident. Pressing to click and dragging still work everywhere.";
+"Only taps near the front count.\nYour grip can't click by accident." = "Only taps near the front count.\nYour grip can't click by accident.";
 "Size of the tap area" = "Size of the tap area";
-"Tap and drag" = "Tap and drag";
-"Tap, then touch again and move the mouse — whatever is under the cursor comes along, and lifting your finger drops it. A quick second tap is still a double-click." = "Tap, then touch again and move the mouse — whatever is under the cursor comes along, and lifting your finger drops it. A quick second tap is still a double-click.";
+"Double Tap Drag" = "Double Tap Drag";
+"Tap twice and leave your finger down.\nMove the mouse right away to drag.\nLift your finger to drop." = "Tap twice and leave your finger down.\nMove the mouse right away to drag.\nLift your finger to drop.";
+"Use the left or middle of the mouse." = "Use the left or middle of the mouse.";
 "Two-finger drag" = "Two-finger drag";
-"Rest two fingers on the surface and hold for a moment — then move the mouse to drag, and lift to drop. Fingers that land one after the other are just your grip, and never trigger it." = "Rest two fingers on the surface and hold for a moment — then move the mouse to drag, and lift to drop. Fingers that land one after the other are just your grip, and never trigger it.";
+"Rest two fingers and hold a moment.\nMove the mouse to drag.\nLift your fingers to drop." = "Rest two fingers and hold a moment.\nMove the mouse to drag.\nLift your fingers to drop.";
 
 /* Apps tab */
 "Rule enabled" = "Rule enabled";
@@ -112,7 +107,7 @@
 
 /* Shortcuts tab */
 "While holding %@" = "While holding %@";
-"Hold the key and scroll on the Magic Mouse to get the action you picked — here, zooming instead of scrolling." = "Hold the key and scroll on the Magic Mouse to get the action you picked — here, zooming instead of scrolling.";
+"Hold a key while you scroll\nto do the action you picked." = "Hold a key while you scroll\nto do the action you picked.";
 "Scroll normally" = "Scroll normally";
 "Scroll sideways" = "Scroll sideways";
 "Scroll in reverse" = "Scroll in reverse";
@@ -157,9 +152,8 @@
 
 /* Mouse type + wheel mice */
 "Mouse type" = "Mouse type";
-"Turns the wheel's scrolling the other way round, without touching your trackpad or Magic Mouse. macOS itself has one direction setting for every device." = "Turns the wheel's scrolling the other way round, without touching your trackpad or Magic Mouse. macOS itself has one direction setting for every device.";
-"Pressing the wheel down almost always turns it a little. While it's pressed, and for a moment after, that can't scroll the page." = "Pressing the wheel down almost always turns it a little. While it's pressed, and for a moment after, that can't scroll the page.";
-"Active · waiting for mouse input" = "Active · waiting for mouse input";
+"Flips only the wheel's direction.\nOther devices stay as they are." = "Flips only the wheel's direction.\nOther devices stay as they are.";
+"Pressing a wheel often turns it too.\nThat won't scroll the page." = "Pressing a wheel often turns it too.\nThat won't scroll the page.";
 
 /* Simplified settings: General, Magic Mouse, Scroll Wheel, Advanced */
 "Scroll Wheel" = "Scroll Wheel";
@@ -169,12 +163,12 @@
 "Below %ld%%" = "Below %ld%%";
 "Remove" = "Remove";
 "More key combinations" = "More key combinations";
-"Rules apply while that app is in front. Anything left as “Default” follows the Magic Mouse page." = "Rules apply while that app is in front. Anything left as “Default” follows the Magic Mouse page.";
+"Rules apply while that app is in front.\n“Default” follows the Magic Mouse page." = "Rules apply while that app is in front.\n“Default” follows the Magic Mouse page.";
 "Save as Preset…" = "Save as Preset…";
 "Save" = "Save";
 "Cancel" = "Cancel";
 "Smooth scrolling" = "Smooth scrolling";
-"The page glides between notches instead of jumping. Zooming with ⌘, ⌃ or ⌥ held stays one step per notch." = "The page glides between notches instead of jumping. Zooming with ⌘, ⌃ or ⌥ held stays one step per notch.";
+"The page glides instead of jumping.\nZooming stays one step per notch." = "The page glides instead of jumping.\nZooming stays one step per notch.";
 "Scrolling speed" = "Scrolling speed";
 "Slow" = "Slow";
 "Fast" = "Fast";
@@ -191,3 +185,5 @@
 "Choose…" = "Choose…";
 "Scrolling" = "Scrolling";
 "Clicking" = "Clicking";
+"Pointer" = "Pointer";
+"Tracking speed" = "Tracking speed";

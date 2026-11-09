@@ -10,6 +10,7 @@ import CalmMouseCore
 final class Settings: ObservableObject {
     static let shared = Settings()
     static let didChange = Notification.Name("CalmMouseSettingsDidChange")
+    static let maximumWheelScrollSpeed = 12.0
 
     private let d = UserDefaults.standard
     private var loading = false
@@ -42,6 +43,8 @@ final class Settings: ObservableObject {
         static let blockScrollWhileWheelPressed = "blockScrollWhileWheelPressed"
         static let smoothWheelScroll = "smoothWheelScroll"
         static let wheelScrollSpeed = "wheelScrollSpeed"
+        static let magicMouseTrackingSpeed = "magicMouseTrackingSpeed"
+        static let wheelTrackingSpeed = "wheelTrackingSpeed"
         static let customPresets = "customPresets"
         static let onboardingCompleted = "onboardingCompleted"
         static let accessibilityPromptShown = "accessibilityPromptShown"
@@ -99,6 +102,13 @@ final class Settings: ObservableObject {
     @Published var blockScrollWhileWheelPressed: Bool { didSet { d.set(blockScrollWhileWheelPressed, forKey: Key.blockScrollWhileWheelPressed); changed() } }
     @Published var smoothWheelScroll: Bool { didSet { d.set(smoothWheelScroll, forKey: Key.smoothWheelScroll); changed() } }
     @Published var wheelScrollSpeed: Double { didSet { d.set(wheelScrollSpeed, forKey: Key.wheelScrollSpeed); changed() } }
+    // Tracking speed: -1...1, 0 is normal. Not registered with a default on purpose: until the
+    // slider has been moved the key is absent, and CalmMouse leaves that mouse's speed alone.
+    @Published var magicMouseTrackingSpeed: Double { didSet { d.set(magicMouseTrackingSpeed, forKey: Key.magicMouseTrackingSpeed); changed() } }
+    @Published var wheelTrackingSpeed: Double { didSet { d.set(wheelTrackingSpeed, forKey: Key.wheelTrackingSpeed); changed() } }
+    /// nil until the user has chosen a speed for that kind of mouse.
+    var chosenMagicMouseTrackingSpeed: Double? { d.object(forKey: Key.magicMouseTrackingSpeed) == nil ? nil : magicMouseTrackingSpeed }
+    var chosenWheelTrackingSpeed: Double? { d.object(forKey: Key.wheelTrackingSpeed) == nil ? nil : wheelTrackingSpeed }
 
     private init() {
         Settings.migrateFromGodmouseIfNeeded(d)
@@ -157,6 +167,8 @@ final class Settings: ObservableObject {
         blockScrollWhileWheelPressed = d.bool(forKey: Key.blockScrollWhileWheelPressed)
         smoothWheelScroll = d.bool(forKey: Key.smoothWheelScroll)
         wheelScrollSpeed = d.double(forKey: Key.wheelScrollSpeed)
+        magicMouseTrackingSpeed = d.double(forKey: Key.magicMouseTrackingSpeed)
+        wheelTrackingSpeed = d.double(forKey: Key.wheelTrackingSpeed)
         modifierActions = Settings.loadModifierActions(d)
         appRules = Settings.loadAppRules(d)
         customPresets = Settings.loadCustomPresets(d)
@@ -178,7 +190,7 @@ final class Settings: ObservableObject {
         c.reverseWheelScroll = reverseWheelScroll
         c.blockScrollWhileWheelPressed = blockScrollWhileWheelPressed
         c.smoothWheelScroll = smoothWheelScroll
-        c.wheelScrollSpeed = min(max(wheelScrollSpeed, 1), 6)
+        c.wheelScrollSpeed = min(max(wheelScrollSpeed, 1), Settings.maximumWheelScrollSpeed)
         return RuleSet(base: c, appRules: appRules)
     }
 
