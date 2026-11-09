@@ -36,7 +36,18 @@ final class EventTap {
 
     /// Set when we've seen at least one Magic Mouse event — surfaced in the menu as a sanity check.
     private(set) var lastSeenDevice: String?
+    /// Vendor, product and transport of `lastSeenDevice`, for `--status`.
+    private(set) var lastSeenDeviceID: String?
+    /// Scroll events whose sender could not be resolved to any device. A real mouse landing
+    /// here (rather than in `otherDevicesSeen`) means the registry lookup failed, not the match.
+    private(set) var unidentifiedScrolls = 0
     private(set) var swallowedCount = 0
+
+    /// Devices that sent events but were not taken for a Magic Mouse. If the mouse you are
+    /// holding shows up here, identification is what's wrong.
+    var otherDevicesSeen: [String] {
+        identifier.seenDevices.filter { !$0.isMagicMouse }.map(\.summary)
+    }
 
     var isRunning: Bool { tap != nil }
 
@@ -178,10 +189,13 @@ final class EventTap {
     private func isMagicMouse(_ event: CGEvent, isContinuous: Bool) -> Bool {
         if let known = identifier.isMagicMouse(event) {
             if known, lastSeenDevice == nil {
-                lastSeenDevice = identifier.info(forSenderID: identifier.senderID(of: event))?.product
+                let info = identifier.info(forSenderID: identifier.senderID(of: event))
+                lastSeenDevice = info?.product
+                lastSeenDeviceID = info?.idSummary
             }
             return known
         }
+        unidentifiedScrolls += 1
         return treatUnknownContinuousAsMagicMouse && isContinuous
     }
 
