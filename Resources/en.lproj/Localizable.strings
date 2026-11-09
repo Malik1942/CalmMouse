@@ -28,23 +28,14 @@
 "Battery %ld%%" = "Battery %ld%%";
 
 /* Settings window + tabs */
-"CalmMouse Settings" = "CalmMouse Settings";
 "General" = "General";
 "Presets" = "Presets";
-"Scrolling" = "Scrolling";
-"Clicking" = "Clicking";
 "Apps" = "Apps";
 "Shortcuts" = "Shortcuts";
-"Battery" = "Battery";
 
 /* General tab */
 "Enable CalmMouse" = "Enable CalmMouse";
 "Launch at login" = "Launch at login";
-"New here? The tour covers permission, presets and a try-out." = "New here? The tour covers permission, presets and a try-out.";
-"Show Welcome Tour…" = "Show Welcome Tour…";
-"Permission" = "Permission";
-"Accessibility access granted." = "Accessibility access granted.";
-"CalmMouse needs Accessibility access to see mouse events." = "CalmMouse needs Accessibility access to see mouse events.";
 "Open Settings…" = "Open Settings…";
 "Toggle already ON in System Settings but still not working? The stored grant is stale (usually after a rebuild). Reset it and grant again." = "Toggle already ON in System Settings but still not working? The stored grant is stale (usually after a rebuild). Reset it and grant again.";
 "Reset grant…" = "Reset grant…";
@@ -52,14 +43,10 @@
 "Launch at login only works when CalmMouse runs from an app bundle (e.g. /Applications)." = "Launch at login only works when CalmMouse runs from an app bundle (e.g. /Applications).";
 
 /* Updates */
-"Updates" = "Updates";
-"Check for Updates" = "Check for Updates";
-"Checked automatically twice a day. Updates install right here — no browser, no unzipping, no dragging." = "Checked automatically twice a day. Updates install right here — no browser, no unzipping, no dragging.";
 "You're up to date." = "You're up to date.";
 "CalmMouse %@ is available." = "CalmMouse %@ is available.";
 "Update Now" = "Update Now";
 "Full release notes ›" = "Full release notes ›";
-"CalmMouse relaunches itself when the update finishes. If clicking stops working afterwards, macOS re-keyed the Accessibility grant to the new build — the Reset grant button below fixes it." = "CalmMouse relaunches itself when the update finishes. If clicking stops working afterwards, macOS re-keyed the Accessibility grant to the new build — the Reset grant button below fixes it.";
 "Downloading…" = "Downloading…";
 "Installing — CalmMouse will relaunch itself in a moment." = "Installing — CalmMouse will relaunch itself in a moment.";
 "Download from the website instead ›" = "Download from the website instead ›";
@@ -72,14 +59,7 @@
 "%@ failed: %@" = "%@ failed: %@";
 
 /* Presets tab */
-"Starting points" = "Starting points";
-"One click sets everything on the Scrolling and Clicking tabs. Tweak whatever you like afterwards — a preset is a starting point, not a mode. Per-app rules and shortcuts are never touched." = "One click sets everything on the Scrolling and Clicking tabs. Tweak whatever you like afterwards — a preset is a starting point, not a mode. Per-app rules and shortcuts are never touched.";
-"Your presets" = "Your presets";
-"Name" = "Name";
 "Preset name" = "Preset name";
-"Save Current Settings" = "Save Current Settings";
-"Saves how the Scrolling and Clicking tabs are set right now. Saving with an existing name updates that preset." = "Saves how the Scrolling and Clicking tabs are set right now. Saving with an existing name updates that preset.";
-"In use" = "In use";
 "Use" = "Use";
 "Delete this preset" = "Delete this preset";
 
@@ -96,13 +76,11 @@
 "Hold still after you let go" = "Hold still after you let go";
 "As your finger lifts off after a click it usually drags the page a tiny bit. This gives it a moment to settle before scrolling works again." = "As your finger lifts off after a click it usually drags the page a tiny bit. This gives it a moment to settle before scrolling works again.";
 "Off" = "Off";
-"Steadiness" = "Steadiness";
 "Ignore small finger nudges" = "Ignore small finger nudges";
 "The page only starts scrolling once your finger has moved at least this far — so a finger just resting on the mouse can't nudge anything." = "The page only starts scrolling once your finger has moved at least this far — so a finger just resting on the mouse can't nudge anything.";
 "Scrolling sticks to straight up-down or left-right. A swipe that drifts a little diagonally won't wander sideways." = "Scrolling sticks to straight up-down or left-right. A swipe that drifts a little diagonally won't wander sideways.";
 "Lock direction after sliding" = "Lock direction after sliding";
 "A distance, not a time — once your finger has slid this far, the swipe commits to one direction. Lower locks in sooner." = "A distance, not a time — once your finger has slid this far, the swipe commits to one direction. Lower locks in sooner.";
-"Feel" = "Feel";
 "On: the page keeps gliding after a quick swipe, like a trackpad. Off: it stops the moment your finger does. Only affects the Magic Mouse — macOS's own setting changes every device." = "On: the page keeps gliding after a quick swipe, like a trackpad. Off: it stops the moment your finger does. Only affects the Magic Mouse — macOS's own setting changes every device.";
 "Ignore sideways scrolling" = "Ignore sideways scrolling";
 "Sideways swipes are ignored completely. Scrolling up and down still works." = "Sideways swipes are ignored completely. Scrolling up and down still works.";
@@ -112,49 +90,29 @@
 "Firm: only quick, deliberate taps count — the fewest accidental clicks. Light: gentler, slower taps work too." = "Firm: only quick, deliberate taps count — the fewest accidental clicks. Light: gentler, slower taps work too.";
 "Firm" = "Firm";
 "Light" = "Light";
-"Right-clicking" = "Right-clicking";
 "Tap to right-click" = "Tap to right-click";
 "One tap clicks; a second quick tap in the same spot opens the right-click menu instead." = "One tap clicks; a second quick tap in the same spot opens the right-click menu instead.";
 "A tap on the right part of the surface right-clicks — the same side a physical right click uses. Taps everywhere else stay normal clicks." = "A tap on the right part of the surface right-clicks — the same side a physical right click uses. Taps everywhere else stay normal clicks.";
-"Right-click with" = "Right-click with";
 "A tap on the right side" = "A tap on the right side";
 "A double-tap" = "A double-tap";
 "Heads-up: with double-tap chosen, tap-tap no longer double-clicks. Double-click by pressing the mouse down, or by tapping twice a little slower." = "Heads-up: with double-tap chosen, tap-tap no longer double-clicks. Double-click by pressing the mouse down, or by tapping twice a little slower.";
-"The right side is where the physical right click already lives, so nothing new to learn — and quick double-taps keep double-clicking." = "The right side is where the physical right click already lives, so nothing new to learn — and quick double-taps keep double-clicking.";
-"Where taps count" = "Where taps count";
 "Front of the mouse only" = "Front of the mouse only";
 "Taps only count on the front part of the surface — where deliberate fingertip taps land. The fingers gripping the sides can't click by accident. Pressing to click and dragging still work everywhere." = "Taps only count on the front part of the surface — where deliberate fingertip taps land. The fingers gripping the sides can't click by accident. Pressing to click and dragging still work everywhere.";
 "Size of the tap area" = "Size of the tap area";
-"front %ld%%" = "front %ld%%";
-"Dragging" = "Dragging";
 "Tap and drag" = "Tap and drag";
 "Tap, then touch again and move the mouse — whatever is under the cursor comes along, and lifting your finger drops it. A quick second tap is still a double-click." = "Tap, then touch again and move the mouse — whatever is under the cursor comes along, and lifting your finger drops it. A quick second tap is still a double-click.";
 "Two-finger drag" = "Two-finger drag";
 "Rest two fingers on the surface and hold for a moment — then move the mouse to drag, and lift to drop. Fingers that land one after the other are just your grip, and never trigger it." = "Rest two fingers on the surface and hold for a moment — then move the mouse to drag, and lift to drop. Fingers that land one after the other are just your grip, and never trigger it.";
-"Accidental tap protection" = "Accidental tap protection";
-"Taps are ignored automatically:" = "Taps are ignored automatically:";
-"while — and just after — you're scrolling" = "while — and just after — you're scrolling";
-"while a button is held down, and right after a real click" = "while a button is held down, and right after a real click";
-"when two or more fingers are on the surface" = "when two or more fingers are on the surface";
-"for fingers that rest too long, or barely brush the surface" = "for fingers that rest too long, or barely brush the surface";
-"Double- and triple-taps become real double- and triple-clicks." = "Double- and triple-taps become real double- and triple-clicks.";
-"This macOS build doesn't expose the multitouch framework — tap-to-click is unavailable." = "This macOS build doesn't expose the multitouch framework — tap-to-click is unavailable.";
 
 /* Apps tab */
-"Rules apply while that app is in front. Anything left as “Default” follows the Scrolling tab." = "Rules apply while that app is in front. Anything left as “Default” follows the Scrolling tab.";
-"Select or add an app" = "Select or add an app";
 "Rule enabled" = "Rule enabled";
-"App ID" = "App ID";
-"In this app" = "In this app";
 "Ignore Magic Mouse scrolling" = "Ignore Magic Mouse scrolling";
 "Default" = "Default";
 "On" = "On";
 
 /* Shortcuts tab */
 "While holding %@" = "While holding %@";
-"Hold a key while you scroll to change what it does" = "Hold a key while you scroll to change what it does";
 "Hold the key and scroll on the Magic Mouse to get the action you picked — here, zooming instead of scrolling." = "Hold the key and scroll on the Magic Mouse to get the action you picked — here, zooming instead of scrolling.";
-"“Zoom in apps” is the zoom Figma, Sketch, Preview and most design apps use. “Zoom the whole screen” magnifies everything on screen (the macOS zoom). Only the Magic Mouse is affected — your trackpad and other mice keep working normally." = "“Zoom in apps” is the zoom Figma, Sketch, Preview and most design apps use. “Zoom the whole screen” magnifies everything on screen (the macOS zoom). Only the Magic Mouse is affected — your trackpad and other mice keep working normally.";
 "Scroll normally" = "Scroll normally";
 "Scroll sideways" = "Scroll sideways";
 "Scroll in reverse" = "Scroll in reverse";
@@ -164,12 +122,7 @@
 
 /* Battery tab */
 "Magic Mouse" = "Magic Mouse";
-"No Magic Mouse detected" = "No Magic Mouse detected";
-"Refresh" = "Refresh";
 "Low battery warning" = "Low battery warning";
-"Warn me when the battery gets low" = "Warn me when the battery gets low";
-"Warn below" = "Warn below";
-"Checked every five minutes. The menu bar icon turns yellow once you've been warned, and clears when you open Settings." = "Checked every five minutes. The menu bar icon turns yellow once you've been warned, and clears when you open Settings.";
 
 /* Onboarding */
 "Welcome to CalmMouse" = "Welcome to CalmMouse";
@@ -182,7 +135,7 @@
 "Open System Settings…" = "Open System Settings…";
 "You can also do this later — CalmMouse waits in the menu bar and starts working within two seconds of being allowed." = "You can also do this later — CalmMouse waits in the menu bar and starts working within two seconds of being allowed.";
 "Pick a starting point" = "Pick a starting point";
-"One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Presets." = "One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Presets.";
+"One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Magic Mouse." = "One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Magic Mouse.";
 "Try it" = "Try it";
 "Grab your Magic Mouse and put the cursor over any page you can scroll — this window's background works too." = "Grab your Magic Mouse and put the cursor over any page you can scroll — this window's background works too.";
 "Click and hold the mouse button." = "Click and hold the mouse button.";
@@ -197,7 +150,44 @@
 "CalmMouse lives in your menu bar and keeps working in the background." = "CalmMouse lives in your menu bar and keeps working in the background.";
 "Look for the mouse icon in the menu bar — the everyday switches live there. Orange means it needs attention, dimmed means paused." = "Look for the mouse icon in the menu bar — the everyday switches live there. Orange means it needs attention, dimmed means paused.";
 "In Settings, hover any option for a little animated preview of what it does." = "In Settings, hover any option for a little animated preview of what it does.";
-"Changed your mind about the feel? Settings → Presets switches the whole setup in one click, or saves your own." = "Changed your mind about the feel? Settings → Presets switches the whole setup in one click, or saves your own.";
+"Changed your mind about the feel? Settings → Magic Mouse switches the whole setup in one click, or saves your own." = "Changed your mind about the feel? Settings → Magic Mouse switches the whole setup in one click, or saves your own.";
 "Back" = "Back";
 "Continue" = "Continue";
 "Start Using CalmMouse" = "Start Using CalmMouse";
+
+/* Mouse type + wheel mice */
+"Mouse type" = "Mouse type";
+"Turns the wheel's scrolling the other way round, without touching your trackpad or Magic Mouse. macOS itself has one direction setting for every device." = "Turns the wheel's scrolling the other way round, without touching your trackpad or Magic Mouse. macOS itself has one direction setting for every device.";
+"Pressing the wheel down almost always turns it a little. While it's pressed, and for a moment after, that can't scroll the page." = "Pressing the wheel down almost always turns it a little. While it's pressed, and for a moment after, that can't scroll the page.";
+"Active · waiting for mouse input" = "Active · waiting for mouse input";
+
+/* Simplified settings: General, Magic Mouse, Scroll Wheel, Advanced */
+"Scroll Wheel" = "Scroll Wheel";
+"Advanced" = "Advanced";
+"Fine-tuning" = "Fine-tuning";
+"Tap firmness" = "Tap firmness";
+"Below %ld%%" = "Below %ld%%";
+"Remove" = "Remove";
+"More key combinations" = "More key combinations";
+"Rules apply while that app is in front. Anything left as “Default” follows the Magic Mouse page." = "Rules apply while that app is in front. Anything left as “Default” follows the Magic Mouse page.";
+"Save as Preset…" = "Save as Preset…";
+"Save" = "Save";
+"Cancel" = "Cancel";
+"Smooth scrolling" = "Smooth scrolling";
+"The page glides between notches instead of jumping. Zooming with ⌘, ⌃ or ⌥ held stays one step per notch." = "The page glides between notches instead of jumping. Zooming with ⌘, ⌃ or ⌥ held stays one step per notch.";
+"Scrolling speed" = "Scrolling speed";
+"Slow" = "Slow";
+"Fast" = "Fast";
+"Welcome Tour" = "Welcome Tour";
+"Accessibility" = "Accessibility";
+"Automatic" = "Automatic";
+"Check Now" = "Check Now";
+"Version %@" = "Version %@";
+"Show" = "Show";
+"Reverse direction" = "Reverse direction";
+"Don't scroll while pressed" = "Don't scroll while pressed";
+"Save as Preset" = "Save as Preset";
+"Add an App" = "Add an App";
+"Choose…" = "Choose…";
+"Scrolling" = "Scrolling";
+"Clicking" = "Clicking";

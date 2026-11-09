@@ -193,6 +193,80 @@ final class EventBridgeTests: XCTestCase {
                        "vendor=0x0000 product=0x0000 transport=unknown")
     }
 
+    // MARK: Mouse, wheel mouse or trackpad
+
+    /// The built-in trackpad as the registry reports it on macOS 26 (captured 2026-11-09):
+    /// no vendor or product ID, `Built-In`, and a digitizer usage (13/5) next to the mouse one.
+    private var builtInTrackpad: DeviceIdentifier.DeviceInfo {
+        .init(product: "Apple Internal Keyboard / Trackpad", vendorID: 0, productID: 0, transport: "FIFO",
+              builtIn: true, usages: [.init(page: 1, usage: 2), .init(page: 1, usage: 1),
+                                      .init(page: 13, usage: 5), .init(page: 65280, usage: 12)])
+    }
+
+    /// A third-party Bluetooth wheel mouse, same capture.
+    private var wheelMouse: DeviceIdentifier.DeviceInfo {
+        .init(product: "MCHOSE A7 Ultra", vendorID: 0x5D, productID: 0x4762, transport: "Bluetooth Low Energy",
+              usages: [.init(page: 1, usage: 2), .init(page: 1, usage: 1),
+                       .init(page: 1, usage: 6), .init(page: 12, usage: 1)])
+    }
+
+    func testCapturedWheelMouseIsAMouseAndNotATrackpad() {
+        XCTAssertFalse(wheelMouse.isMagicMouse)
+        XCTAssertFalse(wheelMouse.isTrackpad)
+        XCTAssertTrue(wheelMouse.declaresMouse)
+        XCTAssertEqual(MouseClassifier.kind(of: wheelMouse.identity, event: .scroll(isContinuous: false),
+                                            setting: .automatic), .wheelMouse)
+    }
+
+    func testCapturedTrackpadIsNeverAMouse() {
+        XCTAssertTrue(builtInTrackpad.isTrackpad)
+        XCTAssertNil(MouseClassifier.kind(of: builtInTrackpad.identity, event: .button, setting: .wheelMouse))
+    }
+
+    func testEachTrackpadSignIsEnoughOnItsOwn() {
+        // A trackpad taken for a mouse would have its scrolling interfered with, so any one
+        // sign rules it out: built in, named, a known Magic Trackpad, or a touch digitizer.
+        XCTAssertTrue(device("Anything", vendor: 0, product: 0).with(builtIn: true).isTrackpad)
+        XCTAssertTrue(device("Magic Trackpad", vendor: 0, product: 0).isTrackpad)
+        XCTAssertTrue(device("Desk thing", vendor: 0x004C, product: 0x0324).isTrackpad, "renamed USB-C Magic Trackpad")
+        XCTAssertTrue(device("Tablet", vendor: 0x056A, product: 1).with(usages: [.init(page: 13, usage: 2)]).isTrackpad)
+        XCTAssertFalse(device("Plain Mouse", vendor: 0x046D, product: 1).isTrackpad)
+    }
+
+    func testMagicMouseIsNotMistakenForATrackpad() {
+        // Whatever else its registry entry says, a Magic Mouse is a Magic Mouse.
+        let mouse = device("Malik’s Magic Mouse", vendor: 0x004C, product: 0x0269)
+            .with(usages: [.init(page: 13, usage: 5)])
+        XCTAssertTrue(mouse.isMagicMouse)
+        XCTAssertFalse(mouse.isTrackpad)
+    }
+
+    func testDeviceThatDeclaresNoUsagesGetsTheBenefitOfTheDoubt() {
+        XCTAssertTrue(device("Old Mouse", vendor: 0x046D, product: 1).declaresMouse)
+        XCTAssertFalse(device("Keyboard", vendor: 0x046D, product: 2)
+            .with(usages: [.init(page: 1, usage: 6)]).declaresMouse)
+    }
+
+    func testUsagePairsAreDecodedFromTheRegistryShape() {
+        let raw: [[String: Any]] = [
+            ["DeviceUsagePage": 1, "DeviceUsage": 2],
+            ["DeviceUsagePage": 13, "DeviceUsage": 5],
+            ["Unrelated": 1],
+        ]
+        XCTAssertEqual(DeviceIdentifier.usages(fromPairs: raw), [.init(page: 1, usage: 2), .init(page: 13, usage: 5)])
+        XCTAssertEqual(DeviceIdentifier.usages(fromPairs: nil), [])
+        XCTAssertEqual(DeviceIdentifier.usages(fromPairs: "nonsense"), [])
+    }
+
+    func testScanFindsOnlyMiceAndNeverTheBuiltInTrackpad() {
+        // Runs against whatever is plugged into this Mac; the invariants hold regardless.
+        for mouse in MouseScanner.scan() {
+            XCTAssertFalse(mouse.info.isTrackpad, mouse.summary)
+            XCTAssertFalse(mouse.info.builtIn, mouse.summary)
+            if mouse.kind == .magicMouse { XCTAssertTrue(mouse.info.isMagicMouse || mouse.info.vendorID == 0) }
+        }
+    }
+
     func testSeenDevicesAreDistinctAndBounded() {
         let ident = DeviceIdentifier()
         let mouse = device("Johnny’s Mouse", vendor: 0x004C, product: 0x0323)
@@ -202,6 +276,11 @@ final class EventBridgeTests: XCTestCase {
         for i in 0..<50 { ident.remember(device("Device \(i)", vendor: 1, product: i)) }
         XCTAssertEqual(ident.seenDevices.count, 12, "a long session must not grow this without bound")
     }
+}
+
+private extension DeviceIdentifier.DeviceInfo {
+    func with(builtIn: Bool) -> Self { var copy = self; copy.builtIn = builtIn; return copy }
+    func with(usages: Set<DeviceIdentifier.Usage>) -> Self { var copy = self; copy.usages = usages; return copy }
 }
 
 extension EventBridgeTests {

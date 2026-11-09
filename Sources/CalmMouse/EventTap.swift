@@ -15,6 +15,13 @@ final class EventTap {
     private let log = Logger(subsystem: "com.calmmouse.app", category: "tap")
 
     var treatUnknownContinuousAsMagicMouse = false
+    /// Settings → General → Mouse type.
+    var mouseType: MouseTypeSetting = .automatic
+    /// Fired the first time a device sends an event (a mouse was just connected or woke up).
+    var onNewDevice: (() -> Void)? {
+        get { identifier.onNewDevice }
+        set { identifier.onNewDevice = newValue }
+    }
 
     /// Tap-to-click context feeds. Called on the tap's run loop (main) for Magic Mouse events.
     var onMagicButton: ((_ isDown: Bool, _ t: TimeInterval) -> Void)?
@@ -34,19 +41,28 @@ final class EventTap {
         }
     }
 
-    /// Set when we've seen at least one Magic Mouse event — surfaced in the menu as a sanity check.
+    /// The mouse CalmMouse most recently acted on — surfaced in the menu as a sanity check.
     private(set) var lastSeenDevice: String?
     /// Vendor, product and transport of `lastSeenDevice`, for `--status`.
     private(set) var lastSeenDeviceID: String?
+    /// What `lastSeenDevice` was handled as.
+    private(set) var lastSeenDeviceKind: MouseKind?
+    private var lastSeenSender: UInt64 = 0
     /// Scroll events whose sender could not be resolved to any device. A real mouse landing
     /// here (rather than in `otherDevicesSeen`) means the registry lookup failed, not the match.
     private(set) var unidentifiedScrolls = 0
     private(set) var swallowedCount = 0
+    /// Wheel ticks replaced by a glide. Not counted as swallowed: nothing was blocked.
+    private(set) var wheelTicksSmoothed = 0
+    private let smoothDriver = WheelSmoothDriver()
+    var smoothEventsPosted: Int { smoothDriver.eventsPosted }
 
-    /// Devices that sent events but were not taken for a Magic Mouse. If the mouse you are
+    /// Devices that sent events but are left alone (trackpads, mostly). If the mouse you are
     /// holding shows up here, identification is what's wrong.
     var otherDevicesSeen: [String] {
-        identifier.seenDevices.filter { !$0.isMagicMouse }.map(\.summary)
+        identifier.seenDevices
+            .filter { MouseClassifier.kind(of: $0.identity, event: .button, setting: mouseType) == nil }
+            .map(\.summary)
     }
 
     var isRunning: Bool { tap != nil }
@@ -126,6 +142,7 @@ final class EventTap {
 
     func stop() {
         guard let port = tap else { return }
+        smoothDriver.cancel()
         CGEvent.tapEnable(tap: port, enable: false)
         if let source = runLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
@@ -186,28 +203,26 @@ final class EventTap {
         return Unmanaged.passUnretained(event)
     }
 
-    private func isMagicMouse(_ event: CGEvent, isContinuous: Bool) -> Bool {
-        if let known = identifier.isMagicMouse(event) {
-            if known, lastSeenDevice == nil {
-                let info = identifier.info(forSenderID: identifier.senderID(of: event))
-                lastSeenDevice = info?.product
-                lastSeenDeviceID = info?.idSummary
-            }
-            return known
+    /// Which kind of mouse this event is to be handled as, or nil to leave it alone.
+    private func mouseKind(of event: CGEvent, _ eventKind: PointerEventKind) -> MouseKind? {
+        let sender = identifier.senderID(of: event)
+        let info = identifier.info(forSenderID: sender)
+        if info == nil, case .scroll = eventKind { unidentifiedScrolls += 1 }
+        let kind = MouseClassifier.kind(of: info?.identity, event: eventKind, setting: mouseType,
+                                        unknownContinuousIsMagicMouse: treatUnknownContinuousAsMagicMouse)
+        if let info, let kind, sender != lastSeenSender {
+            lastSeenSender = sender
+            lastSeenDevice = info.product
+            lastSeenDeviceID = info.idSummary
+            lastSeenDeviceKind = kind
         }
-        unidentifiedScrolls += 1
-        return treatUnknownContinuousAsMagicMouse && isContinuous
+        return kind
     }
 
     private func handleButton(_ event: CGEvent, isDown: Bool) {
-        // Buttons: we can't ask a button event whether it's "continuous", so with the fallback
-        // enabled every unidentified button counts. Identified non-Magic-Mouse buttons never do.
-        let magic: Bool
-        if let known = identifier.isMagicMouse(event) {
-            magic = known
-        } else {
-            magic = treatUnknownContinuousAsMagicMouse
-        }
+        // Buttons: we can't ask a button event whether it's "continuous", so for a device that
+        // can't be identified the Mouse type setting alone decides. Trackpad buttons never count.
+        let kind = mouseKind(of: event, .button)
         // CalmMouse's own synthetic events, by tag:
         //  - tap clicks (instant down+up) are invisible here. Feeding them to the blocker armed
         //    a release-grace window after every tap, which made "tap, then scroll" go dead.
@@ -236,15 +251,26 @@ final class EventTap {
             blocker.magicMouseButton(button, isDown: isDown, at: MachTime.now())
             return
         }
-        guard magic else { return }
+        guard let kind else { return }
         let button = Int(event.getIntegerValueField(.mouseEventButtonNumber))
-        blocker.magicMouseButton(button, isDown: isDown, at: seconds(event))
-        onMagicButton?(isDown, seconds(event))
+        switch kind {
+        case .magicMouse:
+            blocker.magicMouseButton(button, isDown: isDown, at: seconds(event))
+            onMagicButton?(isDown, seconds(event))
+        case .wheelMouse:
+            // Never fed to tap-to-click: that listens to the Magic Mouse's surface only.
+            blocker.wheelMouseButton(button, isDown: isDown, at: seconds(event))
+            // Pressing the wheel means "hold still": a glide still in flight stops with it.
+            if isDown, button == ScrollBlocker.wheelButton, blocker.config.blockScrollWhileWheelPressed {
+                smoothDriver.cancel()
+            }
+        }
     }
 
     private func handleScroll(_ event: CGEvent) -> Unmanaged<CGEvent>? {
         let isContinuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
-        let magic = isMagicMouse(event, isContinuous: isContinuous)
+        let kind = mouseKind(of: event, .scroll(isContinuous: isContinuous))
+        let magic = kind == .magicMouse
         let t = seconds(event)
 
         // Safety valve against a missed mouse-up (e.g. tap was disabled mid-click).
@@ -261,7 +287,8 @@ final class EventTap {
             momentum: Self.momentum(event.getIntegerValueField(.scrollWheelEventMomentumPhase)),
             deltaX: event.getDoubleValueField(.scrollWheelEventPointDeltaAxis2),
             deltaY: event.getDoubleValueField(.scrollWheelEventPointDeltaAxis1),
-            modifiers: Self.combo(from: event.flags)
+            modifiers: Self.combo(from: event.flags),
+            fromWheelMouse: kind == .wheelMouse
         )
         let decision = blocker.handleScroll(e)
         if magic {
@@ -275,6 +302,10 @@ final class EventTap {
             return Unmanaged.passUnretained(event)
         case .drop:
             swallowedCount += 1
+            return nil
+        case .smooth(let dx, let dy):
+            wheelTicksSmoothed += 1
+            smoothDriver.add(dx: dx, dy: dy)
             return nil
         case .rewrite(let r):
             apply(r, to: event)

@@ -16,6 +16,9 @@ public struct ScrollEvent: Equatable, Sendable {
     public var timestamp: TimeInterval
     /// True when the event came from a device we identified as a Magic Mouse.
     public var fromMagicMouse: Bool
+    /// True when the event came from an ordinary mouse with a scroll wheel. Never set
+    /// together with `fromMagicMouse`.
+    public var fromWheelMouse: Bool
     public var isContinuous: Bool
     public var phase: ScrollPhase
     public var momentum: MomentumPhase
@@ -27,9 +30,11 @@ public struct ScrollEvent: Equatable, Sendable {
 
     public init(timestamp: TimeInterval, fromMagicMouse: Bool = true, isContinuous: Bool = true,
                 phase: ScrollPhase = .none, momentum: MomentumPhase = .none,
-                deltaX: Double = 0, deltaY: Double = 0, modifiers: ModifierCombo = []) {
+                deltaX: Double = 0, deltaY: Double = 0, modifiers: ModifierCombo = [],
+                fromWheelMouse: Bool = false) {
         self.timestamp = timestamp
-        self.fromMagicMouse = fromMagicMouse
+        self.fromMagicMouse = fromMagicMouse && !fromWheelMouse
+        self.fromWheelMouse = fromWheelMouse
         self.isContinuous = isContinuous
         self.phase = phase
         self.momentum = momentum
@@ -77,6 +82,8 @@ public enum ScrollDecision: Equatable, Sendable {
     case pass
     case drop
     case rewrite(ScrollRewrite)
+    /// Swallow the event and glide this many pixels instead (wheel mice only).
+    case smooth(dx: Double, dy: Double)
 }
 
 public enum ScrollAxis: Equatable, Sendable { case horizontal, vertical }
@@ -98,6 +105,21 @@ public final class ScrollBlocker {
     // Button state (Magic Mouse buttons only).
     private var buttonsDown = Set<Int>()
     private var blockUntil: TimeInterval = 0
+
+    // Wheel mouse state, kept apart from the Magic Mouse's so neither blocks the other.
+    /// The wheel's own click: CGEvent button 2 (centre).
+    public static let wheelButton = 2
+    /// The wheel often turns one more notch as the finger lets go of it.
+    public static let wheelReleaseGrace: TimeInterval = 0.15
+    /// Shortest distance one notch glides, in pixels, before the speed setting scales it.
+    /// macOS itself moves a slow single notch by one pixel and a fast spin by fifty or more;
+    /// the floor makes a slow notch worth turning, and the fast ones keep their acceleration.
+    public static let wheelMinimumStep: Double = 35
+    /// Held while scrolling, these mean zoom (or an app's own shortcut), which counts notches.
+    /// Gliding would turn one notch into dozens of zoom steps, so those ticks are left as they are.
+    public static let wheelSmoothingBypass: ModifierCombo = [.command, .control, .option]
+    private var wheelPressed = false
+    private var wheelBlockUntil: TimeInterval = 0
 
     // Gesture bookkeeping.
     private enum Visible { case mayBegin, began }
@@ -161,6 +183,20 @@ public final class ScrollBlocker {
         }
     }
 
+    /// Report a button transition on a wheel mouse. Only the wheel's own click counts:
+    /// pressing the wheel is what turns it by accident. Holding the left button and turning
+    /// the wheel is deliberate (scrolling while dragging a file, extending a selection), so
+    /// the other buttons never block anything.
+    public func wheelMouseButton(_ button: Int, isDown: Bool, at t: TimeInterval) {
+        guard button == Self.wheelButton else { return }
+        if isDown {
+            wheelPressed = true
+        } else if wheelPressed {
+            wheelPressed = false
+            wheelBlockUntil = t + Self.wheelReleaseGrace
+        }
+    }
+
     /// A tap-and-drag was cancelled because the finger started scroll-swiping: drop every trace
     /// of blocking RIGHT NOW — no release grace, and the scroll gesture already in flight gets
     /// unsuppressed so the user's swipe scrolls from its very next event.
@@ -173,19 +209,26 @@ public final class ScrollBlocker {
 
     /// Safety valve: the system reports no buttons pressed but we think some are (missed mouse-up).
     public func forceReleaseAllButtons(at t: TimeInterval) {
-        guard !buttonsDown.isEmpty else { return }
-        buttonsDown.removeAll()
-        blockUntil = t + config.releaseGrace
+        if !buttonsDown.isEmpty {
+            buttonsDown.removeAll()
+            blockUntil = t + config.releaseGrace
+        }
+        if wheelPressed {
+            wheelPressed = false
+            wheelBlockUntil = t + Self.wheelReleaseGrace
+        }
     }
 
-    public var anyButtonDown: Bool { !buttonsDown.isEmpty }
+    public var anyButtonDown: Bool { !buttonsDown.isEmpty || wheelPressed }
 
     /// Live diagnostics for the status file — when scrolling "mysteriously" dies, this names
     /// the component holding it: stuck buttons, an unexpired grace, or gesture suppression.
     public func debugSnapshot(at t: TimeInterval) -> String {
         "buttons=\(buttonsDown.count) graceRemainingMs=\(Int(max(0, blockUntil - t) * 1000)) " +
         "suppressingGesture=\(suppressingGesture) suppressingMomentum=\(suppressingMomentum) " +
-        "blocking=\(isBlocking(at: t))"
+        "blocking=\(isBlocking(at: t)) " +
+        "wheelPressed=\(wheelPressed) wheelGraceRemainingMs=\(Int(max(0, wheelBlockUntil - t) * 1000)) " +
+        "wheelBlocking=\(isBlockingWheel(at: t))"
     }
 
     public func isBlocking(at t: TimeInterval) -> Bool {
@@ -193,9 +236,16 @@ public final class ScrollBlocker {
         return !buttonsDown.isEmpty || t < blockUntil
     }
 
+    /// The wheel mouse's equivalent of `isBlocking`: the wheel is pressed, or was a moment ago.
+    public func isBlockingWheel(at t: TimeInterval) -> Bool {
+        guard config.blockScrollWhileWheelPressed else { return false }
+        return wheelPressed || t < wheelBlockUntil
+    }
+
     // MARK: Scroll decisions
 
     public func handleScroll(_ e: ScrollEvent) -> ScrollDecision {
+        if e.fromWheelMouse { return handleWheel(e) }
         guard e.fromMagicMouse else { return .pass }
         if config.disableScrollEntirely { return .drop }
 
@@ -203,6 +253,44 @@ public final class ScrollBlocker {
             return handleMomentum(e)
         }
         return handleGesture(e)
+    }
+
+    /// A wheel tick. Ticks have no phases and no momentum, so none of the gesture state is
+    /// read or written here: a wheel turning in the middle of a Magic Mouse swipe must not
+    /// disturb it.
+    ///
+    /// A wheel mouse answers only to its own two settings. Everything else in the config
+    /// (dead zone, axis lock, momentum, sideways block, modifier actions, per-app rules) was
+    /// set up for a touch surface and stays with the Magic Mouse, so turning wheel support on
+    /// never changes how an existing setup behaves.
+    private func handleWheel(_ e: ScrollEvent) -> ScrollDecision {
+        if isBlockingWheel(at: e.timestamp) { return .drop }
+
+        let discrete: ScrollDecision = config.reverseWheelScroll
+            ? .rewrite(ScrollRewrite(phase: e.phase, momentum: e.momentum, invert: true))
+            : .pass
+        guard config.smoothWheelScroll, e.modifiers.isDisjoint(with: Self.wheelSmoothingBypass) else {
+            return discrete
+        }
+
+        let direction: Double = config.reverseWheelScroll ? -1 : 1
+        var dx = wheelDistance(e.deltaX) * direction
+        var dy = wheelDistance(e.deltaY) * direction
+        // Shift turns the wheel sideways. macOS does that itself for a wheel's own events but
+        // not for the gliding ones that replace them, so it is done here.
+        if e.modifiers.contains(.shift), dx == 0 {
+            dx = dy
+            dy = 0
+        }
+        guard dx != 0 || dy != 0 else { return discrete }
+        return .smooth(dx: dx, dy: dy)
+    }
+
+    /// How far one tick glides along an axis, keeping its sign.
+    private func wheelDistance(_ delta: Double) -> Double {
+        guard delta != 0 else { return 0 }
+        let distance = max(abs(delta), Self.wheelMinimumStep) * config.wheelScrollSpeed
+        return delta < 0 ? -distance : distance
     }
 
     private func handleGesture(_ e: ScrollEvent) -> ScrollDecision {
