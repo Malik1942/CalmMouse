@@ -28,11 +28,23 @@ echo "▶ assembling $APP"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/CalmMouse"
+# The linked binary records its deployment target (13.0) as the SDK it was built with, and macOS
+# draws an app from an old SDK in the old style: small switches, outlined groups, a grey window.
+# Stamp the SDK it was really built against so it gets the current system controls. This changes
+# the binary, so it has to come before signing.
+MIN_OS=$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' Resources/Info.plist)
+vtool -set-build-version macos "$MIN_OS" "$(xcrun --show-sdk-version)" -replace \
+  -output "$APP/Contents/MacOS/CalmMouse.stamped" "$APP/Contents/MacOS/CalmMouse" 2>/dev/null
+mv "$APP/Contents/MacOS/CalmMouse.stamped" "$APP/Contents/MacOS/CalmMouse"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 # Localizations: the app picks the .lproj matching the system language (English fallback).
 cp -R Resources/*.lproj "$APP/Contents/Resources/"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
+
+# This folder is synced by iCloud, which tags what lands in it with Finder and sync attributes;
+# codesign refuses a bundle that carries them.
+xattr -cr "$APP"
 
 # Prefer a real identity (stable TCC grant); fall back to ad-hoc with a warning.
 IDENTITY="${CALMMOUSE_SIGN_IDENTITY:-}"
