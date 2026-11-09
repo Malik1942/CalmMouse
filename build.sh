@@ -42,9 +42,17 @@ cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp -R Resources/*.lproj "$APP/Contents/Resources/"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
-# This folder is synced by iCloud, which tags what lands in it with Finder and sync attributes;
-# codesign refuses a bundle that carries them.
-xattr -cr "$APP"
+# This folder is synced by iCloud, which can tag the bundle with Finder and sync attributes at any
+# moment, and codesign refuses a bundle that carries them. Clear them right before signing, and go
+# again if iCloud got in between.
+sign_app() {
+  for attempt in 1 2 3 4 5; do
+    xattr -cr "$APP"
+    codesign "$@" "$APP" && return 0
+    sleep 1
+  done
+  return 1
+}
 
 # Prefer a real identity (stable TCC grant); fall back to ad-hoc with a warning.
 IDENTITY="${CALMMOUSE_SIGN_IDENTITY:-}"
@@ -59,11 +67,11 @@ fi
 
 if [[ -n "$IDENTITY" ]]; then
   echo "▶ codesign with: $IDENTITY"
-  codesign --force --options runtime --sign "$IDENTITY" --identifier com.calmmouse.app "$APP"
+  sign_app --force --options runtime --sign "$IDENTITY" --identifier com.calmmouse.app
 else
   echo "▶ codesign ad-hoc (no signing identity found)"
   echo "  ⚠️  macOS will forget the Accessibility grant on every rebuild."
-  codesign --force --sign - --identifier com.calmmouse.app "$APP"
+  sign_app --force --sign - --identifier com.calmmouse.app
 fi
 codesign --verify --verbose=1 "$APP" 2>&1 | tail -1
 
