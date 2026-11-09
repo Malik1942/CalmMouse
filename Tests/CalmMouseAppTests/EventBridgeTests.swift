@@ -258,6 +258,21 @@ final class EventBridgeTests: XCTestCase {
         XCTAssertEqual(DeviceIdentifier.usages(fromPairs: "nonsense"), [])
     }
 
+    func testWheelIsFoundAnywhereInTheElementTree() {
+        // The shape of the registry's `Elements`, captured from a real wheel mouse: the wheel
+        // sits two collections down.
+        let wheel: [String: Any] = ["UsagePage": 1, "Usage": 0x38, "Type": 1]
+        let pointer: [String: Any] = ["UsagePage": 1, "Usage": 1, "Elements": [["UsagePage": 1, "Usage": 0x30], wheel]]
+        let mouse: [[String: Any]] = [["UsagePage": 1, "Usage": 2, "Elements": [pointer]]]
+        XCTAssertTrue(MouseScanner.declaresWheel(mouse))
+
+        // The same usage number on another page is not a wheel.
+        XCTAssertFalse(MouseScanner.declaresWheel([["UsagePage": 12, "Usage": 0x38]]))
+        XCTAssertFalse(MouseScanner.declaresWheel([["UsagePage": 1, "Usage": 2, "Elements": [["UsagePage": 9, "Usage": 1]]]]))
+        XCTAssertFalse(MouseScanner.declaresWheel(nil))
+        XCTAssertFalse(MouseScanner.declaresWheel("nonsense"))
+    }
+
     func testScanFindsOnlyMiceAndNeverTheBuiltInTrackpad() {
         // Runs against whatever is plugged into this Mac; the invariants hold regardless.
         for mouse in MouseScanner.scan() {

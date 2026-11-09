@@ -59,12 +59,13 @@ struct ExplainedRow<Content: View>: View {
                     PreviewCanvas(preview: preview)
                         .frame(width: 250, height: 150)
                 }
+                // Captions are written as short lines. Nothing here wraps on its own.
                 Text(caption)
-                    .detailText()
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(Theme.Space.small)
+                    .fixedSize()
             }
             .padding(Theme.Space.large)
-            .frame(width: 274)
+            .frame(width: preview == nil ? nil : 274, alignment: .leading)
         }
         .onHover { hovering in
             pending?.cancel()
@@ -430,7 +431,7 @@ private struct PreviewScene {
         drawCross(at: CGPoint(x: back.x, y: back.y - 18), alpha: pulse(t, 1.8, 2.4))
     }
 
-    /// Tap, touch again, move the mouse — the object comes along; lift to drop.
+    /// Double tap, stay down on the second, move the mouse — the object comes along; lift to drop.
     private func tapAndDrag(_ t: Double) {
         let move = 22 * seg(t, 1.3, 2.4)
         let holding = t > 1.35 && t < 2.9
@@ -444,6 +445,7 @@ private struct PreviewScene {
         drawFinger(at: CGPoint(x: mr.midX, y: mr.midY + 8), pressing: holding,
                    alpha: max(firstTap, secondTouch))
         drawRipple(at: CGPoint(x: mr.midX, y: mr.midY + 8), progress: seg(t, 0.4, 0.8))
+        drawRipple(at: CGPoint(x: mr.midX, y: mr.midY + 8), progress: seg(t, 0.85, 1.25))
     }
 
     /// Rest two fingers, hold a moment, then move to drag.

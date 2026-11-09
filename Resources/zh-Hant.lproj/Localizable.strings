@@ -18,13 +18,8 @@
 "CalmMouse couldn't start its event tap" = "CalmMouse 無法啟動事件監聽";
 "CalmMouse — active · Magic Mouse battery low" = "CalmMouse — 運作中 · 巧控滑鼠電量不足";
 "CalmMouse — active" = "CalmMouse — 運作中";
-"⚠︎ Accessibility permission needed" = "⚠︎ 需要輔助使用權限";
-"Paused" = "已暫停";
 "⚠︎ Event tap failed to start" = "⚠︎ 事件監聽啟動失敗";
-"Active · %@ · %ld scrolls blocked" = "運作中 · %@ · 已攔截 %ld 次捲動";
-"Active · waiting for Magic Mouse input" = "運作中 · 等待巧控滑鼠輸入";
 "Update available — CalmMouse %@…" = "有可用更新 — CalmMouse %@…";
-"Battery %ld%%" = "電量 %ld%%";
 
 /* Settings window + tabs */
 "General" = "一般";
@@ -64,44 +59,44 @@
 
 /* Built-in presets (defined in CalmMouseCore, translated at display time) */
 "Just fix clicking" = "只修好點按";
-"Pages hold still while you click. Everything else stays the way macOS made it." = "點按時頁面保持不動。其餘一切保持 macOS 原樣。";
+"Pages hold still while you click.\nNothing else changes." = "點按時頁面保持不動。\n其他一切不變。";
 "Extra steady" = "格外穩定";
-"Small nudges are ignored, scrolling sticks to straight lines, and the page stops the moment your finger does." = "忽略輕微觸碰，捲動沿直線進行，手指一停頁面就停。";
+"Ignores nudges and diagonal drift.\nThe page stops when your finger does." = "忽略輕微觸碰和斜向偏移。\n手指一停頁面就停。";
 "Trackpad feel" = "軌跡板手感";
-"A light tap clicks, a tap on the right side right-clicks, and tap-then-drag moves things — your mouse starts acting like a trackpad." = "輕點即點按，輕點右側即右鍵點按，輕點後拖移可移動物件——滑鼠用起來就像觸控式軌跡板。";
+"Tap to click and right-click.\nDouble Tap Drag to move things." = "輕點來點按和右鍵點按。\n輕點兩下拖移來移動物件。";
 
 /* Scrolling tab */
-"While a mouse button is held down, your finger resting on the surface can't scroll the page out from under your click." = "按住滑鼠按鈕時，搭在表面上的手指不會把頁面從你點按的位置捲走。";
+"The page stays put while you click." = "點按時頁面保持不動。";
 "Hold still after you let go" = "放開後稍作停頓";
-"As your finger lifts off after a click it usually drags the page a tiny bit. This gives it a moment to settle before scrolling works again." = "點按後手指抬起時通常會把頁面帶動一點點。這個選項給它一點安定下來的時間，之後捲動才恢復。";
+"A short pause after you let go,\nso a lifting finger can't scroll." = "放開後稍作停頓，\n抬起手指時不會帶動頁面。";
 "Off" = "關";
 "Ignore small finger nudges" = "忽略手指的輕微觸碰";
-"The page only starts scrolling once your finger has moved at least this far — so a finger just resting on the mouse can't nudge anything." = "手指至少移動這麼遠頁面才開始捲動——只是搭在滑鼠上的手指碰不動任何東西。";
-"Scrolling sticks to straight up-down or left-right. A swipe that drifts a little diagonally won't wander sideways." = "捲動只沿垂直或水平方向進行。稍微斜一點的輕掃不會往旁邊跑。";
+"Scrolling waits for this much travel.\nA resting finger can't move the page." = "滑動超過這段距離才開始捲動。\n搭著的手指不會帶動頁面。";
+"A swipe that drifts stays straight." = "輕掃略有偏斜也能走直線。";
 "Lock direction after sliding" = "滑動多遠後鎖定方向";
-"A distance, not a time — once your finger has slid this far, the swipe commits to one direction. Lower locks in sooner." = "這是距離而不是時間——手指滑過這麼遠後，這次輕掃就固定在一個方向上。數值越小鎖定越早。";
-"On: the page keeps gliding after a quick swipe, like a trackpad. Off: it stops the moment your finger does. Only affects the Magic Mouse — macOS's own setting changes every device." = "開：快速輕掃後頁面繼續滑行，像觸控式軌跡板一樣。關：手指一停頁面就停。只影響巧控滑鼠——macOS 內建的設定會改變所有裝置。";
+"How far a swipe goes before it locks." = "滑動多遠後鎖定方向。";
+"On: the page glides after a swipe.\nOff: it stops when your finger does." = "開：輕掃後頁面繼續滑動。\n關：手指一停頁面就停。";
 "Ignore sideways scrolling" = "忽略橫向捲動";
-"Sideways swipes are ignored completely. Scrolling up and down still works." = "完全忽略橫向輕掃。上下捲動照常可用。";
+"Sideways swipes do nothing." = "橫向輕掃不起作用。";
 
 /* Clicking tab */
-"A light single-finger tap on the surface clicks — no need to press the mouse down. Pressing to click keeps working as before." = "單指在表面輕輕一點即可點按——無需按下滑鼠。按壓點按照常可用。";
-"Firm: only quick, deliberate taps count — the fewest accidental clicks. Light: gentler, slower taps work too." = "重：只有快速、刻意的輕點才算數——誤點最少。輕：更輕、更慢的輕點也有效。";
+"A light tap clicks.\nPressing the mouse still works." = "輕輕一點即點按。\n按下滑鼠依然有效。";
+"Firm: only quick, deliberate taps.\nLight: gentler, slower taps too." = "重：只有快速、刻意的輕點。\n輕：輕柔、較慢的輕點也算。";
 "Firm" = "重";
 "Light" = "輕";
 "Tap to right-click" = "輕點來右鍵點按";
-"One tap clicks; a second quick tap in the same spot opens the right-click menu instead." = "輕點一下是點按；在同一位置快速再點一下則打開右鍵選單。";
-"A tap on the right part of the surface right-clicks — the same side a physical right click uses. Taps everywhere else stay normal clicks." = "輕點表面右側即右鍵點按——與實體右鍵同一側。其他位置的輕點仍是普通點按。";
+"Tap twice quickly to right-click.\nPress the mouse to double-click." = "快速輕點兩下來右鍵點按。\n連按請按下滑鼠。";
+"Tap the right side to right-click.\nTaps elsewhere are normal clicks." = "輕點右側來右鍵點按。\n其他位置仍是一般點按。";
 "A tap on the right side" = "輕點右側";
 "A double-tap" = "連續輕點兩下";
-"Heads-up: with double-tap chosen, tap-tap no longer double-clicks. Double-click by pressing the mouse down, or by tapping twice a little slower." = "注意：選擇「連續輕點兩下」後，快速點兩下不再是連按。想連按兩下請按壓滑鼠，或把兩次輕點的間隔放慢一點。";
 "Front of the mouse only" = "僅滑鼠前部";
-"Taps only count on the front part of the surface — where deliberate fingertip taps land. The fingers gripping the sides can't click by accident. Pressing to click and dragging still work everywhere." = "只有表面前部的輕點才算數——那是指尖刻意輕點的落點。握住兩側的手指不會誤觸點按。按壓點按和拖移在任何位置都照常可用。";
+"Only taps near the front count.\nYour grip can't click by accident." = "只有靠近前端的輕點才算數。\n握持的手指不會誤觸。";
 "Size of the tap area" = "輕點區域大小";
-"Tap and drag" = "輕點拖移";
-"Tap, then touch again and move the mouse — whatever is under the cursor comes along, and lifting your finger drops it. A quick second tap is still a double-click." = "輕點後再次觸碰並移動滑鼠——游標下的物件會跟著走，抬起手指即放下。快速的第二次輕點仍是連按兩下。";
+"Double Tap Drag" = "輕點兩下拖移";
+"Tap twice and leave your finger down.\nMove the mouse right away to drag.\nLift your finger to drop." = "輕點兩下，第二下手指不抬起。\n馬上移動滑鼠開始拖移。\n抬起手指即放下。";
+"Use the left or middle of the mouse." = "請使用滑鼠的左側或中間。";
 "Two-finger drag" = "雙指拖移";
-"Rest two fingers on the surface and hold for a moment — then move the mouse to drag, and lift to drop. Fingers that land one after the other are just your grip, and never trigger it." = "兩根手指搭在表面並停留片刻——然後移動滑鼠即可拖移，抬起即放下。先後落下的手指只算握持，不會觸發。";
+"Rest two fingers and hold a moment.\nMove the mouse to drag.\nLift your fingers to drop." = "兩指放上並停留片刻。\n移動滑鼠開始拖移。\n抬起手指即放下。";
 
 /* Apps tab */
 "Rule enabled" = "啟用規則";
@@ -111,7 +106,7 @@
 
 /* Shortcuts tab */
 "While holding %@" = "按住 %@ 時";
-"Hold the key and scroll on the Magic Mouse to get the action you picked — here, zooming instead of scrolling." = "按住該鍵並在巧控滑鼠上捲動，就會執行你選的動作——這裡示範的是縮放而不是捲動。";
+"Hold a key while you scroll\nto do the action you picked." = "捲動時按住按鍵，\n可以執行你選擇的操作。";
 "Scroll normally" = "正常捲動";
 "Scroll sideways" = "橫向捲動";
 "Scroll in reverse" = "反向捲動";
@@ -156,9 +151,8 @@
 
 /* Mouse type + wheel mice */
 "Mouse type" = "滑鼠類型";
-"Turns the wheel's scrolling the other way round, without touching your trackpad or Magic Mouse. macOS itself has one direction setting for every device." = "只把滾輪的捲動方向反過來，不影響觸控式軌跡板和巧控滑鼠。macOS 內建的方向設定是所有裝置共用的。";
-"Pressing the wheel down almost always turns it a little. While it's pressed, and for a moment after, that can't scroll the page." = "按下滾輪時幾乎總會帶著它轉一點。按住期間以及放開後的一瞬間，頁面不會因此捲動。";
-"Active · waiting for mouse input" = "運作中 · 等待滑鼠輸入";
+"Flips only the wheel's direction.\nOther devices stay as they are." = "只反轉滾輪的方向。\n其他裝置不受影響。";
+"Pressing a wheel often turns it too.\nThat won't scroll the page." = "按下滾輪時常會帶著它轉動。\n這不會捲動頁面。";
 
 /* Simplified settings: General, Magic Mouse, Scroll Wheel, Advanced */
 "Scroll Wheel" = "滾輪";
@@ -168,12 +162,12 @@
 "Below %ld%%" = "低於 %ld%%";
 "Remove" = "移除";
 "More key combinations" = "更多按鍵組合";
-"Rules apply while that app is in front. Anything left as “Default” follows the Magic Mouse page." = "規則在對應 App 位於最前方時生效。保持「預設」的項目跟隨「巧控滑鼠」頁面的設定。";
+"Rules apply while that app is in front.\n“Default” follows the Magic Mouse page." = "規則在該 App 位於最前方時生效。\n「預設」跟隨巧控滑鼠頁的設定。";
 "Save as Preset…" = "儲存為預置…";
 "Save" = "儲存";
 "Cancel" = "取消";
 "Smooth scrolling" = "平滑捲動";
-"The page glides between notches instead of jumping. Zooming with ⌘, ⌃ or ⌥ held stays one step per notch." = "頁面在每一格之間平滑滑動，而不是一跳一跳。按住 ⌘、⌃ 或 ⌥ 縮放時仍然是一格一步。";
+"The page glides instead of jumping.\nZooming stays one step per notch." = "頁面平滑滑動，不再一跳一跳。\n縮放仍是一格一步。";
 "Scrolling speed" = "捲動速度";
 "Slow" = "慢";
 "Fast" = "快";
@@ -190,3 +184,5 @@
 "Choose…" = "選擇…";
 "Scrolling" = "捲動";
 "Clicking" = "點按";
+"Pointer" = "指標";
+"Tracking speed" = "軌跡速度";

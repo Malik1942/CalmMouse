@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var tapToClick = TapController(recognizer: tapRecognizer)
     private let updater = UpdateChecker()
     private let mice = MouseEnvironment.shared
+    private let pointerSpeed = PointerSpeedController()
 
     private var statusItem: NSStatusItem!
     private var settingsWindow: SettingsWindowController?
@@ -20,7 +21,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Menu items refreshed on open.
     private let statusLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-    private let batteryLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    /// One line per connected mouse that reports its charge; rebuilt each time the menu opens.
+    private var batteryLines: [NSMenuItem] = []
     private let permissionItem = NSMenuItem(title: L("Grant Accessibility permission…"), action: #selector(openAccessibility), keyEquivalent: "")
     private let updateItem = NSMenuItem(title: "", action: #selector(openUpdate), keyEquivalent: "")
     private let enabledItem = NSMenuItem(title: L("CalmMouse enabled"), action: #selector(toggleEnabled), keyEquivalent: "")
@@ -42,6 +44,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // but not inside the tap callback, which the WindowServer is waiting on.
         tap.onNewDevice = { [weak self] in DispatchQueue.main.async { self?.mice.refresh() } }
         mice.refresh()
+        // A mouse waking up or being connected with no window open.
+        pointerSpeed.onMouseAppeared = { [weak self] in self?.mice.refresh() }
 
         applySettings()
 
@@ -147,6 +151,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         tapRecognizer.config = settings.tapConfig
         tap.treatUnknownContinuousAsMagicMouse = settings.treatUnknownContinuousAsMagicMouse
         tap.mouseType = settings.mouseType
+        pointerSpeed.magicMouseSpeed = settings.chosenMagicMouseTrackingSpeed
+        pointerSpeed.wheelMouseSpeed = settings.chosenWheelTrackingSpeed
+        pointerSpeed.apply()
         battery.enabled = settings.batteryWarningEnabled
         battery.threshold = settings.batteryWarningThreshold
     }
@@ -181,13 +188,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.delegate = self
 
         statusLine.isEnabled = false
-        batteryLine.isEnabled = false
         menu.addItem(statusLine)
-        menu.addItem(batteryLine)
         menu.addItem(permissionItem)
         updateItem.isHidden = true
         menu.addItem(updateItem)
-        menu.addItem(.separator())
 
         // Frequently-flipped switches live here; everything else is in the settings window.
         menu.addItem(enabledItem)
@@ -250,19 +254,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The quick switches are all Magic Mouse ones; with only a wheel mouse around they
         // would do nothing, so they step aside.
         let hasMagicMouse = mice.kindsToShow(for: settings).contains(.magicMouse)
-        if !trusted {
-            statusLine.title = L("⚠︎ Accessibility permission needed")
-        } else if !settings.enabled {
-            statusLine.title = L("Paused")
-        } else if !tap.isRunning {
-            statusLine.title = L("⚠︎ Event tap failed to start")
-        } else if let dev = tap.lastSeenDevice {
-            statusLine.title = L("Active · %@ · %ld scrolls blocked", dev, tap.swallowedCount)
-        } else if hasMagicMouse {
-            statusLine.title = L("Active · waiting for Magic Mouse input")
-        } else {
-            statusLine.title = L("Active · waiting for mouse input")
-        }
+        // Words only when something is wrong. The switches below already say the rest.
+        let tapFailed = trusted && settings.enabled && !tap.isRunning
+        statusLine.title = L("⚠︎ Event tap failed to start")
+        statusLine.isHidden = !tapFailed
         permissionItem.isHidden = trusted
 
         if let release = updater.availableRelease {
@@ -272,12 +267,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             updateItem.isHidden = true
         }
 
-        if let reading = battery.latest {
-            batteryLine.title = L("Battery %ld%%", reading.percent)
-            batteryLine.isHidden = false
-        } else {
-            batteryLine.isHidden = true
-        }
+        refreshBatteryLines()
 
         enabledItem.state = settings.enabled ? .on : .off
         blockItem.state = settings.blockScrollWhileClicked ? .on : .off
@@ -307,6 +297,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshStatusIcon()
     }
 
+    /// "Malik's Magic Mouse 96%" at the top of the menu, for each mouse that reports one.
+    private func refreshBatteryLines() {
+        guard let menu = statusItem.menu else { return }
+        batteryLines.forEach(menu.removeItem)
+        batteryLines = mice.connected.compactMap { mouse in
+            let percent = mouse.kind == .magicMouse ? battery.latest?.percent : MouseBattery.percent(named: mouse.name)
+            guard let percent else { return nil }
+            let line = NSMenuItem(title: "\(mouse.name) \(percent)%", action: nil, keyEquivalent: "")
+            line.isEnabled = false
+            return line
+        }
+        for (index, line) in batteryLines.enumerated() { menu.insertItem(line, at: index) }
+    }
+
     private func writeStatusFile() {
         mice.refresh()
         let app = NSWorkspace.shared.frontmostApplication
@@ -324,6 +328,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             connectedMice: mice.connected.map(\.summary),
             otherDevicesSeen: tap.otherDevicesSeen,
             unidentifiedScrolls: tap.unidentifiedScrolls,
+            trackingSpeedWrites: pointerSpeed.lastWrites,
             eventsSwallowed: tap.swallowedCount,
             activeApp: bundleID,
             activeRule: bundleID.flatMap { settings.rule(for: $0) }?.name,
@@ -380,10 +385,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openSettings() {
+        // Before the window exists, so it opens with the right pages.
+        mice.refresh()
         if settingsWindow == nil {
             settingsWindow = SettingsWindowController(settings: settings, updater: updater)
         }
-        mice.refresh()
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.showWindow(nil)
         settingsWindow?.window?.makeKeyAndOrderFront(nil)

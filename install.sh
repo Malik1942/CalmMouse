@@ -9,7 +9,9 @@ echo "▶ replacing /Applications/CalmMouse.app"
 pkill -x CalmMouse 2>/dev/null || true
 sleep 1
 rm -rf /Applications/CalmMouse.app
-cp -R build/CalmMouse.app /Applications/
+# Not cp -R: this repo is in iCloud Drive, which tags build/ with Finder and sync attributes after
+# signing, and a copy that keeps them fails strict signature checks.
+ditto --norsrc --noextattr build/CalmMouse.app /Applications/CalmMouse.app
 open /Applications/CalmMouse.app
 sleep 3
 

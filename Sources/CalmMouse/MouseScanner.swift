@@ -16,11 +16,10 @@ struct ConnectedMouse: Equatable {
 
 /// Finds the mice connected right now, without waiting for any of them to send an event.
 ///
-/// It asks IOHIDManager for the device list but never opens a device: listing devices and
-/// reading the elements they declare needs no permission, whereas opening one would ask for
-/// Input Monitoring. The declared elements are how a scroll wheel is sensed. Measured on
-/// macOS 26: a wheel mouse declares one Generic Desktop / Wheel element, the built-in
-/// trackpad declares none.
+/// It asks IOHIDManager for the device list but never opens a device, so no permission is
+/// involved. A scroll wheel is sensed from the elements the device declares. Measured on
+/// macOS 26: a wheel mouse declares one Generic Desktop / Wheel element, a Magic Mouse and the
+/// built-in trackpad none.
 enum MouseScanner {
     static func scan() -> [ConnectedMouse] {
         let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
@@ -73,15 +72,28 @@ enum MouseScanner {
         return result.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    /// Whether the device's HID descriptor declares a scroll wheel.
+    /// Whether the device's HID descriptor declares a scroll wheel. Read from the IORegistry
+    /// because `IOHIDDeviceCopyMatchingElements` comes back empty for a wheel mouse in an app
+    /// that has no Accessibility grant yet, which is exactly the app's first launch. All the
+    /// properties are fetched together because asking for `Elements` alone returns only its top
+    /// level, and the wheel is nested two collections down.
     private static func hasWheel(_ device: IOHIDDevice) -> Bool {
-        let match: [String: Any] = [
-            kIOHIDElementUsagePageKey: kHIDPage_GenericDesktop,
-            kIOHIDElementUsageKey: kHIDUsage_GD_Wheel,
-        ]
-        let elements = IOHIDDeviceCopyMatchingElements(device, match as CFDictionary,
-                                                       IOOptionBits(kIOHIDOptionsTypeNone)) as? [IOHIDElement]
-        return !(elements ?? []).isEmpty
+        var properties: Unmanaged<CFMutableDictionary>?
+        guard IORegistryEntryCreateCFProperties(IOHIDDeviceGetService(device), &properties,
+                                                kCFAllocatorDefault, 0) == KERN_SUCCESS,
+              let all = properties?.takeRetainedValue() as? [String: Any] else { return false }
+        return declaresWheel(all[kIOHIDElementKey])
+    }
+
+    /// Searches HID's `Elements` tree: an array of dictionaries, each with a usage and possibly
+    /// more `Elements` inside it.
+    static func declaresWheel(_ elements: Any?) -> Bool {
+        guard let elements = elements as? [[String: Any]] else { return false }
+        return elements.contains { element in
+            let isWheel = element[kIOHIDElementUsagePageKey] as? Int == kHIDPage_GenericDesktop
+                && element[kIOHIDElementUsageKey] as? Int == kHIDUsage_GD_Wheel
+            return isWheel || declaresWheel(element[kIOHIDElementKey])
+        }
     }
 }
 

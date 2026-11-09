@@ -346,6 +346,15 @@ final class WheelMouseTests: XCTestCase {
         XCTAssertNil(kind(trackpad, gesture, legacy: true))
     }
 
+    // MARK: Tracking speed
+
+    func testTrackingSpeedMapsToResolution() {
+        XCTAssertEqual(TrackingSpeed.resolution(forSpeed: 0), 400 << 16, "the middle changes nothing")
+        XCTAssertEqual(TrackingSpeed.resolution(forSpeed: 1), 100 << 16, "fastest: a lower DPI, four times the travel")
+        XCTAssertEqual(TrackingSpeed.resolution(forSpeed: -1), 1600 << 16)
+        XCTAssertEqual(TrackingSpeed.resolution(forSpeed: 9), 100 << 16, "out of range is clamped")
+    }
+
     // MARK: What the settings window shows
 
     func testSettingsDefaultToTheMagicMouseAndAddTheWheelWhenOneIsConnected() {
