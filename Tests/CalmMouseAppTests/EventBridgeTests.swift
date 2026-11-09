@@ -151,8 +151,56 @@ final class EventBridgeTests: XCTestCase {
         guard let reading = BatteryMonitor.read() else {
             throw XCTSkip("no Magic Mouse connected")
         }
-        XCTAssertTrue(reading.deviceName.lowercased().contains("magic mouse"))
+        XCTAssertFalse(reading.deviceName.isEmpty)
         XCTAssertGreaterThan(reading.percent, 0)
+    }
+
+    private func device(_ product: String, vendor: Int, product productID: Int,
+                        transport: String = "Bluetooth") -> DeviceIdentifier.DeviceInfo {
+        .init(product: product, vendorID: vendor, productID: productID, transport: transport)
+    }
+
+    func testMagicMouseRecognisedByName() {
+        // The name macOS generates, whatever IDs came with it (including none at all).
+        XCTAssertTrue(device("Malik’s Magic Mouse", vendor: 0x004C, product: 0x0269).isMagicMouse)
+        XCTAssertTrue(device("MAGIC MOUSE", vendor: 0, product: 0).isMagicMouse)
+    }
+
+    func testRenamedMagicMouseRecognisedByHardwareID() {
+        // `Product` is the Bluetooth name and the owner can change it, so every generation
+        // must still match on its IDs alone, over Bluetooth (0x004C) and USB (0x05AC).
+        for productID in [0x030D, 0x0269, 0x0323] {
+            XCTAssertTrue(device("Johnny’s Mouse", vendor: 0x004C, product: productID).isMagicMouse,
+                          String(format: "0x%04X over Bluetooth", productID))
+            XCTAssertTrue(device("妙控鼠标", vendor: 0x05AC, product: productID, transport: "USB").isMagicMouse,
+                          String(format: "0x%04X over USB", productID))
+        }
+    }
+
+    func testOtherDevicesAreNotMagicMice() {
+        // Magic Trackpads (0x0265 Lightning, 0x0324 USB-C) sit right next to the mouse IDs.
+        XCTAssertFalse(device("Magic Trackpad", vendor: 0x004C, product: 0x0265).isMagicMouse)
+        XCTAssertFalse(device("Magic Trackpad", vendor: 0x004C, product: 0x0324).isMagicMouse)
+        XCTAssertFalse(device("Apple Internal Keyboard / Trackpad", vendor: 0, product: 851).isMagicMouse)
+        // A mouse product ID only counts under Apple's vendor ID.
+        XCTAssertFalse(device("USB Optical Mouse", vendor: 0x046D, product: 0x0269).isMagicMouse)
+    }
+
+    func testDeviceSummaryForStatusOutput() {
+        XCTAssertEqual(device("Johnny’s Mouse", vendor: 0x004C, product: 0x0323).summary,
+                       "Johnny’s Mouse (vendor=0x004C product=0x0323 transport=Bluetooth)")
+        XCTAssertEqual(device("X", vendor: 0, product: 0, transport: "").idSummary,
+                       "vendor=0x0000 product=0x0000 transport=unknown")
+    }
+
+    func testSeenDevicesAreDistinctAndBounded() {
+        let ident = DeviceIdentifier()
+        let mouse = device("Johnny’s Mouse", vendor: 0x004C, product: 0x0323)
+        ident.remember(mouse)
+        ident.remember(mouse)
+        XCTAssertEqual(ident.seenDevices, [mouse])
+        for i in 0..<50 { ident.remember(device("Device \(i)", vendor: 1, product: i)) }
+        XCTAssertEqual(ident.seenDevices.count, 12, "a long session must not grow this without bound")
     }
 }
 

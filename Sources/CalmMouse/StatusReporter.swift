@@ -19,6 +19,9 @@ enum StatusReporter {
         var enabled: Bool
         var tapRunning: Bool
         var lastSeenDevice: String?
+        var lastSeenDeviceID: String?
+        var otherDevicesSeen: [String]
+        var unidentifiedScrolls: Int
         var eventsSwallowed: Int
         var activeApp: String?
         var activeRule: String?

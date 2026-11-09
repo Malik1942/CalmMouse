@@ -67,9 +67,17 @@ final class BatteryMonitor {
         var result: Reading?
         while case let service = IOIteratorNext(iterator), service != 0 {
             defer { IOObjectRelease(service) }
+            func int(_ key: String) -> Int {
+                (IORegistryEntryCreateCFProperty(service, key as CFString, kCFAllocatorDefault, 0)?
+                    .takeRetainedValue() as? Int) ?? 0
+            }
             guard let product = IORegistryEntryCreateCFProperty(service, "Product" as CFString, kCFAllocatorDefault, 0)?
                     .takeRetainedValue() as? String,
-                  product.lowercased().contains("magic mouse") else { continue }
+                  // Same rule as the event tap: by name or by hardware ID, so a renamed mouse
+                  // still gets its battery read.
+                  DeviceIdentifier.DeviceInfo(product: product, vendorID: int("VendorID"),
+                                              productID: int("ProductID"), transport: "").isMagicMouse
+            else { continue }
             guard let percent = IORegistryEntryCreateCFProperty(service, "BatteryPercent" as CFString, kCFAllocatorDefault, 0)?
                     .takeRetainedValue() as? Int else { continue }
             result = Reading(percent: percent, deviceName: product)
