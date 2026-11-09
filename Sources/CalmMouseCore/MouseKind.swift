@@ -69,7 +69,14 @@ public enum MouseClassifier {
             return setting == .wheelMouse ? nil : .magicMouse
         }
 
-        guard identity.isMouse, setting != .magicMouse else { return nil }
+        guard identity.isMouse else { return nil }
+        if setting == .magicMouse {
+            // Detection took this mouse for something else and the user has corrected it. A
+            // Magic Mouse sends gestures and button presses, never wheel ticks, so a real wheel
+            // mouse that is also connected keeps scrolling untouched.
+            if case .scroll(isContinuous: false) = event { return nil }
+            return .magicMouse
+        }
         // A wheel turns in ticks. Gesture-style scrolling from a device that isn't a Magic
         // Mouse is some touch surface we don't know, and those are left alone.
         if case .scroll(isContinuous: true) = event { return nil }

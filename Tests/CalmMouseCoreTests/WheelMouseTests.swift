@@ -320,10 +320,16 @@ final class WheelMouseTests: XCTestCase {
         XCTAssertNil(kind(wheelMouse, gesture, .wheelMouse))
     }
 
-    func testForcedMagicMouseManagesOnlyThatAndAdoptsUnknownGestures() {
+    func testForcedMagicMouseTakesOverAMouseDetectionGotWrong() {
         XCTAssertEqual(kind(magicMouse, gesture, .magicMouse), .magicMouse)
+        // A Magic Mouse CalmMouse identified as some other mouse: the user's choice wins.
+        XCTAssertEqual(kind(wheelMouse, gesture, .magicMouse), .magicMouse)
+        XCTAssertEqual(kind(wheelMouse, .button, .magicMouse), .magicMouse)
+        // A Magic Mouse never sends wheel ticks, so a real wheel mouse stays untouched.
         XCTAssertNil(kind(wheelMouse, ticks, .magicMouse))
-        XCTAssertNil(kind(wheelMouse, .button, .magicMouse))
+        // The choice is about mice: anything that doesn't declare itself one is left alone.
+        XCTAssertNil(kind(somethingElse, gesture, .magicMouse))
+        XCTAssertNil(kind(somethingElse, .button, .magicMouse))
         XCTAssertEqual(kind(nil, gesture, .magicMouse), .magicMouse)
         XCTAssertEqual(kind(nil, .button, .magicMouse), .magicMouse)
         XCTAssertNil(kind(nil, ticks, .magicMouse), "wheel ticks are not a Magic Mouse")
