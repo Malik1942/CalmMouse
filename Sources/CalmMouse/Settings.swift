@@ -36,6 +36,12 @@ final class Settings: ObservableObject {
         static let batteryWarningEnabled = "batteryWarningEnabled"
         static let batteryWarningThreshold = "batteryWarningThreshold"
         static let treatUnknownContinuousAsMagicMouse = "treatUnknownContinuousAsMagicMouse"
+        static let mouseType = "mouseType"
+        static let rememberedMouseKinds = "rememberedMouseKinds"
+        static let reverseWheelScroll = "reverseWheelScroll"
+        static let blockScrollWhileWheelPressed = "blockScrollWhileWheelPressed"
+        static let smoothWheelScroll = "smoothWheelScroll"
+        static let wheelScrollSpeed = "wheelScrollSpeed"
         static let customPresets = "customPresets"
         static let onboardingCompleted = "onboardingCompleted"
         static let accessibilityPromptShown = "accessibilityPromptShown"
@@ -54,6 +60,14 @@ final class Settings: ObservableObject {
     var accessibilityPromptShown: Bool {
         get { d.bool(forKey: Key.accessibilityPromptShown) }
         set { d.set(newValue, forKey: Key.accessibilityPromptShown) }
+    }
+
+    /// Every kind of mouse this Mac has had connected. The settings window keeps showing a
+    /// kind's options after its mouse disconnects (a Magic Mouse does so whenever it sleeps).
+    /// Not `@Published`: `MouseEnvironment` announces the change itself.
+    var rememberedMouseKinds: Set<MouseKind> {
+        get { Set((d.stringArray(forKey: Key.rememberedMouseKinds) ?? []).compactMap(MouseKind.init(rawValue:))) }
+        set { d.set(newValue.map(\.rawValue).sorted(), forKey: Key.rememberedMouseKinds) }
     }
 
     // MARK: Published state
@@ -80,6 +94,11 @@ final class Settings: ObservableObject {
     @Published var batteryWarningEnabled: Bool { didSet { d.set(batteryWarningEnabled, forKey: Key.batteryWarningEnabled); changed() } }
     @Published var batteryWarningThreshold: Int { didSet { d.set(batteryWarningThreshold, forKey: Key.batteryWarningThreshold); changed() } }
     @Published var treatUnknownContinuousAsMagicMouse: Bool { didSet { d.set(treatUnknownContinuousAsMagicMouse, forKey: Key.treatUnknownContinuousAsMagicMouse); changed() } }
+    @Published var mouseType: MouseTypeSetting { didSet { d.set(mouseType.rawValue, forKey: Key.mouseType); changed() } }
+    @Published var reverseWheelScroll: Bool { didSet { d.set(reverseWheelScroll, forKey: Key.reverseWheelScroll); changed() } }
+    @Published var blockScrollWhileWheelPressed: Bool { didSet { d.set(blockScrollWhileWheelPressed, forKey: Key.blockScrollWhileWheelPressed); changed() } }
+    @Published var smoothWheelScroll: Bool { didSet { d.set(smoothWheelScroll, forKey: Key.smoothWheelScroll); changed() } }
+    @Published var wheelScrollSpeed: Double { didSet { d.set(wheelScrollSpeed, forKey: Key.wheelScrollSpeed); changed() } }
 
     private init() {
         Settings.migrateFromGodmouseIfNeeded(d)
@@ -105,6 +124,13 @@ final class Settings: ObservableObject {
             // Documented escape hatch (README → Troubleshooting) for Magic Mouse variants the
             // device identification doesn't recognise; defaults-only, no UI.
             Key.treatUnknownContinuousAsMagicMouse: false,
+            Key.mouseType: MouseTypeSetting.automatic.rawValue,
+            // Wheel-mouse options start off, so supporting wheel mice changes nothing for
+            // anyone until they turn one on.
+            Key.reverseWheelScroll: false,
+            Key.blockScrollWhileWheelPressed: false,
+            Key.smoothWheelScroll: false,
+            Key.wheelScrollSpeed: 3.0,
         ])
         loading = true
         enabled = d.bool(forKey: Key.enabled)
@@ -126,6 +152,11 @@ final class Settings: ObservableObject {
         batteryWarningEnabled = d.bool(forKey: Key.batteryWarningEnabled)
         batteryWarningThreshold = d.integer(forKey: Key.batteryWarningThreshold)
         treatUnknownContinuousAsMagicMouse = d.bool(forKey: Key.treatUnknownContinuousAsMagicMouse)
+        mouseType = MouseTypeSetting(rawValue: d.string(forKey: Key.mouseType) ?? "") ?? .automatic
+        reverseWheelScroll = d.bool(forKey: Key.reverseWheelScroll)
+        blockScrollWhileWheelPressed = d.bool(forKey: Key.blockScrollWhileWheelPressed)
+        smoothWheelScroll = d.bool(forKey: Key.smoothWheelScroll)
+        wheelScrollSpeed = d.double(forKey: Key.wheelScrollSpeed)
         modifierActions = Settings.loadModifierActions(d)
         appRules = Settings.loadAppRules(d)
         customPresets = Settings.loadCustomPresets(d)
@@ -144,6 +175,10 @@ final class Settings: ObservableObject {
         c.momentumEnabled = momentumEnabled
         c.blockHorizontalScroll = blockHorizontalScroll
         c.modifierActions = modifierActions
+        c.reverseWheelScroll = reverseWheelScroll
+        c.blockScrollWhileWheelPressed = blockScrollWhileWheelPressed
+        c.smoothWheelScroll = smoothWheelScroll
+        c.wheelScrollSpeed = min(max(wheelScrollSpeed, 1), 6)
         return RuleSet(base: c, appRules: appRules)
     }
 

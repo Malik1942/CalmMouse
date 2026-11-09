@@ -39,10 +39,10 @@ enum SettingPreview {
 
 // MARK: - Row wrapper
 
-/// Wraps a settings row. Hovering the row — the toggle, the slider, or the ⓘ itself —
-/// pops a small animated preview of what the setting does, plus a one-line caption.
+/// Wraps a settings row. Rows carry no description of their own: hovering one pops its caption,
+/// and a small animated preview where the setting has one.
 struct ExplainedRow<Content: View>: View {
-    let preview: SettingPreview
+    var preview: SettingPreview? = nil
     let caption: String
     @ViewBuilder let content: () -> Content
 
@@ -50,26 +50,25 @@ struct ExplainedRow<Content: View>: View {
     @State private var pending: DispatchWorkItem?
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 0) {
             content()
-            Image(systemName: "info.circle")
-                .foregroundStyle(.secondary)
-                .popover(isPresented: $showPopover, arrowEdge: .trailing) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        PreviewCanvas(preview: preview)
-                            .frame(width: 250, height: 150)
-                        Text(caption)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(12)
-                    .frame(width: 274)
+        }
+        .popover(isPresented: $showPopover, arrowEdge: .trailing) {
+            VStack(alignment: .leading, spacing: Theme.Space.medium) {
+                if let preview {
+                    PreviewCanvas(preview: preview)
+                        .frame(width: 250, height: 150)
                 }
+                Text(caption)
+                    .detailText()
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(Theme.Space.large)
+            .frame(width: 274)
         }
         .onHover { hovering in
             pending?.cancel()
-            if hovering {
+            if hovering, !caption.isEmpty {
                 let work = DispatchWorkItem { showPopover = true }
                 pending = work
                 // Delay so scrubbing past rows doesn't churn popovers open and closed —

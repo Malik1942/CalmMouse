@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let tapRecognizer = TapRecognizer()
     private lazy var tapToClick = TapController(recognizer: tapRecognizer)
     private let updater = UpdateChecker()
+    private let mice = MouseEnvironment.shared
 
     private var statusItem: NSStatusItem!
     private var settingsWindow: SettingsWindowController?
@@ -37,6 +38,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         tap.onMagicButton = { [weak self] isDown, t in self?.tapToClick.physicalButton(isDown: isDown, at: t) }
         tap.onMagicScroll = { [weak self] magnitude, t in self?.tapToClick.scrollActivity(deltaMagnitude: magnitude, at: t) }
         tapToClick.onDragPressChanged = { [weak self] clickState in self?.tap.syntheticDragClickState = clickState }
+        // A device just sent its first event: a mouse was connected or woke up. Look again,
+        // but not inside the tap callback, which the WindowServer is waiting on.
+        tap.onNewDevice = { [weak self] in DispatchQueue.main.async { self?.mice.refresh() } }
+        mice.refresh()
 
         applySettings()
 
@@ -141,6 +146,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         blocker.rules = settings.ruleSet
         tapRecognizer.config = settings.tapConfig
         tap.treatUnknownContinuousAsMagicMouse = settings.treatUnknownContinuousAsMagicMouse
+        tap.mouseType = settings.mouseType
         battery.enabled = settings.batteryWarningEnabled
         battery.threshold = settings.batteryWarningThreshold
     }
@@ -241,6 +247,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func refreshMenu() {
         let trusted = AXIsProcessTrusted()
+        // The quick switches are all Magic Mouse ones; with only a wheel mouse around they
+        // would do nothing, so they step aside.
+        let hasMagicMouse = mice.kindsToShow(for: settings).contains(.magicMouse)
         if !trusted {
             statusLine.title = L("⚠︎ Accessibility permission needed")
         } else if !settings.enabled {
@@ -249,8 +258,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             statusLine.title = L("⚠︎ Event tap failed to start")
         } else if let dev = tap.lastSeenDevice {
             statusLine.title = L("Active · %@ · %ld scrolls blocked", dev, tap.swallowedCount)
-        } else {
+        } else if hasMagicMouse {
             statusLine.title = L("Active · waiting for Magic Mouse input")
+        } else {
+            statusLine.title = L("Active · waiting for mouse input")
         }
         permissionItem.isHidden = trusted
 
@@ -273,7 +284,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         momentumItem.state = settings.momentumEnabled ? .on : .off
         axisLockItem.state = settings.axisLock ? .on : .off
         tapToClickItem.state = settings.tapToClick ? .on : .off
-        tapToClickItem.isHidden = !TapController.isSupported
+        blockItem.isHidden = !hasMagicMouse
+        momentumItem.isHidden = !hasMagicMouse
+        axisLockItem.isHidden = !hasMagicMouse
+        perAppItem.isHidden = !hasMagicMouse
+        tapToClickItem.isHidden = !TapController.isSupported || !hasMagicMouse
 
         if let app = NSWorkspace.shared.frontmostApplication,
            let bundleID = app.bundleIdentifier, bundleID != Bundle.main.bundleIdentifier {
@@ -293,6 +308,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func writeStatusFile() {
+        mice.refresh()
         let app = NSWorkspace.shared.frontmostApplication
         let bundleID = app?.bundleIdentifier
         StatusReporter.write(.init(
@@ -303,6 +319,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             tapRunning: tap.isRunning,
             lastSeenDevice: tap.lastSeenDevice,
             lastSeenDeviceID: tap.lastSeenDeviceID,
+            lastSeenDeviceKind: tap.lastSeenDeviceKind?.rawValue,
+            mouseType: settings.mouseType.rawValue,
+            connectedMice: mice.connected.map(\.summary),
             otherDevicesSeen: tap.otherDevicesSeen,
             unidentifiedScrolls: tap.unidentifiedScrolls,
             eventsSwallowed: tap.swallowedCount,
@@ -313,6 +332,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             releaseGraceMs: Int(blocker.config.releaseGrace * 1000),
             deadZone: blocker.config.deadZone,
             momentumEnabled: blocker.config.momentumEnabled,
+            reverseWheelScroll: blocker.config.reverseWheelScroll,
+            blockScrollWhileWheelPressed: blocker.config.blockScrollWhileWheelPressed,
+            smoothWheelScroll: blocker.config.smoothWheelScroll,
+            wheelScrollSpeed: blocker.config.wheelScrollSpeed,
+            wheelTicksSmoothed: tap.wheelTicksSmoothed,
+            smoothEventsPosted: tap.smoothEventsPosted,
             tapToClick: settings.tapToClick,
             tapToClickListening: tapToClick.isListening,
             tapsPosted: tapToClick.tapsPosted,
@@ -356,9 +381,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openSettings() {
         if settingsWindow == nil {
-            settingsWindow = SettingsWindowController(settings: settings, battery: battery,
-                                                      updater: updater)
+            settingsWindow = SettingsWindowController(settings: settings, updater: updater)
         }
+        mice.refresh()
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.showWindow(nil)
         settingsWindow?.window?.makeKeyAndOrderFront(nil)
@@ -390,6 +415,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 extension AppDelegate: NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
         battery.poll()
+        mice.refresh()
         refreshMenu()
     }
 }

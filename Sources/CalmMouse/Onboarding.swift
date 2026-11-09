@@ -186,7 +186,7 @@ private struct PresetStep: View {
     var body: some View {
         VStack(spacing: 14) {
             StepTitle(title: L("Pick a starting point"),
-                      subtitle: L("One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Presets."))
+                      subtitle: L("One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Magic Mouse."))
 
             VStack(spacing: 8) {
                 ForEach(Preset.builtIn) { preset in
@@ -328,7 +328,7 @@ private struct DoneStep: View {
                 tip(symbol: "info.circle",
                     text: L("In Settings, hover any option for a little animated preview of what it does."))
                 tip(symbol: "slider.horizontal.3",
-                    text: L("Changed your mind about the feel? Settings → Presets switches the whole setup in one click, or saves your own."))
+                    text: L("Changed your mind about the feel? Settings → Magic Mouse switches the whole setup in one click, or saves your own."))
             }
             .padding(.horizontal, 8)
         }

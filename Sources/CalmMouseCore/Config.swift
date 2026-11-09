@@ -82,6 +82,19 @@ public struct BlockerConfig: Equatable, Sendable, Codable {
     /// modifier combination → what scrolling should do while it's held.
     public var modifierActions: [ModifierCombo: ScrollAction] = [:]
 
+    // Wheel mice. Everything above is for the Magic Mouse; a wheel mouse answers only to
+    // these, and both start off so that supporting it changes nothing until asked.
+
+    /// Flip the wheel's direction on its own. macOS has a single "natural scrolling" switch
+    /// shared by every device, so whoever likes it on the trackpad gets it on the wheel too.
+    public var reverseWheelScroll: Bool = false
+    /// Swallow wheel ticks while the wheel itself is pressed down as a button.
+    public var blockScrollWhileWheelPressed: Bool = false
+    /// Glide between wheel notches instead of jumping (see `WheelSmoother`).
+    public var smoothWheelScroll: Bool = false
+    /// How far a notch travels when smoothing, as a multiple of the base step.
+    public var wheelScrollSpeed: Double = 3
+
     public init() {}
 
     public func action(for modifiers: ModifierCombo) -> ScrollAction {
@@ -94,7 +107,8 @@ extension BlockerConfig {
     private enum CodingKeys: String, CodingKey {
         case blockScrollWhileClicked, releaseGrace, deadZone, axisLock, axisLockThreshold,
              axisLockRatio, momentumEnabled, blockHorizontalScroll, disableScrollEntirely,
-             modifierActions
+             modifierActions, reverseWheelScroll, blockScrollWhileWheelPressed,
+             smoothWheelScroll, wheelScrollSpeed
     }
 
     public init(from decoder: Decoder) throws {
@@ -111,6 +125,10 @@ extension BlockerConfig {
         s.disableScrollEntirely = try c.decodeIfPresent(Bool.self, forKey: .disableScrollEntirely) ?? s.disableScrollEntirely
         let raw = try c.decodeIfPresent([Int: ScrollAction].self, forKey: .modifierActions) ?? [:]
         s.modifierActions = Dictionary(uniqueKeysWithValues: raw.map { (ModifierCombo(rawValue: $0.key), $0.value) })
+        s.reverseWheelScroll = try c.decodeIfPresent(Bool.self, forKey: .reverseWheelScroll) ?? s.reverseWheelScroll
+        s.blockScrollWhileWheelPressed = try c.decodeIfPresent(Bool.self, forKey: .blockScrollWhileWheelPressed) ?? s.blockScrollWhileWheelPressed
+        s.smoothWheelScroll = try c.decodeIfPresent(Bool.self, forKey: .smoothWheelScroll) ?? s.smoothWheelScroll
+        s.wheelScrollSpeed = try c.decodeIfPresent(Double.self, forKey: .wheelScrollSpeed) ?? s.wheelScrollSpeed
         self = s
     }
 
@@ -127,6 +145,10 @@ extension BlockerConfig {
         try c.encode(disableScrollEntirely, forKey: .disableScrollEntirely)
         try c.encode(Dictionary(uniqueKeysWithValues: modifierActions.map { ($0.key.rawValue, $0.value) }),
                      forKey: .modifierActions)
+        try c.encode(reverseWheelScroll, forKey: .reverseWheelScroll)
+        try c.encode(blockScrollWhileWheelPressed, forKey: .blockScrollWhileWheelPressed)
+        try c.encode(smoothWheelScroll, forKey: .smoothWheelScroll)
+        try c.encode(wheelScrollSpeed, forKey: .wheelScrollSpeed)
     }
 }
 

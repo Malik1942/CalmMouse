@@ -20,6 +20,9 @@ enum StatusReporter {
         var tapRunning: Bool
         var lastSeenDevice: String?
         var lastSeenDeviceID: String?
+        var lastSeenDeviceKind: String?
+        var mouseType: String
+        var connectedMice: [String]
         var otherDevicesSeen: [String]
         var unidentifiedScrolls: Int
         var eventsSwallowed: Int
@@ -30,6 +33,12 @@ enum StatusReporter {
         var releaseGraceMs: Int
         var deadZone: Double
         var momentumEnabled: Bool
+        var reverseWheelScroll: Bool
+        var blockScrollWhileWheelPressed: Bool
+        var smoothWheelScroll: Bool
+        var wheelScrollSpeed: Double
+        var wheelTicksSmoothed: Int
+        var smoothEventsPosted: Int
         var tapToClick: Bool
         var tapToClickListening: Bool
         var tapsPosted: Int

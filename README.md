@@ -220,10 +220,10 @@ real identity means macOS keeps your Accessibility grant across rebuilds.
 | Symptom | Fix |
 |---|---|
 | Menu bar says "Accessibility permission needed" but the toggle is ON | The stored grant has gone stale: macOS ties it to the app's code signature, so a rebuild or an old ad-hoc-signed build looks like a different app. Settings → General → **Reset grant…** (or `tccutil reset Accessibility com.calmmouse.app`). |
-| Nothing is blocked, `--status` shows `lastSeenDevice: null` | Device identification isn't matching your mouse. Run `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool true` and relaunch. Please [open an issue](https://github.com/Malik1942/CalmMouse/issues) with the output of `CalmMouse --status`; that's a bug worth fixing properly. The mouse is recognized by its name or its hardware ID, and `otherDevicesSeen` in that output shows what yours reports as. |
+| Nothing is blocked, `--status` shows `lastSeenDevice: null` | Device identification isn't matching your mouse. Settings → Advanced → **Mouse type** → Magic Mouse tells CalmMouse what you are holding (the older `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool true` still works). Please [open an issue](https://github.com/Malik1942/CalmMouse/issues) with the output of `CalmMouse --status`; that's a bug worth fixing properly. The mouse is recognized by its name or its hardware ID, and `otherDevicesSeen` in that output shows what yours reports as. |
 | Trackpad scrolling got caught too | `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool false`, then relaunch. |
-| Scrolling feels like it stops too long after a click | Settings → Scrolling → lower the release grace. |
-| A tap does nothing in one part of the surface | The tap zone is on. `CalmMouse --status` reports `outsideZone` in `tapRejections` plus the exact landing point in `tapLastRejectionAt`. Widen the depth in Settings → Clicking, or turn the zone off. |
+| Scrolling feels like it stops too long after a click | Settings → Magic Mouse → Fine-tuning → lower "Hold still after you let go". |
+| A tap does nothing in one part of the surface | The tap zone is on. `CalmMouse --status` reports `outsideZone` in `tapRejections` plus the exact landing point in `tapLastRejectionAt`. Widen the depth in Settings → Magic Mouse → Fine-tuning, or turn the zone off. |
 | Want to see what's happening | `defaults write com.calmmouse.app debugLogging -bool true`, relaunch, then `log stream --predicate 'subsystem == "com.calmmouse.app"' --level debug` |
 
 </details>
