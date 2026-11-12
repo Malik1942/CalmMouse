@@ -13,8 +13,11 @@ import CalmMouseCore
 /// `NSTabViewController` and each pane is a SwiftUI form. Type, spacing and sizes come from
 /// `Theme` in SettingsDesign.swift.
 final class SettingsWindowController: NSWindowController {
+    private let panes: SettingsPanesController
+
     init(settings: Settings, updater: UpdateChecker) {
         let panes = SettingsPanesController(settings: settings, updater: updater)
+        self.panes = panes
         let window = NSWindow(contentViewController: panes)
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.toolbarStyle = .preference
@@ -24,13 +27,16 @@ final class SettingsWindowController: NSWindowController {
         window.center()
     }
 
+    /// Shows this pane, if it is one of the panes on show.
+    func select(_ pane: SettingsPane) { panes.select(pane) }
+
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 }
 
 // MARK: - Panes
 
-private enum SettingsPane: String, CaseIterable {
+enum SettingsPane: String, CaseIterable {
     case general, magicMouse, wheel, advanced
 
     var title: String {
@@ -163,7 +169,7 @@ private final class SettingsPanesController: NSTabViewController {
         select(previous.flatMap { wanted.contains($0) ? $0 : nil } ?? .general)
     }
 
-    private func select(_ pane: SettingsPane) {
+    func select(_ pane: SettingsPane) {
         if let index = shownPanes.firstIndex(of: pane) { selectedTabViewItemIndex = index }
     }
 

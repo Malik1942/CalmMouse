@@ -290,6 +290,7 @@ final class EventTap {
             modifiers: Self.combo(from: event.flags),
             fromWheelMouse: kind == .wheelMouse
         )
+        if ScrollBlocker.interruptsGlide(e) { smoothDriver.cancel() }
         let decision = blocker.handleScroll(e)
         if magic {
             // Feed tap-to-click regardless of the decision: physically, the finger IS moving,

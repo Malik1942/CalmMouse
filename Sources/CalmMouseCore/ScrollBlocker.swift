@@ -286,6 +286,12 @@ public final class ScrollBlocker {
         return .smooth(dx: dx, dy: dy)
     }
 
+    /// A ⌘, ⌃ or ⌥ tick from the wheel is a zoom notch and is never smoothed. Arriving while a
+    /// glide is still playing out, it means the user has moved on, so the glide stops.
+    public static func interruptsGlide(_ e: ScrollEvent) -> Bool {
+        e.fromWheelMouse && !e.modifiers.isDisjoint(with: wheelSmoothingBypass)
+    }
+
     /// How far one tick glides along an axis, keeping its sign.
     private func wheelDistance(_ delta: Double) -> Double {
         guard delta != 0 else { return 0 }

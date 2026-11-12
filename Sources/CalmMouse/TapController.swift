@@ -61,6 +61,12 @@ final class TapController {
     var isListening: Bool { !devices.isEmpty }
     static var isSupported: Bool { Multitouch.isAvailable }
 
+    /// Tap to click listens to the Magic Mouse. Mouse type → Scroll Wheel leaves that mouse
+    /// alone and hides the switch, so tapping stops with it.
+    static func shouldRun(enabled: Bool, tapToClick: Bool, mouseType: MouseTypeSetting) -> Bool {
+        enabled && tapToClick && mouseType != .wheelMouse
+    }
+
     fileprivate static var shared: TapController?
 
     init(recognizer: TapRecognizer) {

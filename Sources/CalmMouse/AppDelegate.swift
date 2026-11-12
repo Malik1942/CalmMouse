@@ -95,6 +95,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        // Hand every mouse back at its normal speed; the next launch sets it again.
+        pointerSpeed.magicMouseSpeed = PointerSpeedController.effectiveSpeed(
+            chosen: settings.chosenMagicMouseTrackingSpeed, enabled: false)
+        pointerSpeed.wheelMouseSpeed = PointerSpeedController.effectiveSpeed(
+            chosen: settings.chosenWheelTrackingSpeed, enabled: false)
+        pointerSpeed.apply()
         tap.stop()
         tapToClick.stop()
         battery.stop()
@@ -137,7 +143,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         // Posting the synthetic clicks needs the same Accessibility grant as the event tap,
         // so tap-to-click rides the same lifecycle.
-        if settings.enabled && settings.tapToClick {
+        if TapController.shouldRun(enabled: settings.enabled, tapToClick: settings.tapToClick,
+                                   mouseType: settings.mouseType) {
             tapToClick.start()
         } else {
             tapToClick.stop()
@@ -151,8 +158,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         tapRecognizer.config = settings.tapConfig
         tap.treatUnknownContinuousAsMagicMouse = settings.treatUnknownContinuousAsMagicMouse
         tap.mouseType = settings.mouseType
-        pointerSpeed.magicMouseSpeed = settings.chosenMagicMouseTrackingSpeed
-        pointerSpeed.wheelMouseSpeed = settings.chosenWheelTrackingSpeed
+        pointerSpeed.mouseType = settings.mouseType
+        pointerSpeed.magicMouseSpeed = PointerSpeedController.effectiveSpeed(
+            chosen: settings.chosenMagicMouseTrackingSpeed, enabled: settings.enabled)
+        pointerSpeed.wheelMouseSpeed = PointerSpeedController.effectiveSpeed(
+            chosen: settings.chosenWheelTrackingSpeed, enabled: settings.enabled)
         pointerSpeed.apply()
         battery.enabled = settings.batteryWarningEnabled
         battery.threshold = settings.batteryWarningThreshold
@@ -302,7 +312,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let menu = statusItem.menu else { return }
         batteryLines.forEach(menu.removeItem)
         batteryLines = mice.connected.compactMap { mouse in
-            let percent = mouse.kind == .magicMouse ? battery.latest?.percent : MouseBattery.percent(named: mouse.name)
+            let percent = mouse.kind == .magicMouse
+                ? BatteryMonitor.percent(of: mouse.name, in: battery.readings)
+                : MouseBattery.percent(named: mouse.name)
             guard let percent else { return nil }
             let line = NSMenuItem(title: "\(mouse.name) \(percent)%", action: nil, keyEquivalent: "")
             line.isEnabled = false
@@ -380,16 +392,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Menu-bar entry for a pending update: open Settings on General, where the Updates
     /// section shows the notes and the Update Now button.
     @objc private func openUpdate() {
-        UserDefaults.standard.set(0, forKey: "settingsTab")
-        openSettings()
+        showSettings(on: .general)
     }
 
     @objc private func openSettings() {
+        showSettings(on: nil)
+    }
+
+    private func showSettings(on pane: SettingsPane?) {
         // Before the window exists, so it opens with the right pages.
         mice.refresh()
         if settingsWindow == nil {
             settingsWindow = SettingsWindowController(settings: settings, updater: updater)
         }
+        if let pane { settingsWindow?.select(pane) }
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.showWindow(nil)
         settingsWindow?.window?.makeKeyAndOrderFront(nil)

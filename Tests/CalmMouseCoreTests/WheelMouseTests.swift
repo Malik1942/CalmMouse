@@ -281,6 +281,23 @@ final class WheelMouseTests: XCTestCase {
         XCTAssertEqual(old.wheelScrollSpeed, 3)
     }
 
+    // MARK: A zoom notch stops the glide
+
+    func testAZoomNotchInterruptsAGlideInFlight() {
+        // ⌘, ⌃ and ⌥ ticks are never smoothed. One arriving mid-glide means the user has
+        // switched to zooming, so the page must stop gliding underneath it.
+        XCTAssertTrue(ScrollBlocker.interruptsGlide(tick(0, mods: .command)))
+        XCTAssertTrue(ScrollBlocker.interruptsGlide(tick(0, mods: .control)))
+        XCTAssertTrue(ScrollBlocker.interruptsGlide(tick(0, mods: .option)))
+        // Plain and Shift ticks feed the glide instead.
+        XCTAssertFalse(ScrollBlocker.interruptsGlide(tick(0)))
+        XCTAssertFalse(ScrollBlocker.interruptsGlide(tick(0, mods: .shift)))
+        // A Magic Mouse gesture has nothing to do with the wheel's glide.
+        var magic = swipe(0, .changed)
+        magic.modifiers = .command
+        XCTAssertFalse(ScrollBlocker.interruptsGlide(magic))
+    }
+
     // MARK: Which kind of mouse is this?
 
     private let magicMouse = PointerIdentity(isMagicMouse: true, isTrackpad: false, isMouse: true)
