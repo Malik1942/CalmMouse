@@ -187,3 +187,7 @@
 "Clicking" = "Clicking";
 "Pointer" = "Pointer";
 "Tracking speed" = "Tracking speed";
+
+/* Low-battery notification */
+"Magic Mouse battery low" = "Magic Mouse battery low";
+"%ld%% left — worth plugging it in before it dies mid-click." = "%ld%% left — worth plugging it in before it dies mid-click.";

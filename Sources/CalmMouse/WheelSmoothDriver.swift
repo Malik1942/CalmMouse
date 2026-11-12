@@ -30,26 +30,43 @@ final class WheelSmoothDriver {
     func add(dx: Double, dy: Double) {
         lock.lock()
         smoother.add(dx: dx, dy: dy)
-        let needsStart = !running
+        let now = MachTime.now()
+        // A running glide hears from its frame clock every few milliseconds. Silence means the
+        // clock has stopped for good (its display was unplugged, say), and waiting on it would
+        // swallow every tick from here on.
+        let stalled = running && Self.clockStalled(lastFrame: lastFrame, now: now)
+        let needsStart = !running || stalled
         if needsStart {
             running = true
-            lastFrame = MachTime.now()
+            lastFrame = now
         }
         lock.unlock()
         guard needsStart else { return }
 
+        if stalled, let old = link {
+            CVDisplayLinkStop(old)
+            link = nil                      // a new one is made for the displays connected now
+        }
         if link == nil { link = Self.makeLink { [weak self] in self?.frame() } }
         if let link {
             CVDisplayLinkStart(link)        // harmless if a stop is still pending
-        } else {
-            // No frame clock to be had: scroll the whole distance at once rather than not at all.
-            lock.lock()
-            let owed = smoother.owed
-            smoother.cancel()
-            running = false
-            lock.unlock()
-            post(x: Int(owed.x.rounded()), y: Int(owed.y.rounded()))
+            if CVDisplayLinkIsRunning(link) { return }
         }
+        // No frame clock to be had: scroll the whole distance at once rather than not at all.
+        lock.lock()
+        let owed = smoother.owed
+        smoother.cancel()
+        running = false
+        lock.unlock()
+        post(x: Int(owed.x.rounded()), y: Int(owed.y.rounded()))
+    }
+
+    /// How long a running glide may go without a frame before its clock counts as stopped.
+    /// Frames come every 8 to 17 ms.
+    static let stallLimit: TimeInterval = 0.25
+
+    static func clockStalled(lastFrame: TimeInterval, now: TimeInterval) -> Bool {
+        now - lastFrame > stallLimit
     }
 
     /// Stop where the page is and forget the rest of the glide.
@@ -93,17 +110,21 @@ final class WheelSmoothDriver {
         if step.x != 0 || step.y != 0 { post(x: step.x, y: step.y) }
     }
 
+    /// The keys a glide frame carries. A glide only ever starts from a tick with no ⌘, ⌃ or ⌥
+    /// (those ticks are zoom notches and are never smoothed), and its Shift has already been
+    /// turned into sideways travel. So any of the four held now was pressed after the glide
+    /// began, and carrying it would turn the rest of the glide into zoom or a second turn.
+    static func glideFlags(from live: CGEventFlags) -> CGEventFlags {
+        live.subtracting([.maskShift, .maskCommand, .maskControl, .maskAlternate])
+    }
+
     /// Posts a pixel-precise scroll below the HID-level tap, so CalmMouse's own tap never sees
     /// it again and every app does.
     private func post(x: Int, y: Int) {
         guard x != 0 || y != 0,
               let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2,
                                   wheel1: Int32(clamping: y), wheel2: Int32(clamping: x), wheel3: 0) else { return }
-        // The keys held right now still apply, except Shift: it has already been turned into
-        // sideways travel, and leaving it on would have some apps turn it a second time.
-        var flags = CGEventSource.flagsState(.combinedSessionState)
-        flags.remove(.maskShift)
-        event.flags = flags
+        event.flags = Self.glideFlags(from: CGEventSource.flagsState(.combinedSessionState))
         event.setIntegerValueField(.eventSourceUserData, value: Self.eventTag)
         event.post(tap: .cgSessionEventTap)
         lock.lock()

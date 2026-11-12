@@ -186,3 +186,7 @@
 "Clicking" = "点按";
 "Pointer" = "指针";
 "Tracking speed" = "跟踪速度";
+
+/* Low-battery notification */
+"Magic Mouse battery low" = "妙控鼠标电量低";
+"%ld%% left — worth plugging it in before it dies mid-click." = "还剩 %ld%%，最好现在就充电，免得用到一半没电。";

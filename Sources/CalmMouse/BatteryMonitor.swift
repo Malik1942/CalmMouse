@@ -17,7 +17,10 @@ final class BatteryMonitor {
     private var warnedAt: Int?          // the threshold we already warned about
     private var notificationsAuthorized = false
 
+    /// The emptiest connected Magic Mouse.
     private(set) var latest: Reading?
+    /// Every connected Magic Mouse that reports a level.
+    private(set) var readings: [Reading] = []
     var onUpdate: ((Reading?) -> Void)?
 
     var enabled = true
@@ -39,8 +42,10 @@ final class BatteryMonitor {
     }
 
     func poll() {
-        let reading = Self.read()
-        let changed = reading != latest
+        let all = Self.readAll()
+        let reading = Self.lowest(all)
+        let changed = all != readings
+        readings = all
         latest = reading
         if changed { onUpdate?(reading) }
 
@@ -58,13 +63,16 @@ final class BatteryMonitor {
 
     // MARK: Reading the level
 
-    static func read() -> Reading? {
-        guard let matching = IOServiceMatching("AppleDeviceManagementHIDEventService") else { return nil }
+    /// The emptiest connected Magic Mouse.
+    static func read() -> Reading? { lowest(readAll()) }
+
+    static func readAll() -> [Reading] {
+        guard let matching = IOServiceMatching("AppleDeviceManagementHIDEventService") else { return [] }
         var iterator: io_iterator_t = 0
-        guard IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iterator) == KERN_SUCCESS else { return nil }
+        guard IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iterator) == KERN_SUCCESS else { return [] }
         defer { IOObjectRelease(iterator) }
 
-        var result: Reading?
+        var result: [Reading] = []
         while case let service = IOIteratorNext(iterator), service != 0 {
             defer { IOObjectRelease(service) }
             func int(_ key: String) -> Int {
@@ -80,10 +88,21 @@ final class BatteryMonitor {
             else { continue }
             guard let percent = IORegistryEntryCreateCFProperty(service, "BatteryPercent" as CFString, kCFAllocatorDefault, 0)?
                     .takeRetainedValue() as? Int else { continue }
-            result = Reading(percent: percent, deviceName: product)
-            break
+            result.append(Reading(percent: percent, deviceName: product))
         }
         return result
+    }
+
+    /// The level of the Magic Mouse with this name. With only one Magic Mouse reporting, it is
+    /// that one even if its battery service and its HID device spell the name differently.
+    static func percent(of name: String, in readings: [Reading]) -> Int? {
+        if let match = readings.first(where: { $0.deviceName == name }) { return match.percent }
+        return readings.count == 1 ? readings[0].percent : nil
+    }
+
+    /// The emptiest Magic Mouse: the one the warning and the menu-bar icon are about.
+    static func lowest(_ readings: [Reading]) -> Reading? {
+        readings.min { $0.percent < $1.percent }
     }
 
     // MARK: Notifying
@@ -101,8 +120,8 @@ final class BatteryMonitor {
 
         if notificationsAuthorized {
             let content = UNMutableNotificationContent()
-            content.title = "Magic Mouse battery low"
-            content.body = "\(reading.percent)% left — worth plugging it in before it dies mid-click."
+            content.title = L("Magic Mouse battery low")
+            content.body = L("%ld%% left — worth plugging it in before it dies mid-click.", reading.percent)
             content.sound = .default
             let request = UNNotificationRequest(identifier: "calmmouse.battery.\(reading.percent)",
                                                 content: content, trigger: nil)
