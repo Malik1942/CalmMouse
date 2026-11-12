@@ -56,7 +56,7 @@ It starts working within two seconds, no relaunch.
 
 ## What it fixes
 
-Everything here is **Magic Mouse only**. Your trackpad and any other mouse are untouched.
+Everything here is for the **Magic Mouse**. A mouse with a scroll wheel gets a few options of its own, all off until you turn them on. Your trackpad is never touched.
 
 **Scrolling**
 
@@ -70,10 +70,17 @@ Everything here is **Magic Mouse only**. Your trackpad and any other mouse are u
 - **Tap to click**: a light tap clicks, no press needed. Tap the right side to right-click.
 - **Double Tap Drag · two-finger drag**: drag without holding the button down.
 
+**Wheel mice**
+
+- **Smooth scrolling**: the page glides instead of jumping a notch at a time.
+- **Reverse direction**: flip the wheel alone. Other devices stay as they are.
+- **Still while pressed**: pressing the wheel doesn't scroll the page.
+
 **And**
 
 - **Per-app rules**: no scrolling in Figma, no sideways scroll in Excel, no momentum in your editor.
 - **Modifier + scroll**: hold ⌘ ⌥ ⌃ or ⇧ to scroll sideways, invert, or zoom.
+- **Tracking speed** for each mouse on its own.
 - **Presets** to start from, a **low-battery warning**, **in-app updates**, and English / 简体中文 / 繁體中文.
 
 <p align="center">
@@ -99,6 +106,8 @@ Hover any setting for a short animated preview of what it does.
 | **Tap zone** | Restrict taps to the front part of the surface, away from the side edges, so the fingers gripping the mouse can't click. Adjustable depth. |
 | **Double Tap Drag** | Tap twice and keep your finger down on the second tap: the button presses down **when you start moving the mouse** and releases when the finger lifts. Because the press is deferred until you actually move, a finger that just comes back to rest, or swipes to scroll, never presses anything. A quick second tap is still a double-click, so double-click-drag (selecting a word, then extending it) works. |
 | **Two-finger drag (long press)** | Rest two fingers on the surface together and hold; after a moment the button presses down. Move to drag, lift either finger to drop. Fingers that land one after the other are grip, not gesture, and never trigger it. |
+| **Tracking speed** | Each mouse gets its own pointer speed, so the Magic Mouse and a wheel mouse can move at different speeds. |
+| **Wheel mice** | For a mouse with a scroll wheel: smooth scrolling with its own speed, reverse the wheel's direction without touching other devices, and no scrolling while the wheel is pressed. All off until you turn them on. Settings → Advanced → **Mouse type** corrects a mouse that was taken for the wrong kind. |
 | **Battery warning** | A notification when the Magic Mouse drops below a threshold you set, so it doesn't die mid-afternoon. |
 | **Presets** | Three one-click starting points (*Just fix clicking*, *Extra steady*, *Trackpad feel*) that set the Scrolling and Clicking options in one go. Everything stays tweakable afterwards, and you can save your own setups as named presets. Per-app rules and shortcuts are never touched. |
 | **In-app updates** | CalmMouse checks the releases feed twice a day; a new version shows up as a menu-bar item and in Settings → General with its release notes. One click downloads, verifies the signature is ours, swaps the app in place, and relaunches. |
@@ -224,7 +233,7 @@ real identity means macOS keeps your Accessibility grant across rebuilds.
 | Trackpad scrolling got caught too | `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool false`, then relaunch. |
 | Scrolling feels like it stops too long after a click | Settings → Magic Mouse → Fine-tuning → lower "Hold still after you let go". |
 | A tap does nothing in one part of the surface | The tap zone is on. `CalmMouse --status` reports `outsideZone` in `tapRejections` plus the exact landing point in `tapLastRejectionAt`. Widen the depth in Settings → Magic Mouse → Fine-tuning, or turn the zone off. |
-| Want to see what's happening | `defaults write com.calmmouse.app debugLogging -bool true`, relaunch, then `log stream --predicate 'subsystem == "com.calmmouse.app"' --level debug` |
+| Want to see what's happening | `log stream --predicate 'subsystem == "com.calmmouse.app"' --level debug` |
 
 </details>
 
