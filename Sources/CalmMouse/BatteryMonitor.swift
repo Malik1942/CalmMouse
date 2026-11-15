@@ -25,6 +25,9 @@ final class BatteryMonitor {
 
     var enabled = true
     var threshold = 15
+    /// Names of the connected mice that aren't Magic Mice, whose levels come from the
+    /// accessory power list.
+    var otherMouseNames: () -> [String] = { [] }
 
     func start() {
         requestNotificationAuthorization()
@@ -42,7 +45,8 @@ final class BatteryMonitor {
     }
 
     func poll() {
-        let all = Self.readAll()
+        let all = Self.readings(magicMice: Self.readAll(), otherMice: otherMouseNames(),
+                                level: MouseBattery.percent(named:))
         let reading = Self.lowest(all)
         let changed = all != readings
         readings = all
@@ -100,6 +104,17 @@ final class BatteryMonitor {
         return readings.count == 1 ? readings[0].percent : nil
     }
 
+    /// Every mouse that reports a level: Magic Mice from the registry, other connected mice
+    /// by name from the accessory power list. Matching by the names of connected mice keeps
+    /// headphones and keyboards out. A mouse is counted once, its registry reading first.
+    static func readings(magicMice: [Reading], otherMice: [String], level: (String) -> Int?) -> [Reading] {
+        var result = magicMice
+        for name in otherMice where !result.contains(where: { $0.deviceName == name }) {
+            if let percent = level(name) { result.append(Reading(percent: percent, deviceName: name)) }
+        }
+        return result
+    }
+
     /// The emptiest Magic Mouse: the one the warning and the menu-bar icon are about.
     static func lowest(_ readings: [Reading]) -> Reading? {
         readings.min { $0.percent < $1.percent }
@@ -120,7 +135,7 @@ final class BatteryMonitor {
 
         if notificationsAuthorized {
             let content = UNMutableNotificationContent()
-            content.title = L("Magic Mouse battery low")
+            content.title = L("%@ battery low", reading.deviceName)
             content.body = L("%ld%% left — worth plugging it in before it dies mid-click.", reading.percent)
             content.sound = .default
             let request = UNNotificationRequest(identifier: "calmmouse.battery.\(reading.percent)",

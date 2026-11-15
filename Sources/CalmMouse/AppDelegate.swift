@@ -61,6 +61,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         battery.onUpdate = { [weak self] _ in
             DispatchQueue.main.async { self?.refreshStatusIcon() }
         }
+        battery.otherMouseNames = { [weak self] in
+            self?.mice.connected.filter { $0.kind != .magicMouse }.map(\.name) ?? []
+        }
         battery.start()
 
         updater.onAvailabilityChanged = { [weak self] in self?.refreshMenu() }
@@ -253,7 +256,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else if lowBatteryFlag {
             button.image = Self.icon(named: "magicmouse.fill")
             button.contentTintColor = .systemYellow
-            button.toolTip = L("CalmMouse — active · Magic Mouse battery low")
+            button.toolTip = L("CalmMouse — active · Mouse battery low")
         } else {
             button.image = Self.icon(named: "magicmouse.fill")
             button.contentTintColor = nil

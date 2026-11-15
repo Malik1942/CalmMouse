@@ -17,7 +17,6 @@
 "CalmMouse needs Accessibility permission" = "CalmMouse needs Accessibility permission";
 "CalmMouse is paused" = "CalmMouse is paused";
 "CalmMouse couldn't start its event tap" = "CalmMouse couldn't start its event tap";
-"CalmMouse — active · Magic Mouse battery low" = "CalmMouse — active · Magic Mouse battery low";
 "CalmMouse — active" = "CalmMouse — active";
 "⚠︎ Event tap failed to start" = "⚠︎ Event tap failed to start";
 "Update available — CalmMouse %@…" = "Update available — CalmMouse %@…";
@@ -189,7 +188,6 @@
 "Tracking speed" = "Tracking speed";
 
 /* Low-battery notification */
-"Magic Mouse battery low" = "Magic Mouse battery low";
 "%ld%% left — worth plugging it in before it dies mid-click." = "%ld%% left — worth plugging it in before it dies mid-click.";
 
 /* Menu: open a prefilled GitHub issue */
@@ -217,3 +215,7 @@
 "Up and down only" = "Up and down only";
 "Flips only the Magic Mouse.\nThe trackpad stays as it is." = "Flips only the Magic Mouse.\nThe trackpad stays as it is.";
 "Tap the right side to right-click" = "Tap the right side to right-click";
+
+/* 1.2: every mouse's battery */
+"%@ battery low" = "%@ battery low";
+"CalmMouse — active · Mouse battery low" = "CalmMouse — active · Mouse battery low";
