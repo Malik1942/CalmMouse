@@ -258,6 +258,22 @@ private struct GeneralPane: View {
             }
 
             UpdatesSection(updater: updater)
+
+            Section("Support CalmMouse") {
+                LabeledContent("Something not right?") {
+                    Button("Send Feedback…") {
+                        NotificationCenter.default.post(name: Feedback.sendRequested, object: nil)
+                    }
+                }
+                LabeledContent("Like CalmMouse?") {
+                    Button {
+                        settings.starInviteDone = true      // no need to ask in the menu later
+                        NSWorkspace.shared.open(Feedback.repository)
+                    } label: {
+                        Label("Star on GitHub", systemImage: "star")
+                    }
+                }
+            }
         }
         .formStyle(.grouped)
         .onReceive(timer) { _ in trusted = AXIsProcessTrusted() }

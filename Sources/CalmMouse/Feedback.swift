@@ -9,6 +9,8 @@ import CalmMouseCore
 /// The hardware ID is what a fix needs anyway (it is how a USB-C Magic Mouse gets recognised).
 enum Feedback {
     static let newIssue = "https://github.com/Malik1942/CalmMouse/issues/new"
+    /// Where the Star button is.
+    static let repository = URL(string: "https://github.com/Malik1942/CalmMouse")!
 
     struct Details {
         var version: String
@@ -63,6 +65,9 @@ enum Feedback {
         ]
         return components.url!
     }
+
+    /// Settings asks the app delegate, which knows the tap's state, to send feedback.
+    static let sendRequested = Notification.Name("CalmMouseSendFeedback")
 
     /// "macOS 26.1 (25B78)".
     static var macOSVersion: String {

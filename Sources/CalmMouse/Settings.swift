@@ -48,6 +48,10 @@ final class Settings: ObservableObject {
         static let customPresets = "customPresets"
         static let onboardingCompleted = "onboardingCompleted"
         static let accessibilityPromptShown = "accessibilityPromptShown"
+        static let firstLaunchDate = "firstLaunchDate"
+        static let blockedScrollsTotal = "blockedScrollsTotal"
+        static let starInviteFirstShown = "starInviteFirstShown"
+        static let starInviteDone = "starInviteDone"
     }
 
     /// Whether the first-launch welcome tour has been seen (or dismissed).
@@ -63,6 +67,34 @@ final class Settings: ObservableObject {
     var accessibilityPromptShown: Bool {
         get { d.bool(forKey: Key.accessibilityPromptShown) }
         set { d.set(newValue, forKey: Key.accessibilityPromptShown) }
+    }
+
+    // MARK: The one-time star invite (see `SupportInvite`). Not `@Published`: nothing observes
+    // them, and a change must not re-apply every setting.
+
+    /// Set the first time a version with the invite runs.
+    var firstLaunchDate: Date {
+        if let date = d.object(forKey: Key.firstLaunchDate) as? Date { return date }
+        let now = Date()
+        d.set(now, forKey: Key.firstLaunchDate)
+        return now
+    }
+
+    /// Scroll events blocked across launches, counted the way the welcome tour counts them.
+    var blockedScrollsTotal: Int {
+        get { d.integer(forKey: Key.blockedScrollsTotal) }
+        set { d.set(newValue, forKey: Key.blockedScrollsTotal) }
+    }
+
+    var starInviteFirstShown: Date? {
+        get { d.object(forKey: Key.starInviteFirstShown) as? Date }
+        set { d.set(newValue, forKey: Key.starInviteFirstShown) }
+    }
+
+    /// The invite was answered: its menu line clicked, or Star on GitHub used in Settings.
+    var starInviteDone: Bool {
+        get { d.bool(forKey: Key.starInviteDone) }
+        set { d.set(newValue, forKey: Key.starInviteDone) }
     }
 
     /// Every kind of mouse this Mac has had connected. The settings window keeps showing a
