@@ -193,3 +193,10 @@
 
 /* Menu: open a prefilled GitHub issue */
 "Send Feedback…" = "傳送意見回饋…";
+
+/* Settings → General → Support CalmMouse, and the one-time star invite */
+"Support CalmMouse" = "支持 CalmMouse";
+"Something not right?" = "遇到問題？";
+"Like CalmMouse?" = "喜歡 CalmMouse？";
+"Star on GitHub" = "到 GitHub 收藏";
+"⭐ %@ accidental scrolls stopped. Star on GitHub?" = "⭐ 已幫你擋住 %@ 次誤捲動，到 GitHub 收藏一下？";

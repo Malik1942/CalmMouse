@@ -31,6 +31,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let axisLockItem = NSMenuItem(title: L("Scroll in straight lines"), action: #selector(toggleAxisLock), keyEquivalent: "")
     private let tapToClickItem = NSMenuItem(title: L("Tap to click"), action: #selector(toggleTapToClick), keyEquivalent: "")
     private let perAppItem = NSMenuItem(title: L("Ignore scrolling in this app"), action: #selector(togglePerApp), keyEquivalent: "")
+    private let starInviteItem = NSMenuItem(title: "", action: #selector(acceptStarInvite), keyEquivalent: "")
+    /// How much of `tap.swallowedCount` is already in `settings.blockedScrollsTotal`.
+    private var blockedScrollsSaved = 0
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -69,6 +72,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         ensurePermissionThenStart()
 
+        NotificationCenter.default.addObserver(self, selector: #selector(sendFeedback),
+                                               name: Feedback.sendRequested, object: nil)
+        _ = settings.firstLaunchDate        // starts the invite's one-week clock
         NotificationCenter.default.addObserver(self, selector: #selector(openOnboarding),
                                                name: .calmMouseShowOnboarding, object: nil)
 
@@ -95,6 +101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        saveBlockedScrolls()
         // Hand every mouse back at its normal speed; the next launch sets it again.
         pointerSpeed.magicMouseSpeed = PointerSpeedController.effectiveSpeed(
             chosen: settings.chosenMagicMouseTrackingSpeed, enabled: false)
@@ -202,6 +209,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(permissionItem)
         updateItem.isHidden = true
         menu.addItem(updateItem)
+        starInviteItem.isHidden = true
+        menu.addItem(starInviteItem)
 
         // Frequently-flipped switches live here; everything else is in the settings window.
         menu.addItem(enabledItem)
@@ -279,6 +288,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         refreshBatteryLines()
+        refreshStarInvite()
 
         enabledItem.state = settings.enabled ? .on : .off
         blockItem.state = settings.blockScrollWhileClicked ? .on : .off
@@ -306,6 +316,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         refreshStatusIcon()
+    }
+
+    /// Adds this launch's newly blocked scrolls to the running total.
+    private func saveBlockedScrolls() {
+        let session = tap.swallowedCount
+        guard session > blockedScrollsSaved else { return }
+        settings.blockedScrollsTotal += session - blockedScrollsSaved
+        blockedScrollsSaved = session
+    }
+
+    /// The one-time "Star on GitHub?" line (see `SupportInvite`).
+    private func refreshStarInvite() {
+        saveBlockedScrolls()
+        let now = Date()
+        let total = settings.blockedScrollsTotal
+        let visible = SupportInvite.isVisible(
+            blockedTotal: total, firstLaunch: settings.firstLaunchDate,
+            firstShown: settings.starInviteFirstShown, done: settings.starInviteDone, now: now)
+        if visible, settings.starInviteFirstShown == nil { settings.starInviteFirstShown = now }
+        let count = NumberFormatter.localizedString(from: NSNumber(value: total), number: .decimal)
+        starInviteItem.title = L("⭐ %@ accidental scrolls stopped. Star on GitHub?", count)
+        starInviteItem.isHidden = !visible
+    }
+
+    @objc private func acceptStarInvite() {
+        settings.starInviteDone = true
+        NSWorkspace.shared.open(Feedback.repository)
     }
 
     /// "Malik's Magic Mouse 96%" at the top of the menu, for each mouse that reports one.

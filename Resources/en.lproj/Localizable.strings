@@ -194,3 +194,10 @@
 
 /* Menu: open a prefilled GitHub issue */
 "Send Feedback…" = "Send Feedback…";
+
+/* Settings → General → Support CalmMouse, and the one-time star invite */
+"Support CalmMouse" = "Support CalmMouse";
+"Something not right?" = "Something not right?";
+"Like CalmMouse?" = "Like CalmMouse?";
+"Star on GitHub" = "Star on GitHub";
+"⭐ %@ accidental scrolls stopped. Star on GitHub?" = "⭐ %@ accidental scrolls stopped. Star on GitHub?";
