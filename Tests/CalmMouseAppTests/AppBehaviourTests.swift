@@ -64,6 +64,33 @@ final class AppBehaviourTests: XCTestCase {
                                                   magicMouse: nil, wheelMouse: -0.5))
     }
 
+    func testADevicesSettingsKeyIsItsHardwareIDsAndName() {
+        XCTAssertEqual(otherMouse.settingsKey, "005D:4762:MCHOSE A7 Ultra")
+    }
+
+    private let officeMouse = DeviceIdentifier.DeviceInfo(product: "Office Mouse", vendorID: 0x046D,
+                                                           productID: 0xB034, transport: "Bluetooth Low Energy",
+                                                           usages: [.mouse])
+
+    private func serviceSpeed(_ info: DeviceIdentifier.DeviceInfo,
+                              overrides: [String: MouseTypeSetting] = [:],
+                              wheelSpeeds: [String: Double] = [:]) -> Double? {
+        PointerSpeedController.speed(forService: info, legacyType: .automatic, overrides: overrides,
+                                     magicMouse: 0.5, wheelTemplate: -0.5, wheelSpeeds: wheelSpeeds)
+    }
+
+    func testEachWheelMouseGetsItsOwnTrackingSpeed() {
+        let speeds = [otherMouse.settingsKey: 0.75]
+        XCTAssertEqual(serviceSpeed(otherMouse, wheelSpeeds: speeds), 0.75)
+        XCTAssertEqual(serviceSpeed(officeMouse, wheelSpeeds: speeds), -0.5, "no speed of its own: the template")
+    }
+
+    func testTreatAsChangesOnlyThatMouse() {
+        let overrides = [officeMouse.settingsKey: MouseTypeSetting.magicMouse]
+        XCTAssertEqual(serviceSpeed(officeMouse, overrides: overrides), 0.5, "now a Magic Mouse")
+        XCTAssertEqual(serviceSpeed(otherMouse, overrides: overrides), -0.5)
+    }
+
     func testPausedCalmMouseRestoresNormalSpeedOnlyWhereItChangedIt() {
         XCTAssertEqual(PointerSpeedController.effectiveSpeed(chosen: 0.5, enabled: true), 0.5)
         XCTAssertEqual(PointerSpeedController.effectiveSpeed(chosen: 0.5, enabled: false), 0)

@@ -70,6 +70,13 @@ final class DeviceIdentifier {
             PointerIdentity(isMagicMouse: isMagicMouse, isTrackpad: isTrackpad, isMouse: declaresMouse)
         }
 
+        /// Keys a device's own settings: hardware IDs plus name, so two different mice of one
+        /// model can differ when they are named apart. Stays on this Mac; feedback never
+        /// carries it.
+        var settingsKey: String {
+            String(format: "%04X:%04X:", vendorID, productID) + product
+        }
+
         /// The hardware identity without the name, for `--status`.
         var idSummary: String {
             String(format: "vendor=0x%04X product=0x%04X transport=%@",

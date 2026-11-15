@@ -17,6 +17,11 @@ final class EventTap {
     var treatUnknownContinuousAsMagicMouse = false
     /// Settings → General → Mouse type.
     var mouseType: MouseTypeSetting = .automatic
+    /// "Treat as" for single devices, by `DeviceInfo.settingsKey`. Wins over `mouseType`.
+    var typeOverrides: [String: MouseTypeSetting] = [:]
+    /// Wheel mice with settings of their own, by `DeviceInfo.settingsKey`. Others use the
+    /// blocker's template.
+    var wheelDevices: [String: WheelSettings] = [:]
     /// Fired the first time a device sends an event (a mouse was just connected or woke up).
     var onNewDevice: (() -> Void)? {
         get { identifier.onNewDevice }
@@ -61,7 +66,7 @@ final class EventTap {
     /// holding shows up here, identification is what's wrong.
     var otherDevicesSeen: [String] {
         identifier.seenDevices
-            .filter { MouseClassifier.kind(of: $0.identity, event: .button, setting: mouseType) == nil }
+            .filter { MouseClassifier.kind(of: $0.identity, event: .button, setting: setting(for: $0)) == nil }
             .map(\.summary)
     }
 
@@ -203,12 +208,23 @@ final class EventTap {
         return Unmanaged.passUnretained(event)
     }
 
+    /// The "Treat as" that applies to a device: its own, else the shared Mouse type.
+    private func setting(for info: DeviceIdentifier.DeviceInfo?) -> MouseTypeSetting {
+        info.flatMap { typeOverrides[$0.settingsKey] } ?? mouseType
+    }
+
     /// Which kind of mouse this event is to be handled as, or nil to leave it alone.
     private func mouseKind(of event: CGEvent, _ eventKind: PointerEventKind) -> MouseKind? {
+        classify(event, eventKind).kind
+    }
+
+    /// The kind, plus the device it came from when the sender could be resolved.
+    private func classify(_ event: CGEvent, _ eventKind: PointerEventKind)
+        -> (kind: MouseKind?, info: DeviceIdentifier.DeviceInfo?) {
         let sender = identifier.senderID(of: event)
         let info = identifier.info(forSenderID: sender)
         if info == nil, case .scroll = eventKind { unidentifiedScrolls += 1 }
-        let kind = MouseClassifier.kind(of: info?.identity, event: eventKind, setting: mouseType,
+        let kind = MouseClassifier.kind(of: info?.identity, event: eventKind, setting: setting(for: info),
                                         unknownContinuousIsMagicMouse: treatUnknownContinuousAsMagicMouse)
         if let info, let kind, sender != lastSeenSender {
             lastSeenSender = sender
@@ -216,7 +232,7 @@ final class EventTap {
             lastSeenDeviceID = info.idSummary
             lastSeenDeviceKind = kind
         }
-        return kind
+        return (kind, info)
     }
 
     private func handleButton(_ event: CGEvent, isDown: Bool) {
@@ -269,7 +285,7 @@ final class EventTap {
 
     private func handleScroll(_ event: CGEvent) -> Unmanaged<CGEvent>? {
         let isContinuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
-        let kind = mouseKind(of: event, .scroll(isContinuous: isContinuous))
+        let (kind, info) = classify(event, .scroll(isContinuous: isContinuous))
         let magic = kind == .magicMouse
         let t = seconds(event)
 
@@ -288,7 +304,8 @@ final class EventTap {
             deltaX: event.getDoubleValueField(.scrollWheelEventPointDeltaAxis2),
             deltaY: event.getDoubleValueField(.scrollWheelEventPointDeltaAxis1),
             modifiers: Self.combo(from: event.flags),
-            fromWheelMouse: kind == .wheelMouse
+            fromWheelMouse: kind == .wheelMouse,
+            wheel: kind == .wheelMouse ? info.flatMap { wheelDevices[$0.settingsKey] } : nil
         )
         if ScrollBlocker.interruptsGlide(e) { smoothDriver.cancel() }
         let decision = blocker.handleScroll(e)

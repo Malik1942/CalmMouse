@@ -103,11 +103,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         saveBlockedScrolls()
         // Hand every mouse back at its normal speed; the next launch sets it again.
-        pointerSpeed.magicMouseSpeed = PointerSpeedController.effectiveSpeed(
-            chosen: settings.chosenMagicMouseTrackingSpeed, enabled: false)
-        pointerSpeed.wheelMouseSpeed = PointerSpeedController.effectiveSpeed(
-            chosen: settings.chosenWheelTrackingSpeed, enabled: false)
-        pointerSpeed.apply()
+        applyPointerSpeeds(enabled: false)
         tap.stop()
         tapToClick.stop()
         battery.stop()
@@ -160,17 +156,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         writeStatusFile()
     }
 
+    /// Every mouse's chosen speed, or its normal speed while CalmMouse is paused or quitting.
+    private func applyPointerSpeeds(enabled: Bool) {
+        let effective = { (chosen: Double?) in PointerSpeedController.effectiveSpeed(chosen: chosen, enabled: enabled) }
+        pointerSpeed.mouseType = settings.mouseType
+        pointerSpeed.typeOverrides = settings.deviceTypeOverrides
+        pointerSpeed.magicMouseSpeed = effective(settings.chosenMagicMouseTrackingSpeed)
+        pointerSpeed.wheelMouseSpeed = effective(settings.chosenWheelTrackingSpeed)
+        pointerSpeed.wheelSpeeds = settings.wheelDevices.compactMapValues { effective($0.trackingSpeed) }
+        pointerSpeed.apply()
+    }
+
     private func applySettings() {
         blocker.rules = settings.ruleSet
         tapRecognizer.config = settings.tapConfig
         tap.treatUnknownContinuousAsMagicMouse = settings.treatUnknownContinuousAsMagicMouse
         tap.mouseType = settings.mouseType
-        pointerSpeed.mouseType = settings.mouseType
-        pointerSpeed.magicMouseSpeed = PointerSpeedController.effectiveSpeed(
-            chosen: settings.chosenMagicMouseTrackingSpeed, enabled: settings.enabled)
-        pointerSpeed.wheelMouseSpeed = PointerSpeedController.effectiveSpeed(
-            chosen: settings.chosenWheelTrackingSpeed, enabled: settings.enabled)
-        pointerSpeed.apply()
+        tap.typeOverrides = settings.deviceTypeOverrides
+        tap.wheelDevices = settings.wheelDevices.mapValues(\.wheel)
+        applyPointerSpeeds(enabled: settings.enabled)
         battery.enabled = settings.batteryWarningEnabled
         battery.threshold = settings.batteryWarningThreshold
     }
