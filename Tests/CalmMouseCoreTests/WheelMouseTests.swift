@@ -7,9 +7,9 @@ final class WheelMouseTests: XCTestCase {
     /// A wheel tick as captured from a real Bluetooth wheel mouse on macOS 26:
     /// not continuous, no phase, no momentum.
     private func tick(_ t: TimeInterval, dx: Double = 0, dy: Double = -10,
-                      mods: ModifierCombo = []) -> ScrollEvent {
+                      mods: ModifierCombo = [], wheel: WheelSettings? = nil) -> ScrollEvent {
         ScrollEvent(timestamp: t, fromMagicMouse: false, isContinuous: false,
-                    deltaX: dx, deltaY: dy, modifiers: mods, fromWheelMouse: true)
+                    deltaX: dx, deltaY: dy, modifiers: mods, fromWheelMouse: true, wheel: wheel)
     }
 
     private func swipe(_ t: TimeInterval, _ phase: ScrollPhase, dy: Double = 3) -> ScrollEvent {
@@ -279,6 +279,54 @@ final class WheelMouseTests: XCTestCase {
         let old = try JSONDecoder().decode(BlockerConfig.self, from: Data(#"{"deadZone":4}"#.utf8))
         XCTAssertFalse(old.smoothWheelScroll)
         XCTAssertEqual(old.wheelScrollSpeed, 3)
+    }
+
+    // MARK: Each wheel mouse has its own settings
+
+    func testEachWheelMouseCarriesItsOwnSettings() {
+        let b = ScrollBlocker()                       // the template: everything off
+        var glides = WheelSettings()
+        glides.smooth = true
+        var reversed = WheelSettings()
+        reversed.reverse = true
+        XCTAssertEqual(b.handleScroll(tick(0)), .pass, "a mouse with no settings of its own")
+        guard case .smooth = b.handleScroll(tick(1, wheel: glides)) else {
+            return XCTFail("this mouse glides")
+        }
+        XCTAssertEqual(b.handleScroll(tick(2, wheel: reversed)), inverted)
+        XCTAssertEqual(b.handleScroll(tick(3, wheel: WheelSettings())), .pass)
+    }
+
+    func testAPressedWheelBlocksOnlyForAMouseThatAskedForIt() {
+        let b = ScrollBlocker()
+        var blocks = WheelSettings()
+        blocks.blockWhilePressed = true
+        b.wheelMouseButton(wheel, isDown: true, at: 0)
+        XCTAssertEqual(b.handleScroll(tick(0.1, wheel: blocks)), .drop)
+        XCTAssertEqual(b.handleScroll(tick(0.2, wheel: WheelSettings())), .pass)
+    }
+
+    func testTheTemplateIsTodaysWheelSettings() {
+        var c = BlockerConfig()
+        c.reverseWheelScroll = true
+        c.smoothWheelScroll = true
+        c.wheelScrollSpeed = 5
+        XCTAssertEqual(c.wheelTemplate,
+                       WheelSettings(reverse: true, blockWhilePressed: false, smooth: true, speed: 5))
+    }
+
+    func testTheGlideTravelsAsFarAsThatMouseAsks() {
+        let b = ScrollBlocker()
+        var slow = WheelSettings()
+        slow.smooth = true
+        slow.speed = 1
+        var fast = slow
+        fast.speed = 4
+        guard case .smooth(_, let slowY) = b.handleScroll(tick(0, wheel: slow)),
+              case .smooth(_, let fastY) = b.handleScroll(tick(1, wheel: fast)) else {
+            return XCTFail("both glide")
+        }
+        XCTAssertEqual(fastY, slowY * 4, accuracy: 0.001)
     }
 
     // MARK: A zoom notch stops the glide

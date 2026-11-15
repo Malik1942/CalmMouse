@@ -27,11 +27,13 @@ public struct ScrollEvent: Equatable, Sendable {
     /// Vertical point delta (CGEvent axis 1).
     public var deltaY: Double
     public var modifiers: ModifierCombo
+    /// The settings of the wheel mouse that sent this tick. nil: the config's template.
+    public var wheel: WheelSettings?
 
     public init(timestamp: TimeInterval, fromMagicMouse: Bool = true, isContinuous: Bool = true,
                 phase: ScrollPhase = .none, momentum: MomentumPhase = .none,
                 deltaX: Double = 0, deltaY: Double = 0, modifiers: ModifierCombo = [],
-                fromWheelMouse: Bool = false) {
+                fromWheelMouse: Bool = false, wheel: WheelSettings? = nil) {
         self.timestamp = timestamp
         self.fromMagicMouse = fromMagicMouse && !fromWheelMouse
         self.fromWheelMouse = fromWheelMouse
@@ -41,6 +43,7 @@ public struct ScrollEvent: Equatable, Sendable {
         self.deltaX = deltaX
         self.deltaY = deltaY
         self.modifiers = modifiers
+        self.wheel = wheel
     }
 }
 
@@ -237,8 +240,9 @@ public final class ScrollBlocker {
     }
 
     /// The wheel mouse's equivalent of `isBlocking`: the wheel is pressed, or was a moment ago.
-    public func isBlockingWheel(at t: TimeInterval) -> Bool {
-        guard config.blockScrollWhileWheelPressed else { return false }
+    /// Without settings, the template's choice decides (that is what `--status` shows).
+    public func isBlockingWheel(at t: TimeInterval, settings: WheelSettings? = nil) -> Bool {
+        guard (settings ?? config.wheelTemplate).blockWhilePressed else { return false }
         return wheelPressed || t < wheelBlockUntil
     }
 
@@ -264,18 +268,19 @@ public final class ScrollBlocker {
     /// set up for a touch surface and stays with the Magic Mouse, so turning wheel support on
     /// never changes how an existing setup behaves.
     private func handleWheel(_ e: ScrollEvent) -> ScrollDecision {
-        if isBlockingWheel(at: e.timestamp) { return .drop }
+        let w = e.wheel ?? config.wheelTemplate
+        if isBlockingWheel(at: e.timestamp, settings: w) { return .drop }
 
-        let discrete: ScrollDecision = config.reverseWheelScroll
+        let discrete: ScrollDecision = w.reverse
             ? .rewrite(ScrollRewrite(phase: e.phase, momentum: e.momentum, invert: true))
             : .pass
-        guard config.smoothWheelScroll, e.modifiers.isDisjoint(with: Self.wheelSmoothingBypass) else {
+        guard w.smooth, e.modifiers.isDisjoint(with: Self.wheelSmoothingBypass) else {
             return discrete
         }
 
-        let direction: Double = config.reverseWheelScroll ? -1 : 1
-        var dx = wheelDistance(e.deltaX) * direction
-        var dy = wheelDistance(e.deltaY) * direction
+        let direction: Double = w.reverse ? -1 : 1
+        var dx = wheelDistance(e.deltaX, speed: w.speed) * direction
+        var dy = wheelDistance(e.deltaY, speed: w.speed) * direction
         // Shift turns the wheel sideways. macOS does that itself for a wheel's own events but
         // not for the gliding ones that replace them, so it is done here.
         if e.modifiers.contains(.shift), dx == 0 {
@@ -293,9 +298,9 @@ public final class ScrollBlocker {
     }
 
     /// How far one tick glides along an axis, keeping its sign.
-    private func wheelDistance(_ delta: Double) -> Double {
+    private func wheelDistance(_ delta: Double, speed: Double) -> Double {
         guard delta != 0 else { return 0 }
-        let distance = max(abs(delta), Self.wheelMinimumStep) * config.wheelScrollSpeed
+        let distance = max(abs(delta), Self.wheelMinimumStep) * speed
         return delta < 0 ? -distance : distance
     }
 

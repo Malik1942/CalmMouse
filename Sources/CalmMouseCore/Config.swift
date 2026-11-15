@@ -95,6 +95,12 @@ public struct BlockerConfig: Equatable, Sendable, Codable {
     /// How far a notch travels when smoothing, as a multiple of the base step.
     public var wheelScrollSpeed: Double = 3
 
+    /// The four settings above, for a wheel mouse that has no settings of its own.
+    public var wheelTemplate: WheelSettings {
+        WheelSettings(reverse: reverseWheelScroll, blockWhilePressed: blockScrollWhileWheelPressed,
+                      smooth: smoothWheelScroll, speed: wheelScrollSpeed)
+    }
+
     public init() {}
 
     public func action(for modifiers: ModifierCombo) -> ScrollAction {
