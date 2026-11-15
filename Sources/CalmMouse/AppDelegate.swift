@@ -215,6 +215,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let settingsItem = NSMenuItem(title: L("Settings…"), action: #selector(openSettings), keyEquivalent: ",")
         menu.addItem(settingsItem)
+        menu.addItem(NSMenuItem(title: L("Send Feedback…"), action: #selector(sendFeedback), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: L("Quit CalmMouse"), action: #selector(quit), keyEquivalent: "q"))
 
         for item in menu.items where item.action != nil { item.target = self }
@@ -429,6 +430,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func openAccessibility() {
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
         NSWorkspace.shared.open(url)
+    }
+
+    /// A new GitHub issue on the bug form, with this Mac's details filled in (see `Feedback`).
+    @objc private func sendFeedback() {
+        mice.refresh()
+        let info = Bundle.main.infoDictionary
+        let details = Feedback.Details(
+            version: (info?["CFBundleShortVersionString"] as? String) ?? "dev",
+            build: (info?["CFBundleVersion"] as? String) ?? "dev",
+            macOS: Feedback.macOSVersion,
+            model: Feedback.macModel,
+            accessibilityTrusted: AXIsProcessTrusted(),
+            enabled: settings.enabled,
+            tapRunning: tap.isRunning,
+            mouseType: settings.mouseType,
+            tapToClick: settings.tapToClick,
+            mice: mice.connected)
+        NSWorkspace.shared.open(Feedback.issueURL(details))
     }
 
     @objc private func quit() { NSApp.terminate(nil) }

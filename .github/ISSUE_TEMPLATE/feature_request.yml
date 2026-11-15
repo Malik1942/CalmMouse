@@ -1,0 +1,20 @@
+name: Idea or request
+description: Something CalmMouse could do, or do better.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like CalmMouse to do?
+    validations:
+      required: true
+  - type: textarea
+    id: situation
+    attributes:
+      label: When would it help?
+      description: The app, the task, or the moment where you missed it.
+  - type: input
+    id: mouse
+    attributes:
+      label: Mouse
+      placeholder: Magic Mouse, or the model of your wheel mouse

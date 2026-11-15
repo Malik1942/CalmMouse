@@ -1,0 +1,46 @@
+name: Something isn't working
+description: CalmMouse doesn't do what it should with your mouse.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this. The quickest way is **Send Feedback…** in CalmMouse's menu-bar menu: it fills in the version, macOS and diagnostics below for you.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what CalmMouse did instead.
+    validations:
+      required: true
+  - type: input
+    id: mouse
+    attributes:
+      label: Mouse
+      description: The model, and how it connects.
+      placeholder: Magic Mouse (USB-C), Bluetooth
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: CalmMouse version
+      placeholder: "1.1.2"
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: macOS 26.1
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: |
+        Filled in by Send Feedback…. Or paste what this prints in Terminal:
+        `/Applications/CalmMouse.app/Contents/MacOS/CalmMouse --status`
+        That output can include your mouse's Bluetooth name; remove it if you'd rather not share it.
+      render: text

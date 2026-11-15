@@ -229,7 +229,7 @@ real identity means macOS keeps your Accessibility grant across rebuilds.
 | Symptom | Fix |
 |---|---|
 | Menu bar says "Accessibility permission needed" but the toggle is ON | The stored grant has gone stale: macOS ties it to the app's code signature, so a rebuild or an old ad-hoc-signed build looks like a different app. Settings → General → **Reset grant…** (or `tccutil reset Accessibility com.calmmouse.app`). |
-| Nothing is blocked, `--status` shows `lastSeenDevice: null` | Device identification isn't matching your mouse. Settings → Advanced → **Mouse type** → Magic Mouse tells CalmMouse what you are holding (the older `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool true` still works). Please [open an issue](https://github.com/Malik1942/CalmMouse/issues) with the output of `CalmMouse --status`; that's a bug worth fixing properly. The mouse is recognized by its name or its hardware ID, and `otherDevicesSeen` in that output shows what yours reports as. |
+| Nothing is blocked, `--status` shows `lastSeenDevice: null` | Device identification isn't matching your mouse. Settings → Advanced → **Mouse type** → Magic Mouse tells CalmMouse what you are holding (the older `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool true` still works). Please report it with **Send Feedback…** in the menu-bar menu, which opens an issue with your mouse's hardware ID already filled in; that's a bug worth fixing properly. The mouse is recognized by its name or its hardware ID, and `otherDevicesSeen` in that output shows what yours reports as. |
 | Trackpad scrolling got caught too | `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool false`, then relaunch. |
 | Scrolling feels like it stops too long after a click | Settings → Magic Mouse → Fine-tuning → lower "Hold still after you let go". |
 | A tap does nothing in one part of the surface | The tap zone is on. `CalmMouse --status` reports `outsideZone` in `tapRejections` plus the exact landing point in `tapLastRejectionAt`. Widen the depth in Settings → Magic Mouse → Fine-tuning, or turn the zone off. |
@@ -256,8 +256,9 @@ real scrolling and physical clicks, which standalone tap apps can't see.)
 
 ## Contributing
 
-Solo project; issues and PRs are welcome. The most useful bug report is `CalmMouse --status` output
-plus which Magic Mouse generation you have. On the table, not promised: a scroll-acceleration curve
+Solo project; issues and PRs are welcome. The easiest bug report is **Send Feedback…** in the
+menu-bar menu: it opens an issue with the version, macOS and your mice's hardware IDs filled in (never
+their names). Otherwise, `CalmMouse --status` output plus which mouse you have. On the table, not promised: a scroll-acceleration curve
 for the Magic Mouse alone, and per-app rules keyed on window title.
 
 ## License
