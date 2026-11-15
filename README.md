@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>Your Magic Mouse stops scrolling the page when you click.</b><br>
-  Free, open source, macOS 13+.
+  Free, open source, macOS 13+, Apple silicon and Intel.
 </p>
 
 <p align="center">
@@ -64,6 +64,7 @@ Everything here is for the **Magic Mouse**. A mouse with a scroll wheel gets a f
 - **Straight lines**: a scroll commits to one axis. No diagonal drift.
 - **Nudge filter**: a finger resting on the shell doesn't count as a scroll.
 - **Momentum off**: drop the coasting tail, for the Magic Mouse alone.
+- **Reverse direction**: flip the Magic Mouse alone; the trackpad keeps its way.
 
 **Clicking**
 
@@ -80,15 +81,15 @@ Everything here is for the **Magic Mouse**. A mouse with a scroll wheel gets a f
 
 - **Per-app rules**: no scrolling in Figma, no sideways scroll in Excel, no momentum in your editor.
 - **Modifier + scroll**: hold ⌘ ⌥ ⌃ or ⇧ to scroll sideways, invert, or zoom.
-- **Tracking speed** for each mouse on its own.
-- **Presets** to start from, a **low-battery warning**, **in-app updates**, and English / 简体中文 / 繁體中文.
+- **Each mouse its own settings**, from tracking speed to scrolling, all on one Devices page.
+- **Presets** to start from, a **low-battery warning** for every mouse, **in-app updates**, and English / 简体中文 / 繁體中文.
 
 <p align="center">
   <img src="docs/images/settings-general.png" width="620" alt="CalmMouse settings window">
 </p>
 
-The switches you flip often are in the menu bar; everything else is in Settings (⌘,).
-Hover any setting for a short animated preview of what it does.
+Pause CalmMouse from the menu bar; everything else is in Settings (⌘,), where Devices lists each
+mouse with its own settings. Point at a setting and the left column shows what it does.
 
 <details>
 <summary><b>Full feature reference</b></summary>
@@ -97,19 +98,21 @@ Hover any setting for a short animated preview of what it does.
 |---|---|
 | **Block scroll while clicked** | Swallows Magic Mouse scrolling while any of its buttons is held. A gesture that starts under a click stays swallowed until you lift your finger, so nothing leaks out on release. Keeps blocking for an adjustable grace period (default 200 ms) to eat the trailing scroll your finger makes as it comes off the shell. |
 | **Dead zone** | Requires a gesture to travel a minimum distance before it counts. Kills the micro-jitter from a finger just *resting* on the shell. |
-| **Axis lock** | Once a scroll commits to vertical or horizontal, the other axis is zeroed for the rest of the gesture and its momentum. No more diagonal drift. |
+| **Direction** | Any direction, straight lines, or up and down only. In straight lines, once a scroll commits to vertical or horizontal, the other axis is zeroed for the rest of the gesture and its momentum. No more diagonal drift. |
 | **Momentum toggle** | Turn off the coasting tail after a flick, for the Magic Mouse only. macOS's own setting is system-wide. |
 | **Per-app rules** | Any of the above, overridden per application. Disable Magic Mouse scrolling entirely in Figma, block horizontal scroll in Excel, drop momentum in a code editor. Rules follow the frontmost app. |
 | **Modifier actions** | Map ⌘/⌥/⌃/⇧ + scroll to horizontal scrolling, inverted scrolling, zoom (⌘-scroll or system ⌃-scroll), or nothing at all. |
 | **Tap to click** | A light single-finger tap left-clicks; no need to press the mouse down. Adjustable Firm↔Light sensitivity; taps are auto-rejected while (and shortly after) scrolling, during and right after physical clicks, for multi-finger touches, resting fingers, and grazes. Double- and triple-taps become real double-/triple-clicks. Off by default. |
-| **Tap to right-click** | Give tapping the right button too, in one of two ways: **a tap on the right side** of the surface right-clicks, the same side a physical right click uses (the default), or **a double-tap**, where a second quick tap in the same spot opens the right-click menu (in that mode, double-click by pressing or by tapping twice a little slower). Right taps respect the tap zone, never start a drag, and reset the double-click chain like a real right click. Off by default. |
+| **Tap to right-click** | A tap on the right side of the surface right-clicks, the same side a physical right click uses. Taps elsewhere are normal clicks. |
 | **Tap zone** | Restrict taps to the front part of the surface, away from the side edges, so the fingers gripping the mouse can't click. Adjustable depth. |
 | **Double Tap Drag** | Tap twice and keep your finger down on the second tap: the button presses down **when you start moving the mouse** and releases when the finger lifts. Because the press is deferred until you actually move, a finger that just comes back to rest, or swipes to scroll, never presses anything. A quick second tap is still a double-click, so double-click-drag (selecting a word, then extending it) works. |
 | **Two-finger drag (long press)** | Rest two fingers on the surface together and hold; after a moment the button presses down. Move to drag, lift either finger to drop. Fingers that land one after the other are grip, not gesture, and never trigger it. |
 | **Tracking speed** | Each mouse gets its own pointer speed, so the Magic Mouse and a wheel mouse can move at different speeds. |
-| **Wheel mice** | For a mouse with a scroll wheel: smooth scrolling with its own speed, reverse the wheel's direction without touching other devices, and no scrolling while the wheel is pressed. All off until you turn them on. Settings → Advanced → **Mouse type** corrects a mouse that was taken for the wrong kind. |
-| **Battery warning** | A notification when the Magic Mouse drops below a threshold you set, so it doesn't die mid-afternoon. |
-| **Presets** | Three one-click starting points (*Just fix clicking*, *Extra steady*, *Trackpad feel*) that set the Scrolling and Clicking options in one go. Everything stays tweakable afterwards, and you can save your own setups as named presets. Per-app rules and shortcuts are never touched. |
+| **Magic Mouse direction** | Flip the Magic Mouse's scrolling on its own. macOS has one natural-scrolling switch for the trackpad and every mouse. |
+| **Wheel mice** | For a mouse with a scroll wheel: smooth scrolling with its own speed, reverse the wheel's direction without touching other devices, and no scrolling while the wheel is pressed. Each wheel mouse keeps its own settings, all off until you turn them on. Settings → Devices → **Treat as** corrects a mouse that was taken for the wrong kind. |
+| **Battery warning** | A notification when any mouse that reports its level drops below a threshold you set, so it doesn't die mid-afternoon. |
+| **Other mouse apps** | Devices says so when Mac Mouse Fix, LinearMouse, Mos, Scroll Reverser, BetterTouchTool, SteerMouse, Logi Options+ or a similar app is changing the same thing as CalmMouse, so a doubled reverse or glide doesn't go unexplained. |
+| **Presets** | Three one-click starting points (*Just fix clicking*, *Extra steady*, *Trackpad feel*) that set the Scrolling and Clicking options in one go. Everything stays tweakable afterwards. Per-app rules and shortcuts are never touched. |
 | **In-app updates** | CalmMouse checks the releases feed twice a day; a new version shows up as a menu-bar item and in Settings → General with its release notes. One click downloads, verifies the signature is ours, swaps the app in place, and relaunches. |
 | **Speaks your language** | English, 简体中文 and 繁體中文, following the system language setting; no in-app switch needed. |
 
@@ -229,10 +232,10 @@ real identity means macOS keeps your Accessibility grant across rebuilds.
 | Symptom | Fix |
 |---|---|
 | Menu bar says "Accessibility permission needed" but the toggle is ON | The stored grant has gone stale: macOS ties it to the app's code signature, so a rebuild or an old ad-hoc-signed build looks like a different app. Settings → General → **Reset grant…** (or `tccutil reset Accessibility com.calmmouse.app`). |
-| Nothing is blocked, `--status` shows `lastSeenDevice: null` | Device identification isn't matching your mouse. Settings → Advanced → **Mouse type** → Magic Mouse tells CalmMouse what you are holding (the older `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool true` still works). Please report it with **Send Feedback…** in the menu-bar menu, which opens an issue with your mouse's hardware ID already filled in; that's a bug worth fixing properly. The mouse is recognized by its name or its hardware ID, and `otherDevicesSeen` in that output shows what yours reports as. |
+| Nothing is blocked, `--status` shows `lastSeenDevice: null` | Device identification isn't matching your mouse. Settings → Devices → that mouse → **Treat as** → Magic Mouse tells CalmMouse what you are holding (the older `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool true` still works). Please report it with **Send Feedback…** in the menu-bar menu, which opens an issue with your mouse's hardware ID already filled in; that's a bug worth fixing properly. The mouse is recognized by its name or its hardware ID, and `otherDevicesSeen` in that output shows what yours reports as. |
 | Trackpad scrolling got caught too | `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool false`, then relaunch. |
-| Scrolling feels like it stops too long after a click | Settings → Magic Mouse → Fine-tuning → lower "Hold still after you let go". |
-| A tap does nothing in one part of the surface | The tap zone is on. `CalmMouse --status` reports `outsideZone` in `tapRejections` plus the exact landing point in `tapLastRejectionAt`. Widen the depth in Settings → Magic Mouse → Fine-tuning, or turn the zone off. |
+| Scrolling feels like it stops too long after a click | Settings → Devices → Magic Mouse → Fine-tuning → lower "Hold still after you let go". |
+| A tap does nothing in one part of the surface | The tap zone is on. `CalmMouse --status` reports `outsideZone` in `tapRejections` plus the exact landing point in `tapLastRejectionAt`. Widen the depth in Settings → Devices → Magic Mouse → Fine-tuning, or turn the zone off. |
 | Want to see what's happening | `log stream --predicate 'subsystem == "com.calmmouse.app"' --level debug` |
 
 </details>
