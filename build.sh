@@ -19,9 +19,12 @@ APP=build/CalmMouse.app
 # Caches, which is never synced.
 SCRATCH="$HOME/Library/Caches/CalmMouse/build"
 
-echo "▶ swift build -c $CONFIG"
-swift build -c "$CONFIG" --scratch-path "$SCRATCH" >/dev/null
-BIN="$(swift build -c "$CONFIG" --scratch-path "$SCRATCH" --show-bin-path)/CalmMouse"
+# Both architectures in one binary: the deployment target (macOS 13) still runs on Intel Macs,
+# and an Apple-silicon-only build simply won't open there.
+ARCHS=(--arch arm64 --arch x86_64)
+echo "▶ swift build -c $CONFIG (arm64 + x86_64)"
+swift build -c "$CONFIG" "${ARCHS[@]}" --scratch-path "$SCRATCH" >/dev/null
+BIN="$(swift build -c "$CONFIG" "${ARCHS[@]}" --scratch-path "$SCRATCH" --show-bin-path)/CalmMouse"
 [[ -x "$BIN" ]] || { echo "binary missing: $BIN"; exit 1; }
 
 echo "▶ assembling $APP"
