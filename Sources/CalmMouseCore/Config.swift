@@ -82,6 +82,10 @@ public struct BlockerConfig: Equatable, Sendable, Codable {
     /// modifier combination → what scrolling should do while it's held.
     public var modifierActions: [ModifierCombo: ScrollAction] = [:]
 
+    /// Flip the Magic Mouse's scrolling on its own. macOS has one "natural scrolling" switch
+    /// for the trackpad and every mouse; this lets the Magic Mouse go the other way.
+    public var reverseMagicMouseScroll: Bool = false
+
     // Wheel mice. Everything above is for the Magic Mouse; a wheel mouse answers only to
     // these, and both start off so that supporting it changes nothing until asked.
 

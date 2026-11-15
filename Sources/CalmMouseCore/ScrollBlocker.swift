@@ -251,12 +251,30 @@ public final class ScrollBlocker {
     public func handleScroll(_ e: ScrollEvent) -> ScrollDecision {
         if e.fromWheelMouse { return handleWheel(e) }
         guard e.fromMagicMouse else { return .pass }
-        if config.disableScrollEntirely { return .drop }
+        let decision = magicMouseDecision(e)
+        return config.reverseMagicMouseScroll ? Self.reversed(decision, for: e) : decision
+    }
 
+    private func magicMouseDecision(_ e: ScrollEvent) -> ScrollDecision {
+        if config.disableScrollEntirely { return .drop }
         if e.momentum != .none {
             return handleMomentum(e)
         }
         return handleGesture(e)
+    }
+
+    /// The same decision with the direction flipped. What was going to be dropped stays
+    /// dropped, and a rewrite that already inverts (a held invert key) ends up normal.
+    private static func reversed(_ decision: ScrollDecision, for e: ScrollEvent) -> ScrollDecision {
+        switch decision {
+        case .pass:
+            return .rewrite(ScrollRewrite(phase: e.phase, momentum: e.momentum, invert: true))
+        case .rewrite(var r):
+            r.invert.toggle()
+            return .rewrite(r)
+        case .drop, .smooth:
+            return decision
+        }
     }
 
     /// A wheel tick. Ticks have no phases and no momentum, so none of the gesture state is
