@@ -28,7 +28,7 @@ if xcrun notarytool history --keychain-profile "$PROFILE" >/dev/null 2>&1; then
 fi
 
 mkdir -p "$OUT"
-rm -f "$OUT/CalmMouse.zip"
+rm -f "$OUT/CalmMouse.zip" "$OUT/CalmMouse-update.zip"
 
 zip_app() {
   # --norsrc --noextattr matters: without them ditto stores xattrs as AppleDouble entries, and a
@@ -74,3 +74,12 @@ if [[ -n "$DEV_ID" && "$HAVE_PROFILE" == true ]]; then
     || { echo "   ⚠️  stapled ticket missing after unzip"; exit 1; }
 fi
 rm -rf "$TMP"
+
+# The same zip again under the name the in-app updater downloads (since 1.1.4). GitHub counts
+# each file on its own, so CalmMouse.zip counts installs (website, GitHub, Homebrew) and this
+# one counts updates. Attach both to the release.
+cp "$OUT/CalmMouse.zip" "$OUT/CalmMouse-update.zip"
+echo "✅ $OUT/CalmMouse-update.zip  (identical copy, for the in-app updater)"
+echo
+echo "Publish with both files:"
+echo "  gh release create v$VERSION $OUT/CalmMouse.zip $OUT/CalmMouse-update.zip --title \"CalmMouse $VERSION\" --notes-file <notes.md>"

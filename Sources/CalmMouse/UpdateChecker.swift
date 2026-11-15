@@ -18,7 +18,7 @@ final class UpdateChecker: ObservableObject {
         var version: String     // "0.5.0" — tag with the leading v stripped
         var notes: String       // release body, shown as the in-app "what's new"
         var pageURL: URL        // the release page, as the manual fallback
-        var zipURL: URL?        // the CalmMouse.zip asset
+        var zipURL: URL?        // the zip to install (see `parseRelease`)
     }
 
     enum State: Equatable {
@@ -100,6 +100,12 @@ final class UpdateChecker: ObservableObject {
         if (availableRelease != nil) != hadUpdate { onAvailabilityChanged?() }
     }
 
+    /// The zip people download, and the identical copy only the updater downloads. GitHub counts
+    /// each file's downloads on its own, so the two counts tell new installs from updates.
+    /// Releases before 1.1.4 have only the first.
+    static let zipAsset = "CalmMouse.zip"
+    static let updateZipAsset = "CalmMouse-update.zip"
+
     /// GitHub's `releases/latest` payload, reduced to what the updater needs.
     static func parseRelease(_ data: Data) -> Release? {
         struct Feed: Decodable {
@@ -116,7 +122,8 @@ final class UpdateChecker: ObservableObject {
             version: version,
             notes: feed.body ?? "",
             pageURL: feed.html_url,
-            zipURL: feed.assets.first { $0.name == "CalmMouse.zip" }?.browser_download_url)
+            zipURL: (feed.assets.first { $0.name == updateZipAsset }
+                     ?? feed.assets.first { $0.name == zipAsset })?.browser_download_url)
     }
 
     // MARK: Installing

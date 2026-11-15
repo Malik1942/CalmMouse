@@ -31,6 +31,31 @@ final class UpdateCheckerTests: XCTestCase {
         XCTAssertTrue(release.notes.contains("Tap to right-click"))
     }
 
+    func testInAppUpdatesDownloadTheirOwnCopy() throws {
+        // From 1.1.4 every release carries the same zip twice. The updater takes the copy named
+        // for it, so the plain CalmMouse.zip count is people installing and the other is updates.
+        let feed = capturedFeed.replacingOccurrences(of: """
+              "size": 955940
+            }
+        """, with: """
+              "size": 955940
+            },
+            {
+              "name": "CalmMouse-update.zip",
+              "browser_download_url": "https://github.com/Malik1942/CalmMouse/releases/download/v0.5.0/CalmMouse-update.zip",
+              "size": 955940
+            }
+        """)
+        XCTAssertNotEqual(feed, capturedFeed, "fixture edit applied")
+        let release = try XCTUnwrap(UpdateChecker.parseRelease(Data(feed.utf8)))
+        XCTAssertEqual(release.zipURL?.lastPathComponent, "CalmMouse-update.zip")
+    }
+
+    func testOlderReleasesWithOneZipStillUpdate() throws {
+        let release = try XCTUnwrap(UpdateChecker.parseRelease(Data(capturedFeed.utf8)))
+        XCTAssertEqual(release.zipURL?.lastPathComponent, "CalmMouse.zip")
+    }
+
     func testReleaseWithoutTheZipAssetStillParses() throws {
         // A release published without the asset attached yet: the updater must surface it
         // (with the manual fallback) rather than choke.
