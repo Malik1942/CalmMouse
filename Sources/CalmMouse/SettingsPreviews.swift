@@ -4,7 +4,7 @@ import SwiftUI
 
 /// Each case is one little looping animation — a page, a Magic Mouse seen from above,
 /// and a finger — showing what a setting does, in the spirit of Apple's mouse pane.
-enum SettingPreview {
+enum SettingPreview: Equatable {
     case blockWhileClick
     case settleAfterRelease
     case ignoreNudges
@@ -17,6 +17,7 @@ enum SettingPreview {
     case tapAndDrag
     case twoFingerDrag
     case keyZoom
+    case reverseScroll(on: Bool)
 
     /// Loop length in seconds.
     var loop: Double {
@@ -33,6 +34,7 @@ enum SettingPreview {
         case .tapAndDrag:         return 4.0
         case .twoFingerDrag:      return 3.8
         case .keyZoom:            return 3.2
+        case .reverseScroll:      return 3.0
         }
     }
 }
@@ -117,6 +119,40 @@ extension EnvironmentValues {
 }
 
 // MARK: - Canvas
+
+/// The page under the rendered mouse in Devices: what the story's setting does on screen. Same
+/// page, menu, arrows and marks as the small previews.
+func drawPreviewPage(_ ctx: GraphicsContext, size: CGSize, page: PageState) {
+    let scene = PreviewScene(ctx: ctx, size: size)
+    let r = CGRect(origin: .zero, size: size).insetBy(dx: 0.5, dy: 0.5)
+    scene.drawPage(r, scrollY: page.scrollY, scrollX: page.scrollX, zoom: page.zoom, buttonFlash: page.flash,
+                   objectAt: page.object.map { CGPoint(x: r.minX + 28 + $0 * 2.4, y: r.midY) })
+    scene.drawMenu(at: CGPoint(x: r.minX + 40, y: r.minY + 16), alpha: page.menu)
+    if let arrows = page.arrows {
+        let x = r.maxX - 30, top = r.minY + 18, bottom = r.maxY - 18
+        switch arrows.kind {
+        case .straight:
+            scene.drawArrow(from: CGPoint(x: x - 16, y: bottom), to: CGPoint(x: x - 4, y: top),
+                            color: scene.ignored, alpha: arrows.drift, dashed: true)
+            scene.drawArrow(from: CGPoint(x: x + 8, y: bottom), to: CGPoint(x: x + 8, y: top), color: scene.accent, alpha: arrows.page)
+        case .diagonal:
+            scene.drawArrow(from: CGPoint(x: x - 12, y: bottom), to: CGPoint(x: x + 6, y: top), color: scene.accent, alpha: arrows.page)
+        case .flipped(let on):
+            scene.drawArrow(from: CGPoint(x: x, y: on ? top : bottom), to: CGPoint(x: x, y: on ? bottom : top),
+                            color: scene.accent, alpha: arrows.page)
+        }
+    }
+    scene.drawCross(at: CGPoint(x: r.maxX - 18, y: r.minY + 18), alpha: page.cross)
+    if let held = page.key {
+        let key = CGRect(x: r.maxX - 46, y: r.maxY - 32, width: 32, height: 22)
+        ctx.fill(Path(roundedRect: key, cornerRadius: 5),
+                 with: .color(held > 0.5 ? scene.accent.opacity(0.25) : Color.primary.opacity(0.06)))
+        ctx.stroke(Path(roundedRect: key, cornerRadius: 5),
+                   with: .color(held > 0.5 ? scene.accent.opacity(0.9) : scene.ink), lineWidth: 1.5)
+        ctx.draw(Text("⌘").font(.system(size: 13, weight: .medium)).foregroundColor(held > 0.5 ? scene.accent : scene.ink),
+                 at: CGPoint(x: key.midX, y: key.midY))
+    }
+}
 
 struct PreviewCanvas: View {
     let preview: SettingPreview
@@ -309,6 +345,7 @@ private struct PreviewScene {
         case .tapAndDrag:         tapAndDrag(t)
         case .twoFingerDrag:      twoFingerDrag(t)
         case .keyZoom:            keyZoom(t)
+        case .reverseScroll(let on): reverseScroll(t, on: on)
         }
     }
 
@@ -503,6 +540,18 @@ private struct PreviewScene {
                        clockwise: false)
             ctx.stroke(arc, with: .color(accent), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
         }
+    }
+
+    /// The same swipe scrolls the page the other way.
+    private func reverseScroll(_ t: Double, on: Bool) {
+        let s = seg(t, 0.5, 1.5)
+        drawPage(pageRect, scrollY: (on ? -26 : 26) * seg(t, 0.55, 1.6))
+        drawMouse(mouseRect)
+        drawFinger(at: CGPoint(x: touchPoint.x, y: touchPoint.y + 6 - 26 * s),
+                   alpha: seg(t, 0.1, 0.4) * (1 - seg(t, 1.6, 1.9)))
+        let x = pageRect.maxX + 22, mid = pulse(t, 0.6, 2.7)
+        drawArrow(from: CGPoint(x: x, y: on ? pageRect.midY - 18 : pageRect.midY + 18),
+                  to: CGPoint(x: x, y: on ? pageRect.midY + 18 : pageRect.midY - 18), color: accent, alpha: mid)
     }
 
     /// Hold a key and scroll — the page zooms instead.

@@ -43,6 +43,8 @@ cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 # Localizations: the app picks the .lproj matching the system language (English fallback).
 cp -R Resources/*.lproj "$APP/Contents/Resources/"
+# The rendered Magic Mouse in Settings › Devices: a still and 72 turn frames per finish.
+cp -R Resources/MagicMouse "$APP/Contents/Resources/"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 # This folder is synced by iCloud, which can tag the bundle with Finder and sync attributes at any

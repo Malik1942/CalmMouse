@@ -224,3 +224,10 @@
 
 /* 1.2: how a same-named mouse connects */
 "Bluetooth" = "藍牙";
+
+/* Devices: the rendered Magic Mouse */
+"Drag to turn · double-click to put back" = "拖曳可旋轉 · 按兩下復原";
+"Drag to turn it. Double-click to put it back." = "拖曳可旋轉，按兩下復原。";
+"Mouse color" = "滑鼠顏色";
+"White" = "白色";
+"Black" = "黑色";
