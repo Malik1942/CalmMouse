@@ -419,7 +419,10 @@ private struct DeviceColumn: View {
     var body: some View {
         VStack(spacing: Theme.Space.large) {
             if devices.count > 1 { switcher }
-            if let preview = focus.preview {
+            if let selected, selected.kind == .magicMouse {
+                // The rendered mouse plays each setting's story on itself.
+                MouseShowcase(preview: focus.preview) { details(selected, turnHint: true) }
+            } else if let preview = focus.preview {
                 PreviewCanvas(preview: preview)
                     .frame(width: 250, height: 150)
             } else if let selected {
@@ -452,6 +455,12 @@ private struct DeviceColumn: View {
                 .font(.system(size: 72, weight: .ultraLight))
                 .foregroundStyle(.secondary)
                 .frame(height: 150)
+            details(device, turnHint: false)
+        }
+    }
+
+    private func details(_ device: DeviceEntry, turnHint: Bool) -> some View {
+        VStack(spacing: Theme.Space.small) {
             Text(device.name)
                 .font(.headline)
                 .lineLimit(1)
@@ -460,6 +469,12 @@ private struct DeviceColumn: View {
             }
             if let battery = batteryText(device) {
                 Text(battery).foregroundStyle(.secondary)
+            }
+            if turnHint {
+                Text(L("Drag to turn · double-click to put back"))
+                    .font(Theme.Text.detail)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, Theme.Space.small)
             }
         }
     }
@@ -575,7 +590,8 @@ private struct MagicMouseForm: View {
                              caption: L("On: the page glides after a swipe.\nOff: it stops when your finger does.")) {
                     Toggle("Keep gliding after a swipe", isOn: $settings.momentumEnabled)
                 }
-                ExplainedRow(caption: L("Flips only the Magic Mouse.\nThe trackpad stays as it is.")) {
+                ExplainedRow(preview: .reverseScroll(on: settings.reverseMagicMouseScroll),
+                             caption: L("Flips only the Magic Mouse.\nThe trackpad stays as it is.")) {
                     Toggle("Reverse direction", isOn: $settings.reverseMagicMouseScroll)
                 }
             }
@@ -710,7 +726,7 @@ private struct PresetCard: View {
     var remove: (() -> Void)? = nil
 
     var body: some View {
-        ExplainedRow(caption: L(preset.summary)) {
+        ExplainedRow(preview: preset.story, caption: L(preset.summary)) {
             LabeledContent {
                 HStack(spacing: Theme.Space.medium) {
                     if let remove {
@@ -738,6 +754,18 @@ private struct PresetCard: View {
                         .frame(width: Theme.Size.rowIcon)
                 }
             }
+        }
+    }
+}
+
+private extension Preset {
+    /// The story a built-in preset's row plays: the thing it is mostly about.
+    var story: SettingPreview? {
+        switch name {
+        case Preset.justFixClicking.name: return .blockWhileClick
+        case Preset.extraSteady.name: return .straightLines
+        case Preset.trackpadFeel.name: return .tapToClick
+        default: return nil
         }
     }
 }

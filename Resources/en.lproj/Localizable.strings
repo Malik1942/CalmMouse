@@ -225,3 +225,10 @@
 
 /* 1.2: how a same-named mouse connects */
 "Bluetooth" = "Bluetooth";
+
+/* Devices: the rendered Magic Mouse */
+"Drag to turn · double-click to put back" = "Drag to turn · double-click to put back";
+"Drag to turn it. Double-click to put it back." = "Drag to turn it. Double-click to put it back.";
+"Mouse color" = "Mouse color";
+"White" = "White";
+"Black" = "Black";
