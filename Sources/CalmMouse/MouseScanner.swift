@@ -53,9 +53,9 @@ enum MouseScanner {
                 kind = hasWheel(device) ? .wheelMouse : nil
             }
             let mouse = ConnectedMouse(name: name, kind: kind, info: info)
-            // One physical mouse often shows up as several HID devices. Keep one entry per
-            // name, preferring the one that told us what kind of mouse it is.
-            if let i = result.firstIndex(where: { $0.name == name }) {
+            // One physical mouse often shows up as several HID devices with the same IDs and
+            // name. Keep one entry for them, preferring the one that told us what kind it is.
+            if let i = result.firstIndex(where: { $0.info.settingsKey == info.settingsKey }) {
                 if result[i].kind == nil && kind != nil { result[i] = mouse }
             } else {
                 result.append(mouse)
@@ -108,6 +108,8 @@ struct DeviceEntry: Identifiable, Equatable {
     /// What it is handled as, after "Treat as". nil: CalmMouse leaves it alone.
     let kind: MouseKind?
     let connected: Bool
+    /// How it connects, shown only when another listed device has the same name.
+    var detail: String? = nil
     var id: String { key }
 }
 
@@ -116,13 +118,17 @@ extension MouseEnvironment {
     /// CalmMouse leaves alone. A Magic Mouse drops off Bluetooth whenever it sleeps, so one
     /// that has been seen stays listed; with nothing connected at all it is listed too, since
     /// that is the mouse CalmMouse is mostly for.
-    static func deviceList(connected: [ConnectedMouse], typeOverride: (String) -> MouseTypeSetting,
+    static func deviceList(connected: [ConnectedMouse], typeOverride: (_ key: String, _ name: String) -> MouseTypeSetting,
                            rememberedMagicMouse: Bool) -> [DeviceEntry] {
+        let names = connected.map(\.name)
         var entries = connected.map { mouse -> DeviceEntry in
             let key = mouse.info.settingsKey
+            let shared = names.filter { $0 == mouse.name }.count > 1
             return DeviceEntry(key: key, name: mouse.name, detected: mouse.kind,
-                               kind: MouseClassifier.effectiveKind(detected: mouse.kind, override: typeOverride(key)),
-                               connected: true)
+                               kind: MouseClassifier.effectiveKind(detected: mouse.kind,
+                                                                   override: typeOverride(key, mouse.name)),
+                               connected: true,
+                               detail: shared ? connectionName(mouse.info.transport) : nil)
         }
         let hasMagicMouse = entries.contains { $0.kind == .magicMouse || $0.detected == .magicMouse }
         if !hasMagicMouse && (rememberedMagicMouse || entries.isEmpty) {
@@ -137,13 +143,20 @@ extension MouseEnvironment {
             }
         }
         return entries.sorted {
-            rank($0) != rank($1) ? rank($0) < rank($1)
-                : $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            if rank($0) != rank($1) { return rank($0) < rank($1) }
+            let byName = $0.name.localizedCaseInsensitiveCompare($1.name)
+            return byName != .orderedSame ? byName == .orderedAscending : $0.key < $1.key
         }
     }
 
+    /// "USB" or "Bluetooth": enough to tell two same-named mice apart.
+    static func connectionName(_ transport: String) -> String? {
+        if transport.localizedCaseInsensitiveContains("bluetooth") { return L("Bluetooth") }
+        return transport.isEmpty ? nil : transport
+    }
+
     func devices(for settings: Settings) -> [DeviceEntry] {
-        Self.deviceList(connected: connected, typeOverride: settings.typeOverride(for:),
+        Self.deviceList(connected: connected, typeOverride: settings.typeOverride(key:name:),
                         rememberedMagicMouse: settings.rememberedMouseKinds.contains(.magicMouse))
     }
 }

@@ -35,10 +35,11 @@ final class PointerSpeedController {
     var magicMouseSpeed: Double?
     /// For a wheel mouse with no speed of its own.
     var wheelMouseSpeed: Double?
-    /// Wheel mice with a speed of their own, by `DeviceInfo.settingsKey`.
-    var wheelSpeeds: [String: Double] = [:]
     var mouseType: MouseTypeSetting = .automatic
-    var typeOverrides: [String: MouseTypeSetting] = [:]
+    /// Each device's own speed and Treat as.
+    var devices = DeviceSettingsIndex()
+    /// While paused, a device's own speed is written as normal speed.
+    var enabled = true
 
     /// Called when a mouse appears, after its speed has been applied.
     var onMouseAppeared: (() -> Void)?
@@ -103,11 +104,13 @@ final class PointerSpeedController {
     /// The speed for one connected mouse, with its own "Treat as" and, for a wheel mouse, its
     /// own speed when it has one.
     static func speed(forService info: DeviceIdentifier.DeviceInfo, legacyType: MouseTypeSetting,
-                      overrides: [String: MouseTypeSetting], magicMouse: Double?,
-                      wheelTemplate: Double?, wheelSpeeds: [String: Double]) -> Double? {
+                      devices: DeviceSettingsIndex, enabled: Bool, magicMouse: Double?,
+                      wheelTemplate: Double?) -> Double? {
         let key = info.settingsKey
-        return speed(for: info, mouseType: overrides[key] ?? legacyType, magicMouse: magicMouse,
-                     wheelMouse: wheelSpeeds[key] ?? wheelTemplate)
+        let own = devices.wheelDevice(key: key, name: info.product)
+        let wheelSpeed = own.map { effectiveSpeed(chosen: $0.trackingSpeed, enabled: enabled) } ?? wheelTemplate
+        return speed(for: info, mouseType: devices.typeOverride(key: key, name: info.product) ?? legacyType,
+                     magicMouse: magicMouse, wheelMouse: wheelSpeed)
     }
 
     /// While CalmMouse is paused, a mouse whose speed was changed moves at its normal speed.
@@ -136,9 +139,9 @@ final class PointerSpeedController {
                 builtIn: (property("Built-In") as? Bool) ?? false,
                 usages: DeviceIdentifier.usages(fromPairs: property("DeviceUsagePairs")))
             guard !info.isTrackpad,
-                  let speed = Self.speed(forService: info, legacyType: mouseType, overrides: typeOverrides,
-                                         magicMouse: magicMouseSpeed, wheelTemplate: wheelMouseSpeed,
-                                         wheelSpeeds: wheelSpeeds) else { continue }
+                  let speed = Self.speed(forService: info, legacyType: mouseType, devices: devices,
+                                         enabled: enabled, magicMouse: magicMouseSpeed,
+                                         wheelTemplate: wheelMouseSpeed) else { continue }
             let resolution = TrackingSpeed.resolution(forSpeed: speed)
             let accepted = api.setProperty(service, Self.resolutionKey, resolution as CFNumber)
             writes.append("\(info.product): \(resolution >> 16) DPI \(accepted ? "accepted" : "refused")")

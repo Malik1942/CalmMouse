@@ -144,7 +144,7 @@ final class Settings: ObservableObject {
     @Published var wheelDevices: [String: WheelDevice] { didSet { save(wheelDevices, Key.wheelDevices); changed() } }
     /// "Treat as", by `DeviceInfo.settingsKey`. A device with no entry follows `mouseType`,
     /// the single setting every device shared before 1.2.
-    @Published var deviceTypeOverrides: [String: MouseTypeSetting] { didSet { save(deviceTypeOverrides, Key.deviceTypeOverrides); changed() } }
+    @Published var deviceTypeOverrides: [String: TypeOverride] { didSet { save(deviceTypeOverrides, Key.deviceTypeOverrides); changed() } }
     /// The device whose settings the window shows. Not a setting: nothing re-applies when it moves.
     @Published var selectedDeviceKey: String? { didSet { d.set(selectedDeviceKey, forKey: Key.selectedDeviceKey) } }
     // Tracking speed: -1...1, 0 is normal. Not registered with a default on purpose: until the
@@ -215,7 +215,7 @@ final class Settings: ObservableObject {
         wheelScrollSpeed = d.double(forKey: Key.wheelScrollSpeed)
         reverseMagicMouseScroll = d.bool(forKey: Key.reverseMagicMouseScroll)
         wheelDevices = Settings.load([String: WheelDevice].self, Key.wheelDevices, d) ?? [:]
-        deviceTypeOverrides = Settings.load([String: MouseTypeSetting].self, Key.deviceTypeOverrides, d) ?? [:]
+        deviceTypeOverrides = Settings.load([String: TypeOverride].self, Key.deviceTypeOverrides, d) ?? [:]
         selectedDeviceKey = d.string(forKey: Key.selectedDeviceKey)
         magicMouseTrackingSpeed = d.double(forKey: Key.magicMouseTrackingSpeed)
         wheelTrackingSpeed = d.double(forKey: Key.wheelTrackingSpeed)
@@ -254,33 +254,48 @@ final class Settings: ObservableObject {
                       speed: min(max(wheelScrollSpeed, 1), Settings.maximumWheelScrollSpeed))
     }
 
-    func wheelSettings(for key: String) -> WheelSettings {
-        wheelDevices[key]?.wheel ?? wheelTemplate
+    /// Every device's own settings, as the event tap and pointer speed look them up.
+    var index: DeviceSettingsIndex {
+        DeviceSettingsIndex(wheels: wheelDevices, overrides: deviceTypeOverrides)
     }
 
-    /// Changes one wheel mouse's settings. Its first change copies the template, so the
-    /// settings it doesn't touch stay as they were.
-    func updateWheel(for key: String, _ change: (inout WheelSettings) -> Void) {
-        var device = wheelDevices[key] ?? WheelDevice(wheel: wheelTemplate, trackingSpeed: chosenWheelTrackingSpeed)
+    func wheelSettings(key: String, name: String) -> WheelSettings {
+        index.wheelDevice(key: key, name: name)?.wheel ?? wheelTemplate
+    }
+
+    /// Changes one wheel mouse's settings. Its first change starts from what it was using (a
+    /// same-named mouse's, or the template), so the settings it doesn't touch stay as they were.
+    func updateWheel(key: String, name: String, _ change: (inout WheelSettings) -> Void) {
+        var device = index.wheelDevice(key: key, name: name)
+            ?? WheelDevice(name: name, wheel: wheelTemplate, trackingSpeed: chosenWheelTrackingSpeed, updatedAt: Date())
         change(&device.wheel)
         device.wheel.speed = min(max(device.wheel.speed, 1), Settings.maximumWheelScrollSpeed)
+        device.name = name
+        device.updatedAt = Date()
         wheelDevices[key] = device
     }
 
     /// nil: this mouse's speed was never chosen, so it is left alone.
-    func wheelTrackingSpeed(for key: String) -> Double? {
-        if let device = wheelDevices[key] { return device.trackingSpeed }
+    func wheelTrackingSpeed(key: String, name: String) -> Double? {
+        if let device = index.wheelDevice(key: key, name: name) { return device.trackingSpeed }
         return chosenWheelTrackingSpeed
     }
 
-    func setWheelTrackingSpeed(_ speed: Double, for key: String) {
-        var device = wheelDevices[key] ?? WheelDevice(wheel: wheelTemplate, trackingSpeed: chosenWheelTrackingSpeed)
+    func setWheelTrackingSpeed(_ speed: Double, key: String, name: String) {
+        var device = index.wheelDevice(key: key, name: name)
+            ?? WheelDevice(name: name, wheel: wheelTemplate, trackingSpeed: chosenWheelTrackingSpeed, updatedAt: Date())
         device.trackingSpeed = speed
+        device.name = name
+        device.updatedAt = Date()
         wheelDevices[key] = device
     }
 
-    func typeOverride(for key: String) -> MouseTypeSetting {
-        deviceTypeOverrides[key] ?? mouseType
+    func typeOverride(key: String, name: String) -> MouseTypeSetting {
+        index.typeOverride(key: key, name: name) ?? mouseType
+    }
+
+    func setTypeOverride(_ type: MouseTypeSetting, key: String, name: String) {
+        deviceTypeOverrides[key] = TypeOverride(name: name, type: type, updatedAt: Date())
     }
 
     var tapConfig: TapConfig {
@@ -459,11 +474,4 @@ final class Settings: ObservableObject {
         guard !loading else { return }
         NotificationCenter.default.post(name: Settings.didChange, object: self)
     }
-}
-
-/// One wheel mouse's own settings.
-struct WheelDevice: Codable, Equatable {
-    var wheel: WheelSettings
-    /// nil until this mouse's tracking speed is chosen; until then it is left alone.
-    var trackingSpeed: Double?
 }

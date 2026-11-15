@@ -17,11 +17,9 @@ final class EventTap {
     var treatUnknownContinuousAsMagicMouse = false
     /// Settings → General → Mouse type.
     var mouseType: MouseTypeSetting = .automatic
-    /// "Treat as" for single devices, by `DeviceInfo.settingsKey`. Wins over `mouseType`.
-    var typeOverrides: [String: MouseTypeSetting] = [:]
-    /// Wheel mice with settings of their own, by `DeviceInfo.settingsKey`. Others use the
-    /// blocker's template.
-    var wheelDevices: [String: WheelSettings] = [:]
+    /// Each device's own Treat as and wheel settings. A device without them follows
+    /// `mouseType` and the blocker's template.
+    var devices = DeviceSettingsIndex()
     /// Fired the first time a device sends an event (a mouse was just connected or woke up).
     var onNewDevice: (() -> Void)? {
         get { identifier.onNewDevice }
@@ -210,7 +208,7 @@ final class EventTap {
 
     /// The "Treat as" that applies to a device: its own, else the shared Mouse type.
     private func setting(for info: DeviceIdentifier.DeviceInfo?) -> MouseTypeSetting {
-        info.flatMap { typeOverrides[$0.settingsKey] } ?? mouseType
+        info.flatMap { devices.typeOverride(key: $0.settingsKey, name: $0.product) } ?? mouseType
     }
 
     /// Which kind of mouse this event is to be handled as, or nil to leave it alone.
@@ -305,7 +303,7 @@ final class EventTap {
             deltaY: event.getDoubleValueField(.scrollWheelEventPointDeltaAxis1),
             modifiers: Self.combo(from: event.flags),
             fromWheelMouse: kind == .wheelMouse,
-            wheel: kind == .wheelMouse ? info.flatMap { wheelDevices[$0.settingsKey] } : nil
+            wheel: kind == .wheelMouse ? info.flatMap { devices.wheelDevice(key: $0.settingsKey, name: $0.product)?.wheel } : nil
         )
         if ScrollBlocker.interruptsGlide(e) { smoothDriver.cancel() }
         let decision = blocker.handleScroll(e)

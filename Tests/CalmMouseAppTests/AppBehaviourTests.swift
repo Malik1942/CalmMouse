@@ -64,41 +64,80 @@ final class AppBehaviourTests: XCTestCase {
                                                   magicMouse: nil, wheelMouse: -0.5))
     }
 
-    func testAMouseKeepsItsSettingsOverEitherConnection() {
+    func testEachConnectionHasItsOwnKeyAndTheNameIsShared() {
         // Measured 2026-11-15: the same MCHOSE A7 Ultra is 005D:4762 over Bluetooth LE and
-        // 5253:0011 through its USB receiver. Only the name stays.
+        // 5253:0011 through its USB receiver.
         let receiver = DeviceIdentifier.DeviceInfo(product: "MCHOSE A7 Ultra", vendorID: 0x5253,
                                                    productID: 0x0011, transport: "USB", usages: [.mouse])
-        XCTAssertEqual(otherMouse.settingsKey, receiver.settingsKey)
-        XCTAssertEqual(otherMouse.settingsKey, "MCHOSE A7 Ultra")
+        XCTAssertEqual(otherMouse.settingsKey, "005D:4762:MCHOSE A7 Ultra")
+        XCTAssertEqual(receiver.settingsKey, "5253:0011:MCHOSE A7 Ultra")
     }
 
     func testAMouseWithNoNameIsKeptApartByItsIDs() {
         let unnamed = DeviceIdentifier.DeviceInfo(product: "", vendorID: 0x046D, productID: 0xC077, transport: "USB")
-        XCTAssertEqual(unnamed.settingsKey, "046D:C077")
+        XCTAssertEqual(unnamed.settingsKey, "046D:C077:")
+    }
+
+    // MARK: Finding a device's own settings
+
+    private func saved(_ name: String, speed: Double?, at seconds: TimeInterval) -> WheelDevice {
+        WheelDevice(name: name, wheel: WheelSettings(), trackingSpeed: speed,
+                    updatedAt: Date(timeIntervalSince1970: seconds))
+    }
+
+    func testItsOwnSettingsComeFirst() {
+        var index = DeviceSettingsIndex()
+        index.wheels["005D:4762:MCHOSE A7 Ultra"] = saved("MCHOSE A7 Ultra", speed: 0.5, at: 10)
+        index.wheels["5253:0011:MCHOSE A7 Ultra"] = saved("MCHOSE A7 Ultra", speed: -0.5, at: 20)
+        XCTAssertEqual(index.wheelDevice(key: "005D:4762:MCHOSE A7 Ultra", name: "MCHOSE A7 Ultra")?.trackingSpeed, 0.5)
+    }
+
+    func testANewConnectionStartsFromTheSameNamedMouseChangedLast() {
+        var index = DeviceSettingsIndex()
+        index.wheels["005D:4762:MCHOSE A7 Ultra"] = saved("MCHOSE A7 Ultra", speed: 0.5, at: 10)
+        index.wheels["AAAA:0001:MCHOSE A7 Ultra"] = saved("MCHOSE A7 Ultra", speed: 0.25, at: 30)
+        XCTAssertEqual(index.wheelDevice(key: "5253:0011:MCHOSE A7 Ultra", name: "MCHOSE A7 Ultra")?.trackingSpeed,
+                       0.25, "the one changed most recently")
+        XCTAssertNil(index.wheelDevice(key: "1234:0001:Other", name: "Other"))
+    }
+
+    func testAMouseWithNoNameInheritsNothing() {
+        var index = DeviceSettingsIndex()
+        index.wheels["046D:C077:"] = saved("", speed: 0.5, at: 10)
+        XCTAssertNil(index.wheelDevice(key: "046D:C078:", name: ""))
+    }
+
+    func testTreatAsIsInheritedTheSameWay() {
+        var index = DeviceSettingsIndex()
+        index.overrides["005D:4762:MCHOSE A7 Ultra"] =
+            TypeOverride(name: "MCHOSE A7 Ultra", type: .magicMouse, updatedAt: Date(timeIntervalSince1970: 10))
+        XCTAssertEqual(index.typeOverride(key: "5253:0011:MCHOSE A7 Ultra", name: "MCHOSE A7 Ultra"), .magicMouse)
+        XCTAssertNil(index.typeOverride(key: "0001:0001:Other", name: "Other"))
     }
 
     private let officeMouse = DeviceIdentifier.DeviceInfo(product: "Office Mouse", vendorID: 0x046D,
                                                            productID: 0xB034, transport: "Bluetooth Low Energy",
                                                            usages: [.mouse])
 
-    private func serviceSpeed(_ info: DeviceIdentifier.DeviceInfo,
-                              overrides: [String: MouseTypeSetting] = [:],
-                              wheelSpeeds: [String: Double] = [:]) -> Double? {
-        PointerSpeedController.speed(forService: info, legacyType: .automatic, overrides: overrides,
-                                     magicMouse: 0.5, wheelTemplate: -0.5, wheelSpeeds: wheelSpeeds)
+    private func serviceSpeed(_ info: DeviceIdentifier.DeviceInfo, devices: DeviceSettingsIndex = .init(),
+                              enabled: Bool = true) -> Double? {
+        PointerSpeedController.speed(forService: info, legacyType: .automatic, devices: devices,
+                                     enabled: enabled, magicMouse: 0.5, wheelTemplate: -0.5)
     }
 
     func testEachWheelMouseGetsItsOwnTrackingSpeed() {
-        let speeds = [otherMouse.settingsKey: 0.75]
-        XCTAssertEqual(serviceSpeed(otherMouse, wheelSpeeds: speeds), 0.75)
-        XCTAssertEqual(serviceSpeed(officeMouse, wheelSpeeds: speeds), -0.5, "no speed of its own: the template")
+        var devices = DeviceSettingsIndex()
+        devices.wheels[otherMouse.settingsKey] = saved("MCHOSE A7 Ultra", speed: 0.75, at: 1)
+        XCTAssertEqual(serviceSpeed(otherMouse, devices: devices), 0.75)
+        XCTAssertEqual(serviceSpeed(officeMouse, devices: devices), -0.5, "no speed of its own: the template")
+        XCTAssertEqual(serviceSpeed(otherMouse, devices: devices, enabled: false), 0, "paused: back to normal")
     }
 
     func testTreatAsChangesOnlyThatMouse() {
-        let overrides = [officeMouse.settingsKey: MouseTypeSetting.magicMouse]
-        XCTAssertEqual(serviceSpeed(officeMouse, overrides: overrides), 0.5, "now a Magic Mouse")
-        XCTAssertEqual(serviceSpeed(otherMouse, overrides: overrides), -0.5)
+        var devices = DeviceSettingsIndex()
+        devices.overrides[officeMouse.settingsKey] = TypeOverride(name: "Office Mouse", type: .magicMouse, updatedAt: Date())
+        XCTAssertEqual(serviceSpeed(officeMouse, devices: devices), 0.5, "now a Magic Mouse")
+        XCTAssertEqual(serviceSpeed(otherMouse, devices: devices), -0.5)
     }
 
     func testPausedCalmMouseRestoresNormalSpeedOnlyWhereItChangedIt() {
@@ -119,7 +158,7 @@ final class AppBehaviourTests: XCTestCase {
 
     private func list(_ mice: [ConnectedMouse], overrides: [String: MouseTypeSetting] = [:],
                       remembered: Bool = false) -> [String] {
-        MouseEnvironment.deviceList(connected: mice, typeOverride: { overrides[$0] ?? .automatic },
+        MouseEnvironment.deviceList(connected: mice, typeOverride: { key, _ in overrides[key] ?? .automatic },
                                     rememberedMagicMouse: remembered)
             .map { "\($0.name)|\($0.kind?.rawValue ?? "none")|\($0.connected ? "on" : "off")" }
     }
@@ -154,6 +193,24 @@ final class AppBehaviourTests: XCTestCase {
         let magic = connected("My Magic Mouse", .magicMouse, vendor: 0x4C, product: 0x269)
         XCTAssertEqual(list([magic], overrides: [magic.info.settingsKey: .wheelMouse], remembered: true),
                        ["My Magic Mouse|none|on"])
+    }
+
+    func testTwoDifferentMiceWithOneNameAreListedApart() {
+        let wired = ConnectedMouse(name: "USB Optical Mouse", kind: .wheelMouse,
+                                   info: .init(product: "USB Optical Mouse", vendorID: 0x1, productID: 0x2, transport: "USB"))
+        let wireless = ConnectedMouse(name: "USB Optical Mouse", kind: .wheelMouse,
+                                      info: .init(product: "USB Optical Mouse", vendorID: 0x3, productID: 0x4,
+                                                  transport: "Bluetooth Low Energy"))
+        let entries = MouseEnvironment.deviceList(connected: [wired, wireless], typeOverride: { _, _ in .automatic },
+                                                  rememberedMagicMouse: false)
+        XCTAssertEqual(entries.count, 2)
+        XCTAssertEqual(Set(entries.compactMap(\.detail)), ["USB", "Bluetooth"], "told apart by how they connect")
+    }
+
+    func testAUniqueNameNeedsNoConnectionShown() {
+        let entries = MouseEnvironment.deviceList(connected: [connected("Zed Mouse", .wheelMouse)],
+                                                  typeOverride: { _, _ in .automatic }, rememberedMagicMouse: false)
+        XCTAssertNil(entries.first?.detail)
     }
 
     // MARK: Other mouse utilities

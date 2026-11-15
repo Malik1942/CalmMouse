@@ -160,10 +160,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func applyPointerSpeeds(enabled: Bool) {
         let effective = { (chosen: Double?) in PointerSpeedController.effectiveSpeed(chosen: chosen, enabled: enabled) }
         pointerSpeed.mouseType = settings.mouseType
-        pointerSpeed.typeOverrides = settings.deviceTypeOverrides
+        pointerSpeed.devices = settings.index
+        pointerSpeed.enabled = enabled
         pointerSpeed.magicMouseSpeed = effective(settings.chosenMagicMouseTrackingSpeed)
         pointerSpeed.wheelMouseSpeed = effective(settings.chosenWheelTrackingSpeed)
-        pointerSpeed.wheelSpeeds = settings.wheelDevices.compactMapValues { effective($0.trackingSpeed) }
         pointerSpeed.apply()
     }
 
@@ -172,8 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         tapRecognizer.config = settings.tapConfig
         tap.treatUnknownContinuousAsMagicMouse = settings.treatUnknownContinuousAsMagicMouse
         tap.mouseType = settings.mouseType
-        tap.typeOverrides = settings.deviceTypeOverrides
-        tap.wheelDevices = settings.wheelDevices.mapValues(\.wheel)
+        tap.devices = settings.index
         applyPointerSpeeds(enabled: settings.enabled)
         battery.enabled = settings.batteryWarningEnabled
         battery.threshold = settings.batteryWarningThreshold
