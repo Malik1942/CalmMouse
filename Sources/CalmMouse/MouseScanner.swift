@@ -162,12 +162,6 @@ final class MouseEnvironment: ObservableObject {
 
     var connectedKinds: Set<MouseKind> { Set(connected.compactMap(\.kind)) }
 
-    /// Which kinds the UI should show options for (see `MouseClassifier.kindsToShow`).
-    func kindsToShow(for settings: Settings) -> Set<MouseKind> {
-        MouseClassifier.kindsToShow(setting: settings.mouseType, connected: connectedKinds,
-                                    remembered: settings.rememberedMouseKinds)
-    }
-
     func refresh(settings: Settings = .shared) {
         let found = MouseScanner.scan()
         if found != connected { connected = found }
