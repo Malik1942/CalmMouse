@@ -56,6 +56,8 @@ final class MouseStoryTests: XCTestCase {
         XCTAssertEqual(visible(tap).count, 1)
         XCTAssertEqual(visible(tap).first?.pressing, false, "a tap, not a press")
         XCTAssertGreaterThan(s.frame(at: 0.65).page.flash, 0.5, "the button under the pointer clicks")
+        XCTAssertTrue(s.frame(at: 0.1).page.button, "the page shows that button the whole time")
+        XCTAssertFalse(SettingPreview.straightLines.frame(at: 1).page.button, "a page being scrolled has none")
         XCTAssertTrue(visible(s.frame(at: 1.0)).isEmpty)
         XCTAssertEqual(visible(s.frame(at: 1.6)).count, 1, "and again")
         let ripple = s.frame(at: 0.75).ripples.first { $0.progress > 0 && $0.progress < 1 }
@@ -149,6 +151,56 @@ final class MouseStoryTests: XCTestCase {
                 }
             }
             XCTAssertGreaterThan(shown, 0, "\(s) never shows a finger")
+        }
+    }
+}
+
+/// The big ring around the whole mouse: once, when the mouse appears, connects or takes a preset.
+/// Its motion follows Apple's AirPods rings: lobes of longer ticks travel round, the colour shifts
+/// between cyan and blue, and once in the middle it blooms out into a halo of dots.
+final class PresenceRingTests: XCTestCase {
+    private func ticks(_ f: PresenceRing.Frame) -> [PresenceRing.Tick] {
+        (0..<120).map { PresenceRing.tick(f, angle: 2 * Double.pi * Double($0) / 120) }
+    }
+
+    func testTheRingDrawsInPlaysAndIsGoneOnce() {
+        XCTAssertLessThan(PresenceRing.frame(at: 0.05)?.sweep ?? 1, 0.2, "it draws itself round from the front")
+        XCTAssertEqual(PresenceRing.frame(at: 1.2)?.sweep ?? 0, 1, accuracy: 0.001)
+        XCTAssertGreaterThan(PresenceRing.frame(at: 1.2)?.alpha ?? 0, 0.9)
+        XCTAssertLessThan(PresenceRing.frame(at: PresenceRing.duration - 0.1)?.alpha ?? 1, 0.3, "then it fades")
+        XCTAssertNil(PresenceRing.frame(at: PresenceRing.duration + 0.01), "and is gone: it never loops")
+        XCTAssertNil(PresenceRing.frame(at: -0.1))
+    }
+
+    func testTicksSwellIntoLobesThatTravelRound() throws {
+        let early = ticks(try XCTUnwrap(PresenceRing.frame(at: 0.9)))
+        let lengths = early.map(\.length)
+        XCTAssertGreaterThan(lengths.max()! / lengths.min()!, 2, "a wave, not an even band")
+        let later = ticks(try XCTUnwrap(PresenceRing.frame(at: 1.4)))
+        let peak = { (t: [PresenceRing.Tick]) in t.indices.max { t[$0].length < t[$1].length }! }
+        XCTAssertNotEqual(peak(early), peak(later), "the lobes move round")
+    }
+
+    func testTheColourShiftsBetweenCyanAndBlue() throws {
+        let f = try XCTUnwrap(PresenceRing.frame(at: 1.0)), mixes = ticks(f).map(\.mix)
+        XCTAssertLessThan(mixes.min()!, 0.15)
+        XCTAssertGreaterThan(mixes.max()!, 0.85)
+        let g = try XCTUnwrap(PresenceRing.frame(at: 1.6))
+        XCTAssertGreaterThan(abs(PresenceRing.tick(f, angle: 0).mix - PresenceRing.tick(g, angle: 0).mix), 0.1, "and moves")
+    }
+
+    func testItBloomsOnceInTheMiddle() {
+        XCTAssertEqual(PresenceRing.frame(at: 0.4)?.bloom ?? 1, 0, accuracy: 0.001)
+        XCTAssertGreaterThan(PresenceRing.frame(at: 1.7)?.bloom ?? 0, 0.8)
+        XCTAssertEqual(PresenceRing.frame(at: PresenceRing.duration - 0.2)?.bloom ?? 1, 0, accuracy: 0.001)
+    }
+
+    func testItStaysAroundTheMouseAndInsideTheColumn() {
+        var t = 0.0
+        while let f = PresenceRing.frame(at: t) {
+            XCTAssertGreaterThan(f.radius - ticks(f).map(\.length).max()!, 3.8, "clear of where the mouse stands")
+            XCTAssertLessThanOrEqual(f.radius + ticks(f).map(\.bloom).max()!, 5.95, "inside the 290 pt column")
+            t += 0.05
         }
     }
 }

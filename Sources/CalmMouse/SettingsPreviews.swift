@@ -120,40 +120,6 @@ extension EnvironmentValues {
 
 // MARK: - Canvas
 
-/// The page under the rendered mouse in Devices: what the story's setting does on screen. Same
-/// page, menu, arrows and marks as the small previews.
-func drawPreviewPage(_ ctx: GraphicsContext, size: CGSize, page: PageState) {
-    let scene = PreviewScene(ctx: ctx, size: size)
-    let r = CGRect(origin: .zero, size: size).insetBy(dx: 0.5, dy: 0.5)
-    scene.drawPage(r, scrollY: page.scrollY, scrollX: page.scrollX, zoom: page.zoom, buttonFlash: page.flash,
-                   objectAt: page.object.map { CGPoint(x: r.minX + 28 + $0 * 2.4, y: r.midY) })
-    scene.drawMenu(at: CGPoint(x: r.minX + 40, y: r.minY + 16), alpha: page.menu)
-    if let arrows = page.arrows {
-        let x = r.maxX - 30, top = r.minY + 18, bottom = r.maxY - 18
-        switch arrows.kind {
-        case .straight:
-            scene.drawArrow(from: CGPoint(x: x - 16, y: bottom), to: CGPoint(x: x - 4, y: top),
-                            color: scene.ignored, alpha: arrows.drift, dashed: true)
-            scene.drawArrow(from: CGPoint(x: x + 8, y: bottom), to: CGPoint(x: x + 8, y: top), color: scene.accent, alpha: arrows.page)
-        case .diagonal:
-            scene.drawArrow(from: CGPoint(x: x - 12, y: bottom), to: CGPoint(x: x + 6, y: top), color: scene.accent, alpha: arrows.page)
-        case .flipped(let on):
-            scene.drawArrow(from: CGPoint(x: x, y: on ? top : bottom), to: CGPoint(x: x, y: on ? bottom : top),
-                            color: scene.accent, alpha: arrows.page)
-        }
-    }
-    scene.drawCross(at: CGPoint(x: r.maxX - 18, y: r.minY + 18), alpha: page.cross)
-    if let held = page.key {
-        let key = CGRect(x: r.maxX - 46, y: r.maxY - 32, width: 32, height: 22)
-        ctx.fill(Path(roundedRect: key, cornerRadius: 5),
-                 with: .color(held > 0.5 ? scene.accent.opacity(0.25) : Color.primary.opacity(0.06)))
-        ctx.stroke(Path(roundedRect: key, cornerRadius: 5),
-                   with: .color(held > 0.5 ? scene.accent.opacity(0.9) : scene.ink), lineWidth: 1.5)
-        ctx.draw(Text("⌘").font(.system(size: 13, weight: .medium)).foregroundColor(held > 0.5 ? scene.accent : scene.ink),
-                 at: CGPoint(x: key.midX, y: key.midY))
-    }
-}
-
 struct PreviewCanvas: View {
     let preview: SettingPreview
 

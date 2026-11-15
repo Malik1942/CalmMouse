@@ -62,12 +62,36 @@ public enum MagicMouseFigure {
         return (1 / s, l * s)
     }
 
+    /// The measured ridge along the middle, front to back.
+    static func ridge(_ l: Double) -> Double {
+        let u = min(abs(l) / halfLength, 1), tip = seamTip + edgeLand
+        return tip + (height - tip) * pow(max(1 - u * u, 0), 0.85)
+    }
+
+    /// A smooth crown from the two measured profiles: the ridge along, the section across.
+    static func crown(_ x: Double, _ l: Double) -> Double {
+        let w = halfWidth(l), t = w > 1e-6 ? min(abs(x) / w, 1) : 1
+        let edge = seam(l) + edgeLand
+        return edge + (ridge(l) - edge) * pow(max(1 - t * t, 0), 0.62)
+    }
+
+    /// Where the crown hands over to the ray-built dome, as a fraction of the way to the rim.
+    static let blendFrom = 0.35, blendTo = 0.92
+
+    /// The lid's height over (x, l): the smooth crown in the middle, blending into the dome near
+    /// the rim, where it rolls over evenly all round. The dome alone creases along the diagonals.
+    static func lidHeight(_ x: Double, _ l: Double) -> Double {
+        let g = gauge(x, l), r = min(g.r, 1)
+        let k = min(max((r - blendFrom) / (blendTo - blendFrom), 0), 1)
+        let w = k * k * k * (k * (6 * k - 15) + 10)   // smootherstep: curvature stays continuous
+        return crown(x, l) * (1 - w) + dome(r, g.bl) * w
+    }
+
     /// The point on the lid at `u` across (−1 left … 1 right) and `v` along (−1 front … 1 back).
     public static func surface(u: Double, v: Double) -> Vec3 {
         let l = min(max(v, -1), 1) * halfLength
         let x = min(max(u, -1), 1) * halfWidth(l)
-        let g = gauge(x, l)
-        return Vec3(x, -l, dome(min(g.r, 1), g.bl))
+        return Vec3(x, -l, lidHeight(x, l))
     }
 
     /// Which way the lid faces at (u, v).
