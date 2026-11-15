@@ -97,6 +97,57 @@ enum MouseScanner {
     }
 }
 
+/// One row of the device switcher in Settings.
+struct DeviceEntry: Identifiable, Equatable {
+    /// Stands in for a Magic Mouse that is asleep or not connected yet.
+    static let magicMouseStandInKey = "magic-mouse"
+
+    let key: String
+    let name: String
+    let detected: MouseKind?
+    /// What it is handled as, after "Treat as". nil: CalmMouse leaves it alone.
+    let kind: MouseKind?
+    let connected: Bool
+    var id: String { key }
+}
+
+extension MouseEnvironment {
+    /// The devices Settings lists, in order: Magic Mice, wheel mice by name, then mice
+    /// CalmMouse leaves alone. A Magic Mouse drops off Bluetooth whenever it sleeps, so one
+    /// that has been seen stays listed; with nothing connected at all it is listed too, since
+    /// that is the mouse CalmMouse is mostly for.
+    static func deviceList(connected: [ConnectedMouse], typeOverride: (String) -> MouseTypeSetting,
+                           rememberedMagicMouse: Bool) -> [DeviceEntry] {
+        var entries = connected.map { mouse -> DeviceEntry in
+            let key = mouse.info.settingsKey
+            return DeviceEntry(key: key, name: mouse.name, detected: mouse.kind,
+                               kind: MouseClassifier.effectiveKind(detected: mouse.kind, override: typeOverride(key)),
+                               connected: true)
+        }
+        let hasMagicMouse = entries.contains { $0.kind == .magicMouse || $0.detected == .magicMouse }
+        if !hasMagicMouse && (rememberedMagicMouse || entries.isEmpty) {
+            entries.append(DeviceEntry(key: DeviceEntry.magicMouseStandInKey, name: L("Magic Mouse"),
+                                       detected: .magicMouse, kind: .magicMouse, connected: false))
+        }
+        func rank(_ entry: DeviceEntry) -> Int {
+            switch entry.kind {
+            case .magicMouse: return 0
+            case .wheelMouse: return 1
+            case nil: return 2
+            }
+        }
+        return entries.sorted {
+            rank($0) != rank($1) ? rank($0) < rank($1)
+                : $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    func devices(for settings: Settings) -> [DeviceEntry] {
+        Self.deviceList(connected: connected, typeOverride: settings.typeOverride(for:),
+                        rememberedMagicMouse: settings.rememberedMouseKinds.contains(.magicMouse))
+    }
+}
+
 /// The connected mice, published for the settings window and the menu.
 ///
 /// There is no background polling. `refresh()` runs at launch, when the menu or the settings

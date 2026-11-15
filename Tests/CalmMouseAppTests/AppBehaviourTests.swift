@@ -99,6 +99,53 @@ final class AppBehaviourTests: XCTestCase {
         XCTAssertNil(PointerSpeedController.effectiveSpeed(chosen: nil, enabled: false))
     }
 
+    // MARK: The device list in Settings
+
+    private func connected(_ name: String, _ kind: MouseKind?, vendor: Int = 0x5D, product: Int = 0x4762)
+        -> ConnectedMouse {
+        ConnectedMouse(name: name, kind: kind,
+                       info: .init(product: name, vendorID: vendor, productID: product, transport: "Bluetooth"))
+    }
+
+    private func list(_ mice: [ConnectedMouse], overrides: [String: MouseTypeSetting] = [:],
+                      remembered: Bool = false) -> [String] {
+        MouseEnvironment.deviceList(connected: mice, typeOverride: { overrides[$0] ?? .automatic },
+                                    rememberedMagicMouse: remembered)
+            .map { "\($0.name)|\($0.kind?.rawValue ?? "none")|\($0.connected ? "on" : "off")" }
+    }
+
+    func testWithNothingConnectedTheMagicMouseShows() {
+        XCTAssertEqual(list([]), ["Magic Mouse|magicMouse|off"])
+    }
+
+    func testOnlyAWheelMouseShowsAlone() {
+        XCTAssertEqual(list([connected("Zed Mouse", .wheelMouse)]), ["Zed Mouse|wheelMouse|on"])
+    }
+
+    func testARememberedMagicMouseStaysWhileAsleep() {
+        XCTAssertEqual(list([connected("Zed Mouse", .wheelMouse)], remembered: true),
+                       ["Magic Mouse|magicMouse|off", "Zed Mouse|wheelMouse|on"])
+    }
+
+    func testMagicMiceFirstThenWheelMiceByNameThenTheRest() {
+        let mice = [connected("Zed Mouse", .wheelMouse), connected("Old Mouse", nil),
+                    connected("Ann Mouse", .wheelMouse, product: 0x1), connected("My Magic Mouse", .magicMouse)]
+        XCTAssertEqual(list(mice), ["My Magic Mouse|magicMouse|on", "Ann Mouse|wheelMouse|on",
+                                    "Zed Mouse|wheelMouse|on", "Old Mouse|none|on"])
+    }
+
+    func testTreatAsMovesAMouseToItsNewKind() {
+        let zed = connected("Zed Mouse", .wheelMouse)
+        XCTAssertEqual(list([zed], overrides: [zed.info.settingsKey: .magicMouse], remembered: true),
+                       ["Zed Mouse|magicMouse|on"], "it is the Magic Mouse now, so no stand-in")
+    }
+
+    func testAMagicMouseSetToWheelIsLeftAloneAndNotDuplicated() {
+        let magic = connected("My Magic Mouse", .magicMouse, vendor: 0x4C, product: 0x269)
+        XCTAssertEqual(list([magic], overrides: [magic.info.settingsKey: .wheelMouse], remembered: true),
+                       ["My Magic Mouse|none|on"])
+    }
+
     // MARK: Tap to click
 
     func testTapToClickRunsOnlyWhereItsSwitchIsShown() {
