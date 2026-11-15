@@ -218,3 +218,6 @@
 /* 1.2: every mouse's battery */
 "%@ battery low" = "%@ 電量不足";
 "CalmMouse — active · Mouse battery low" = "CalmMouse — 運作中 · 滑鼠電量不足";
+
+/* 1.2: another mouse utility is running */
+"%@ is changing your mouse too. If something feels doubled, turn it off in one of them." = "%@ 也在改變滑鼠的行為。如果某個動作像是做了兩次，請在其中一個裡關掉它。";

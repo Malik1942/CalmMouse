@@ -219,3 +219,6 @@
 /* 1.2: every mouse's battery */
 "%@ battery low" = "%@ battery low";
 "CalmMouse — active · Mouse battery low" = "CalmMouse — active · Mouse battery low";
+
+/* 1.2: another mouse utility is running */
+"%@ is changing your mouse too. If something feels doubled, turn it off in one of them." = "%@ is changing your mouse too. If something feels doubled, turn it off in one of them.";

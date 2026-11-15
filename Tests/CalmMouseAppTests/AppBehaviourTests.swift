@@ -156,6 +156,22 @@ final class AppBehaviourTests: XCTestCase {
                        ["My Magic Mouse|none|on"])
     }
 
+    // MARK: Other mouse utilities
+
+    func testCalmMouseIsBusyOnlyWhereItHasSomethingOn() {
+        func areas(enabled: Bool = true, magic: Bool = false, wheels: [WheelSettings] = [],
+                   speed: Bool = false) -> Set<MouseUtilityArea> {
+            ConflictMonitor.activeAreas(enabled: enabled, hasMagicMouse: magic, wheels: wheels,
+                                        trackingSpeedChosen: speed)
+        }
+        XCTAssertEqual(areas(magic: true), [.magicMouseScrolling])
+        XCTAssertEqual(areas(wheels: [WheelSettings()]), [], "a wheel mouse with everything off")
+        XCTAssertEqual(areas(wheels: [WheelSettings(), WheelSettings(smooth: true)]), [.wheelScrolling])
+        XCTAssertEqual(areas(speed: true), [.pointerSpeed])
+        XCTAssertEqual(areas(enabled: false, magic: true, wheels: [WheelSettings(reverse: true)], speed: true), [],
+                       "paused: nothing to clash with")
+    }
+
     // MARK: Tap to click
 
     func testTapToClickRunsOnlyWhereItsSwitchIsShown() {

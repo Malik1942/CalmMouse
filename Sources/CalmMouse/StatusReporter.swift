@@ -55,6 +55,8 @@ enum StatusReporter {
         var settingsWindowOpen: Bool
         var scrollBlocker: String
         var dragConversionActive: Bool
+        /// Other apps changing mouse input in the same areas CalmMouse is busy with.
+        var otherMouseApps: [String] = []
     }
 
     static var fileURL: URL {

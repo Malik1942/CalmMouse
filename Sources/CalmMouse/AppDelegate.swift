@@ -65,6 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.mice.connected.filter { $0.kind != .magicMouse }.map(\.name) ?? []
         }
         battery.start()
+        ConflictMonitor.shared.start(settings: settings, mice: mice)
 
         updater.onAvailabilityChanged = { [weak self] in self?.refreshMenu() }
         updater.start()
@@ -180,6 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func settingsChanged() {
         applySettings()
+        ConflictMonitor.shared.refresh()
         if AXIsProcessTrusted() { startTapIfWanted() } else { refreshStatusIcon() }
     }
 
@@ -399,7 +401,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             tapRejections: tapRecognizer.rejectionCounts,
             settingsWindowOpen: settingsWindow?.window?.isVisible ?? false,
             scrollBlocker: blocker.debugSnapshot(at: MachTime.now()),
-            dragConversionActive: tap.syntheticDragClickState != nil
+            dragConversionActive: tap.syntheticDragClickState != nil,
+            otherMouseApps: ConflictMonitor.shared.conflicts.map(\.name)
         ))
     }
 

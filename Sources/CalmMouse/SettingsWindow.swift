@@ -364,10 +364,29 @@ private struct DevicesPane: View {
     @ObservedObject var settings: Settings
     @ObservedObject var mice: MouseEnvironment
     @StateObject private var focus = PreviewFocus()
+    @ObservedObject private var conflicts = ConflictMonitor.shared
 
     var body: some View {
         let devices = mice.devices(for: settings)
         let selected = devices.first { $0.key == settings.selectedDeviceKey } ?? devices.first
+        VStack(spacing: 0) {
+            if let message = conflicts.message {
+                HStack(alignment: .firstTextBaseline, spacing: Theme.Space.medium) {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    Text(message).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, Theme.Space.large * 2)
+                .padding(.vertical, Theme.Space.large)
+                .background(Color.orange.opacity(0.1))
+                Divider()
+            }
+            columns(devices: devices, selected: selected)
+        }
+        .onAppear { conflicts.refresh() }
+    }
+
+    private func columns(devices: [DeviceEntry], selected: DeviceEntry?) -> some View {
         HStack(alignment: .top, spacing: 0) {
             DeviceColumn(devices: devices, selected: selected, settings: settings, mice: mice, focus: focus)
                 .frame(width: Theme.Size.deviceColumn)
