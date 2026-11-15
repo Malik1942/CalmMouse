@@ -64,8 +64,18 @@ final class AppBehaviourTests: XCTestCase {
                                                   magicMouse: nil, wheelMouse: -0.5))
     }
 
-    func testADevicesSettingsKeyIsItsHardwareIDsAndName() {
-        XCTAssertEqual(otherMouse.settingsKey, "005D:4762:MCHOSE A7 Ultra")
+    func testAMouseKeepsItsSettingsOverEitherConnection() {
+        // Measured 2026-11-15: the same MCHOSE A7 Ultra is 005D:4762 over Bluetooth LE and
+        // 5253:0011 through its USB receiver. Only the name stays.
+        let receiver = DeviceIdentifier.DeviceInfo(product: "MCHOSE A7 Ultra", vendorID: 0x5253,
+                                                   productID: 0x0011, transport: "USB", usages: [.mouse])
+        XCTAssertEqual(otherMouse.settingsKey, receiver.settingsKey)
+        XCTAssertEqual(otherMouse.settingsKey, "MCHOSE A7 Ultra")
+    }
+
+    func testAMouseWithNoNameIsKeptApartByItsIDs() {
+        let unnamed = DeviceIdentifier.DeviceInfo(product: "", vendorID: 0x046D, productID: 0xC077, transport: "USB")
+        XCTAssertEqual(unnamed.settingsKey, "046D:C077")
     }
 
     private let officeMouse = DeviceIdentifier.DeviceInfo(product: "Office Mouse", vendorID: 0x046D,

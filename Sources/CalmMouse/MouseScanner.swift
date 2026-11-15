@@ -157,6 +157,8 @@ final class MouseEnvironment: ObservableObject {
     static let shared = MouseEnvironment()
 
     @Published private(set) var connected: [ConnectedMouse] = []
+    /// Battery level by mouse name, for the mice that report one.
+    @Published private(set) var batteries: [String: Int] = [:]
 
     var connectedKinds: Set<MouseKind> { Set(connected.compactMap(\.kind)) }
 
@@ -169,6 +171,15 @@ final class MouseEnvironment: ObservableObject {
     func refresh(settings: Settings = .shared) {
         let found = MouseScanner.scan()
         if found != connected { connected = found }
+        let magicMice = BatteryMonitor.readAll()
+        var levels: [String: Int] = [:]
+        for mouse in found {
+            let level = mouse.kind == .magicMouse
+                ? BatteryMonitor.percent(of: mouse.name, in: magicMice)
+                : MouseBattery.percent(named: mouse.name)
+            if let level { levels[mouse.name] = level }
+        }
+        if levels != batteries { batteries = levels }
         let kinds = Set(found.compactMap(\.kind))
         if !kinds.isSubset(of: settings.rememberedMouseKinds) {
             settings.rememberedMouseKinds.formUnion(kinds)

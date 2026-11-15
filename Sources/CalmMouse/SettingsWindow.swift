@@ -37,13 +37,12 @@ final class SettingsWindowController: NSWindowController {
 // MARK: - Panes
 
 enum SettingsPane: String, CaseIterable {
-    case general, magicMouse, wheel, advanced
+    case general, devices, advanced
 
     var title: String {
         switch self {
         case .general: return L("General")
-        case .magicMouse: return L("Magic Mouse")
-        case .wheel: return L("Scroll Wheel")
+        case .devices: return L("Devices")
         case .advanced: return L("Advanced")
         }
     }
@@ -51,32 +50,34 @@ enum SettingsPane: String, CaseIterable {
     var symbol: String {
         switch self {
         case .general: return "gearshape"
-        case .magicMouse: return "magicmouse"
-        case .wheel: return "computermouse"
+        case .devices: return "computermouse"
         case .advanced: return "gearshape.2"
         }
     }
 
-    /// Which kind of mouse the pane is for. General and Advanced are always there: Advanced
-    /// holds the Mouse type override, the way out when detection gets a mouse wrong.
-    var needs: MouseKind? {
-        switch self {
-        case .general, .advanced: return nil
-        case .magicMouse: return .magicMouse
-        case .wheel: return .wheelMouse
-        }
+    /// Devices adds the column that shows the device and what each setting does.
+    var width: CGFloat {
+        self == .devices ? Theme.Size.deviceColumn + Theme.Size.paneWidth : Theme.Size.paneWidth
+    }
+
+    /// Settings saved by 1.1, which had a page per kind of mouse.
+    init?(saved raw: String) {
+        if let pane = SettingsPane(rawValue: raw) { self = pane; return }
+        guard raw == "magicMouse" || raw == "wheel" else { return nil }
+        self = .devices
     }
 }
 
 /// Lays a pane out at the window's fixed width, at the height its form needs, up to what fits
 /// on screen. Beyond that the form scrolls.
 private struct PaneFrame<Content: View>: View {
+    let width: CGFloat
     let maxHeight: CGFloat
     @ViewBuilder let content: () -> Content
 
     var body: some View {
         content()
-            .frame(width: Theme.Size.paneWidth)
+            .frame(width: width)
             .frame(maxHeight: maxHeight)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -102,7 +103,7 @@ private final class SettingsPanesController: NSTabViewController {
         let maxHeight = max(360, min(720, screenHeight - 110))
         let mice = self.mice
         func pane<V: View>(_ pane: SettingsPane, @ViewBuilder _ content: @escaping () -> V) {
-            let host = NSHostingController(rootView: AnyView(PaneFrame(maxHeight: maxHeight, content: content)))
+            let host = NSHostingController(rootView: AnyView(PaneFrame(width: pane.width, maxHeight: maxHeight, content: content)))
             host.sizingOptions = [.preferredContentSize]
             host.title = pane.title     // AppKit titles the window after the selected pane
             let item = NSTabViewItem(viewController: host)
@@ -118,12 +119,11 @@ private final class SettingsPanesController: NSTabViewController {
             })
         }
         pane(.general) { GeneralPane(settings: settings, updater: updater, mice: mice) }
-        pane(.magicMouse) { MagicMousePane(settings: settings) }
-        pane(.wheel) { WheelPane(settings: settings) }
+        pane(.devices) { DevicesPane(settings: settings, mice: mice) }
         pane(.advanced) { AdvancedPane(settings: settings, mice: mice) }
 
         showPanesForCurrentMice()
-        let saved = SettingsPane(rawValue: UserDefaults.standard.string(forKey: Self.selectionKey) ?? "") ?? .general
+        let saved = SettingsPane(saved: UserDefaults.standard.string(forKey: Self.selectionKey) ?? "") ?? .general
         select(visiblePanes.contains(saved) ? saved : .general)
 
         // The set of panes follows the mice in use and the Mouse type setting.
@@ -138,10 +138,8 @@ private final class SettingsPanesController: NSTabViewController {
 
     // MARK: Which panes
 
-    private var visiblePanes: [SettingsPane] {
-        let kinds = mice.kindsToShow(for: settings)
-        return SettingsPane.allCases.filter { pane in pane.needs.map(kinds.contains) ?? true }
-    }
+    /// Every pane, always: the devices themselves are listed inside Devices.
+    private var visiblePanes: [SettingsPane] { SettingsPane.allCases }
 
     private var shownPanes: [SettingsPane] {
         tabViewItems.compactMap { item in items.first { $0.value === item }?.key }
@@ -186,7 +184,7 @@ private final class SettingsPanesController: NSTabViewController {
     func sizeWindowToSelectedPane(animated: Bool) {
         guard let window = view.window, let pane = selectedPane, let host = hosts[pane] else { return }
         window.title = pane.title
-        let content = host.sizeThatFits(in: NSSize(width: Theme.Size.paneWidth, height: 10_000))
+        let content = host.sizeThatFits(in: NSSize(width: pane.width, height: 10_000))
         guard content.width > 0, content.height > 0 else { return }
         var frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: content))
         frame.origin = NSPoint(x: window.frame.minX, y: window.frame.maxY - frame.height)
@@ -247,13 +245,12 @@ private struct GeneralPane: View {
                 Toggle("Launch at login", isOn: Binding(
                     get: { launchAtLogin },
                     set: { launchAtLogin = SettingsHelpers.setLaunchAtLogin($0) }))
-                if mice.kindsToShow(for: settings).contains(.magicMouse) {
-                    // One choice instead of a switch plus a slider: off, or the level to warn at.
-                    Picker("Low battery warning", selection: lowBatteryChoice) {
-                        Text("Off").tag(0)
-                        Divider()
-                        ForEach(lowBatteryLevels, id: \.self) { Text(L("Below %ld%%", $0)).tag($0) }
-                    }
+                // One choice instead of a switch plus a slider: off, or the level to warn at.
+                // Every mouse that reports a level is watched, so it is always here.
+                Picker("Low battery warning", selection: lowBatteryChoice) {
+                    Text("Off").tag(0)
+                    Divider()
+                    ForEach(lowBatteryLevels, id: \.self) { Text(L("Below %ld%%", $0)).tag($0) }
                 }
             }
 
@@ -359,15 +356,180 @@ private struct UpdatesSection: View {
 
 // MARK: - Magic Mouse
 
-private struct MagicMousePane: View {
+// MARK: Devices
+
+/// One device at a time: on the left the switcher, the device, and what the setting under the
+/// pointer does; on the right that device's settings.
+private struct DevicesPane: View {
     @ObservedObject var settings: Settings
-    @State private var newPresetName = ""
-    @State private var namingPreset = false
+    @ObservedObject var mice: MouseEnvironment
+    @StateObject private var focus = PreviewFocus()
+
+    var body: some View {
+        let devices = mice.devices(for: settings)
+        let selected = devices.first { $0.key == settings.selectedDeviceKey } ?? devices.first
+        HStack(alignment: .top, spacing: 0) {
+            DeviceColumn(devices: devices, selected: selected, settings: settings, mice: mice, focus: focus)
+                .frame(width: Theme.Size.deviceColumn)
+            Divider()
+            Group {
+                if let selected {
+                    switch selected.kind {
+                    case .magicMouse: MagicMouseForm(settings: settings, device: selected)
+                    case .wheelMouse: WheelDeviceForm(settings: settings, device: selected)
+                    case nil: UnmanagedDeviceForm(settings: settings, device: selected)
+                    }
+                }
+            }
+            .frame(width: Theme.Size.paneWidth)
+            .environment(\.previewFocus, focus)
+            .onHover { inside in if !inside { focus.clear() } }
+        }
+    }
+}
+
+/// The left column. It explains instead of popovers: point at a row and its animation and
+/// caption show here.
+private struct DeviceColumn: View {
+    let devices: [DeviceEntry]
+    let selected: DeviceEntry?
+    @ObservedObject var settings: Settings
+    @ObservedObject var mice: MouseEnvironment
+    @ObservedObject var focus: PreviewFocus
+
+    var body: some View {
+        VStack(spacing: Theme.Space.large) {
+            if devices.count > 1 { switcher }
+            if let preview = focus.preview {
+                PreviewCanvas(preview: preview)
+                    .frame(width: 250, height: 150)
+            } else if let selected {
+                hero(selected)
+            }
+            Text(focus.caption ?? L("Point at a setting\nto see what it does."))
+                .multilineTextAlignment(.center)
+                .lineSpacing(Theme.Space.small)
+                .foregroundStyle(focus.caption == nil ? .secondary : .primary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, (Theme.Size.deviceColumn - 250) / 2)
+        .padding(.vertical, Theme.Space.large * 2)
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    private func symbol(_ device: DeviceEntry) -> String {
+        device.kind == .magicMouse || device.detected == .magicMouse ? "magicmouse" : "computermouse"
+    }
+
+    private func batteryText(_ device: DeviceEntry) -> String? {
+        if let level = mice.batteries[device.name] { return "\(level)%" }
+        return device.connected ? nil : L("Not connected")
+    }
+
+    private func hero(_ device: DeviceEntry) -> some View {
+        VStack(spacing: Theme.Space.medium) {
+            Image(systemName: symbol(device))
+                .font(.system(size: 72, weight: .ultraLight))
+                .foregroundStyle(.secondary)
+                .frame(height: 150)
+            Text(device.name)
+                .font(.headline)
+                .lineLimit(1)
+            if let battery = batteryText(device) {
+                Text(battery).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// One row per device, so long names and many devices both fit.
+    private var switcher: some View {
+        VStack(spacing: 2) {
+            ForEach(devices) { device in
+                let isSelected = device.key == selected?.key
+                Button {
+                    settings.selectedDeviceKey = device.key
+                    focus.clear()
+                } label: {
+                    HStack(spacing: Theme.Space.medium) {
+                        Image(systemName: symbol(device))
+                            .frame(width: Theme.Size.rowIcon)
+                        Text(device.name)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Spacer(minLength: Theme.Space.small)
+                        if let battery = batteryText(device) {
+                            Text(battery).foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.horizontal, Theme.Space.medium)
+                    .frame(height: 30)
+                    .background(RoundedRectangle(cornerRadius: 7)
+                        .fill(isSelected ? Color.accentColor.opacity(0.16) : .clear))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+        }
+    }
+}
+
+/// "Treat as", at the foot of every connected device's settings.
+private struct TreatAsSection: View {
+    @ObservedObject var settings: Settings
+    let device: DeviceEntry
+
+    var body: some View {
+        if device.connected {
+            Section {
+                ExplainedRow(caption: L("Only if CalmMouse took this mouse\nfor the wrong kind.")) {
+                    Picker("Treat as", selection: Binding(
+                        get: { settings.typeOverride(for: device.key) },
+                        set: { settings.deviceTypeOverrides[device.key] = $0 })) {
+                        Text("Automatic").tag(MouseTypeSetting.automatic)
+                        Divider()
+                        Text("Magic Mouse").tag(MouseTypeSetting.magicMouse)
+                        Text("Wheel mouse").tag(MouseTypeSetting.wheelMouse)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// A mouse CalmMouse leaves alone: only "Treat as".
+private struct UnmanagedDeviceForm: View {
+    @ObservedObject var settings: Settings
+    let device: DeviceEntry
+
+    var body: some View {
+        Form {
+            Section {
+                Text("CalmMouse has nothing to change on this mouse.")
+                    .foregroundStyle(.secondary)
+            }
+            TreatAsSection(settings: settings, device: device)
+        }
+        .formStyle(.grouped)
+    }
+}
+
+/// Settings every Magic Mouse shares.
+private struct MagicMouseForm: View {
+    @ObservedObject var settings: Settings
+    let device: DeviceEntry
     @AppStorage("showFineTuning") private var showFineTuning = false
 
     var body: some View {
         Form {
-            presetSection
+            Section("Presets") {
+                ForEach(Preset.builtIn) { preset in
+                    PresetCard(preset: preset,
+                               isActive: settings.currentPresetValues == preset.values,
+                               apply: { settings.apply(preset) })
+                }
+            }
 
             Section("Pointer") {
                 SliderRow("Tracking speed", value: $settings.magicMouseTrackingSpeed, in: -1...1,
@@ -379,17 +541,20 @@ private struct MagicMousePane: View {
                              caption: L("The page stays put while you click.")) {
                     Toggle("Don't scroll while clicking", isOn: $settings.blockScrollWhileClicked)
                 }
-                ExplainedRow(preview: .straightLines,
-                             caption: L("A swipe that drifts stays straight.")) {
-                    Toggle("Scroll in straight lines", isOn: $settings.axisLock)
+                ExplainedRow(preview: settings.blockHorizontalScroll ? .ignoreSideways : .straightLines,
+                             caption: L("Straight lines: a swipe can't drift.\nUp and down only: no sideways at all.")) {
+                    Picker("Direction", selection: direction) {
+                        Text("Any direction").tag(0)
+                        Text("Straight lines").tag(1)
+                        Text("Up and down only").tag(2)
+                    }
                 }
                 ExplainedRow(preview: .momentum(on: settings.momentumEnabled),
                              caption: L("On: the page glides after a swipe.\nOff: it stops when your finger does.")) {
                     Toggle("Keep gliding after a swipe", isOn: $settings.momentumEnabled)
                 }
-                ExplainedRow(preview: .ignoreSideways,
-                             caption: L("Sideways swipes do nothing.")) {
-                    Toggle("Ignore sideways scrolling", isOn: $settings.blockHorizontalScroll)
+                ExplainedRow(caption: L("Flips only the Magic Mouse.\nThe trackpad stays as it is.")) {
+                    Toggle("Reverse direction", isOn: $settings.reverseMagicMouseScroll)
                 }
             }
 
@@ -400,42 +565,23 @@ private struct MagicMousePane: View {
             } header: {
                 DisclosureHeader(isExpanded: $showFineTuning) { Text("Fine-tuning") }
             }
+
+            TreatAsSection(settings: settings, device: device)
         }
         .formStyle(.grouped)
-        .alert("Save as Preset", isPresented: $namingPreset) {
-            TextField("Preset name", text: $newPresetName)
-            Button("Save") {
-                settings.saveCurrentAsPreset(named: newPresetName)
-                newPresetName = ""
-            }
-            .disabled(newPresetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            Button("Cancel", role: .cancel) { newPresetName = "" }
-        }
     }
 
-    private var presetSection: some View {
-        Section("Presets") {
-            ForEach(Preset.builtIn) { preset in
-                PresetCard(preset: preset,
-                           isActive: settings.currentPresetValues == preset.values,
-                           apply: { settings.apply(preset) })
-            }
-            ForEach(settings.customPresets) { preset in
-                PresetCard(preset: preset,
-                           isActive: settings.currentPresetValues == preset.values,
-                           apply: { settings.apply(preset) },
-                           remove: { settings.removePreset(id: preset.id) })
-            }
-            if settings.activePreset == nil {
-                HStack {
-                    Spacer()
-                    Button("Save as Preset…") { namingPreset = true }
-                }
-            }
-        }
+    /// Straight lines and up-and-down-only were two switches; they are one choice now.
+    private var direction: Binding<Int> {
+        Binding(
+            get: { settings.blockHorizontalScroll ? 2 : (settings.axisLock ? 1 : 0) },
+            set: { choice in
+                settings.blockHorizontalScroll = choice == 2
+                if choice != 2 { settings.axisLock = choice == 1 }
+            })
     }
 
-    /// Off, or one of the two ways to right-click with a tap, as a single choice.
+    /// The three-way choice from 1.1, kept only for someone who picked "A double-tap" there.
     private var rightClickChoice: Binding<Int> {
         Binding(
             get: { !settings.tapRightClick ? 0 : (settings.tapRightClickMode == .rightSide ? 1 : 2) },
@@ -443,6 +589,15 @@ private struct MagicMousePane: View {
                 settings.tapRightClick = choice != 0
                 if choice == 1 { settings.tapRightClickMode = .rightSide }
                 if choice == 2 { settings.tapRightClickMode = .doubleTap }
+            })
+    }
+
+    private var tapsRightSide: Binding<Bool> {
+        Binding(
+            get: { settings.tapRightClick },
+            set: { on in
+                settings.tapRightClick = on
+                if on { settings.tapRightClickMode = .rightSide }
             })
     }
 
@@ -455,14 +610,19 @@ private struct MagicMousePane: View {
 
             // The rest only means something once taps click.
             if settings.tapToClick {
-                ExplainedRow(preview: .tapRightClick(doubleTap: settings.tapRightClickMode == .doubleTap),
-                             caption: settings.tapRightClickMode == .doubleTap
-                                ? L("Tap twice quickly to right-click.\nPress the mouse to double-click.")
-                                : L("Tap the right side to right-click.\nTaps elsewhere are normal clicks.")) {
-                    Picker("Tap to right-click", selection: rightClickChoice) {
-                        Text("Off").tag(0)
-                        Text("A tap on the right side").tag(1)
-                        Text("A double-tap").tag(2)
+                if settings.tapRightClick && settings.tapRightClickMode == .doubleTap {
+                    ExplainedRow(preview: .tapRightClick(doubleTap: true),
+                                 caption: L("Tap twice quickly to right-click.\nPress the mouse to double-click.")) {
+                        Picker("Tap to right-click", selection: rightClickChoice) {
+                            Text("Off").tag(0)
+                            Text("A tap on the right side").tag(1)
+                            Text("A double-tap").tag(2)
+                        }
+                    }
+                } else {
+                    ExplainedRow(preview: .tapRightClick(doubleTap: false),
+                                 caption: L("Tap the right side to right-click.\nTaps elsewhere are normal clicks.")) {
+                        Toggle("Tap the right side to right-click", isOn: tapsRightSide)
                     }
                 }
                 ExplainedRow(preview: .tapAndDrag,
@@ -470,10 +630,6 @@ private struct MagicMousePane: View {
                                 + (settings.tapRightClick && settings.tapRightClickMode == .rightSide
                                    ? "\n" + L("Use the left or middle of the mouse.") : "")) {
                     Toggle("Double Tap Drag", isOn: $settings.tapAndDrag)
-                }
-                ExplainedRow(preview: .twoFingerDrag,
-                             caption: L("Rest two fingers and hold a moment.\nMove the mouse to drag.\nLift your fingers to drop.")) {
-                    Toggle("Two-finger drag", isOn: $settings.twoFingerDrag)
                 }
                 ExplainedRow(preview: .tapZone(depth: settings.tapZoneDepth),
                              caption: L("Only taps near the front count.\nYour grip can't click by accident.")) {
@@ -483,7 +639,8 @@ private struct MagicMousePane: View {
         }
     }
 
-    /// The sliders. Each one only shows while the switch it tunes is on.
+    /// The sliders, and the rarer second way to drag. Each slider only shows while the switch
+    /// it tunes is on.
     @ViewBuilder private var fineTuningRows: some View {
         if settings.blockScrollWhileClicked {
             ExplainedRow(preview: .settleAfterRelease,
@@ -500,7 +657,7 @@ private struct MagicMousePane: View {
             SliderRow("Ignore small finger nudges", value: $settings.deadZone, in: 0...40, step: 1,
                       reading: settings.deadZone == 0 ? L("Off") : "\(Int(settings.deadZone)) pt")
         }
-        if settings.axisLock {
+        if settings.axisLock && !settings.blockHorizontalScroll {
             ExplainedRow(caption: L("How far a swipe goes before it locks.")) {
                 SliderRow("Lock direction after sliding", value: $settings.axisLockThreshold, in: 2...40, step: 1,
                           reading: "\(Int(settings.axisLockThreshold)) pt")
@@ -514,6 +671,10 @@ private struct MagicMousePane: View {
             if settings.tapZoneEnabled {
                 SliderRow("Size of the tap area", value: $settings.tapZoneDepth, in: 0.25...0.75, step: 0.05,
                           reading: "\(Int((settings.tapZoneDepth * 100).rounded()))%")
+            }
+            ExplainedRow(preview: .twoFingerDrag,
+                         caption: L("Rest two fingers and hold a moment.\nMove the mouse to drag.\nLift your fingers to drop.")) {
+                Toggle("Two-finger drag", isOn: $settings.twoFingerDrag)
             }
         }
     }
@@ -559,34 +720,45 @@ private struct PresetCard: View {
     }
 }
 
-// MARK: - Scroll Wheel
+// MARK: - Wheel mice
 
-private struct WheelPane: View {
+/// One wheel mouse's own settings.
+private struct WheelDeviceForm: View {
     @ObservedObject var settings: Settings
+    let device: DeviceEntry
 
     var body: some View {
+        let wheel = settings.wheelSettings(for: device.key)
         Form {
             Section("Pointer") {
-                SliderRow("Tracking speed", value: $settings.wheelTrackingSpeed, in: -1...1,
-                          step: 0.25, from: "Slow", to: "Fast")
+                SliderRow("Tracking speed",
+                          value: Binding(get: { settings.wheelTrackingSpeed(for: device.key) ?? 0 },
+                                         set: { settings.setWheelTrackingSpeed($0, for: device.key) }),
+                          in: -1...1, step: 0.25, from: "Slow", to: "Fast")
             }
             Section("Scrolling") {
                 ExplainedRow(caption: L("The page glides instead of jumping.\nZooming stays one step per notch.")) {
-                    Toggle("Smooth scrolling", isOn: $settings.smoothWheelScroll)
+                    Toggle("Smooth scrolling", isOn: binding(\.smooth))
                 }
-                if settings.smoothWheelScroll {
-                    SliderRow("Scrolling speed", value: $settings.wheelScrollSpeed,
+                if wheel.smooth {
+                    SliderRow("Scrolling speed", value: binding(\.speed),
                               in: 1...Settings.maximumWheelScrollSpeed, from: "Slow", to: "Fast")
                 }
                 ExplainedRow(caption: L("Flips only the wheel's direction.\nOther devices stay as they are.")) {
-                    Toggle("Reverse direction", isOn: $settings.reverseWheelScroll)
+                    Toggle("Reverse direction", isOn: binding(\.reverse))
                 }
                 ExplainedRow(caption: L("Pressing a wheel often turns it too.\nThat won't scroll the page.")) {
-                    Toggle("Don't scroll while pressed", isOn: $settings.blockScrollWhileWheelPressed)
+                    Toggle("Don't scroll while pressed", isOn: binding(\.blockWhilePressed))
                 }
             }
+            TreatAsSection(settings: settings, device: device)
         }
         .formStyle(.grouped)
+    }
+
+    private func binding<Value>(_ path: WritableKeyPath<WheelSettings, Value>) -> Binding<Value> {
+        Binding(get: { settings.wheelSettings(for: device.key)[keyPath: path] },
+                set: { value in settings.updateWheel(for: device.key) { $0[keyPath: path] = value } })
     }
 }
 
@@ -603,18 +775,8 @@ private struct AdvancedPane: View {
 
     var body: some View {
         Form {
-            if mice.kindsToShow(for: settings).contains(.magicMouse) {
-                appsSection
-                shortcutsSection
-            }
-            Section {
-                Picker("Mouse type", selection: $settings.mouseType) {
-                    Text("Automatic").tag(MouseTypeSetting.automatic)
-                    Divider()
-                    Text("Magic Mouse").tag(MouseTypeSetting.magicMouse)
-                    Text("Scroll Wheel").tag(MouseTypeSetting.wheelMouse)
-                }
-            }
+            appsSection
+            shortcutsSection
         }
         .formStyle(.grouped)
         .onAppear {

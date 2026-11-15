@@ -200,3 +200,19 @@
 "Like CalmMouse?" = "喜歡 CalmMouse？";
 "Star on GitHub" = "到 GitHub 收藏";
 "⭐ %@ accidental scrolls stopped. Star on GitHub?" = "⭐ 已幫你擋住 %@ 次誤捲動，到 GitHub 收藏一下？";
+
+/* 1.2: Devices, Treat as, direction, Magic Mouse reverse */
+"Devices" = "裝置";
+"Point at a setting\nto see what it does." = "指向一項設定，\n看看它的作用。";
+"Not connected" = "未連線";
+"Only if CalmMouse took this mouse\nfor the wrong kind." = "只在 CalmMouse 把這隻滑鼠\n認錯類型時才需要改。";
+"Treat as" = "視為";
+"Wheel mouse" = "滾輪滑鼠";
+"CalmMouse has nothing to change on this mouse." = "這隻滑鼠沒有 CalmMouse 可以調整的地方。";
+"Straight lines: a swipe can't drift.\nUp and down only: no sideways at all." = "沿直線：滑動不會斜著走。\n只能上下：完全不橫向捲動。";
+"Direction" = "方向";
+"Any direction" = "任意方向";
+"Straight lines" = "沿直線";
+"Up and down only" = "只能上下";
+"Flips only the Magic Mouse.\nThe trackpad stays as it is." = "只反轉巧控滑鼠的方向。\n軌跡板不受影響。";
+"Tap the right side to right-click" = "輕點右側來右鍵點按";
