@@ -52,6 +52,10 @@ final class Settings: ObservableObject {
         static let blockedScrollsTotal = "blockedScrollsTotal"
         static let starInviteFirstShown = "starInviteFirstShown"
         static let starInviteDone = "starInviteDone"
+        static let reverseMagicMouseScroll = "reverseMagicMouseScroll"
+        static let wheelDevices = "wheelDevices"
+        static let deviceTypeOverrides = "deviceTypeOverrides"
+        static let selectedDeviceKey = "selectedDeviceKey"
     }
 
     /// Whether the first-launch welcome tour has been seen (or dismissed).
@@ -134,6 +138,15 @@ final class Settings: ObservableObject {
     @Published var blockScrollWhileWheelPressed: Bool { didSet { d.set(blockScrollWhileWheelPressed, forKey: Key.blockScrollWhileWheelPressed); changed() } }
     @Published var smoothWheelScroll: Bool { didSet { d.set(smoothWheelScroll, forKey: Key.smoothWheelScroll); changed() } }
     @Published var wheelScrollSpeed: Double { didSet { d.set(wheelScrollSpeed, forKey: Key.wheelScrollSpeed); changed() } }
+    @Published var reverseMagicMouseScroll: Bool { didSet { d.set(reverseMagicMouseScroll, forKey: Key.reverseMagicMouseScroll); changed() } }
+    /// Each wheel mouse's own settings, by `DeviceInfo.settingsKey`. A mouse with no entry
+    /// uses the four wheel settings above, which is all a wheel mouse had before 1.2.
+    @Published var wheelDevices: [String: WheelDevice] { didSet { save(wheelDevices, Key.wheelDevices); changed() } }
+    /// "Treat as", by `DeviceInfo.settingsKey`. A device with no entry follows `mouseType`,
+    /// the single setting every device shared before 1.2.
+    @Published var deviceTypeOverrides: [String: MouseTypeSetting] { didSet { save(deviceTypeOverrides, Key.deviceTypeOverrides); changed() } }
+    /// The device whose settings the window shows. Not a setting: nothing re-applies when it moves.
+    @Published var selectedDeviceKey: String? { didSet { d.set(selectedDeviceKey, forKey: Key.selectedDeviceKey) } }
     // Tracking speed: -1...1, 0 is normal. Not registered with a default on purpose: until the
     // slider has been moved the key is absent, and CalmMouse leaves that mouse's speed alone.
     @Published var magicMouseTrackingSpeed: Double { didSet { d.set(magicMouseTrackingSpeed, forKey: Key.magicMouseTrackingSpeed); changed() } }
@@ -173,6 +186,7 @@ final class Settings: ObservableObject {
             Key.blockScrollWhileWheelPressed: false,
             Key.smoothWheelScroll: false,
             Key.wheelScrollSpeed: 3.0,
+            Key.reverseMagicMouseScroll: false,
         ])
         loading = true
         enabled = d.bool(forKey: Key.enabled)
@@ -199,6 +213,10 @@ final class Settings: ObservableObject {
         blockScrollWhileWheelPressed = d.bool(forKey: Key.blockScrollWhileWheelPressed)
         smoothWheelScroll = d.bool(forKey: Key.smoothWheelScroll)
         wheelScrollSpeed = d.double(forKey: Key.wheelScrollSpeed)
+        reverseMagicMouseScroll = d.bool(forKey: Key.reverseMagicMouseScroll)
+        wheelDevices = Settings.load([String: WheelDevice].self, Key.wheelDevices, d) ?? [:]
+        deviceTypeOverrides = Settings.load([String: MouseTypeSetting].self, Key.deviceTypeOverrides, d) ?? [:]
+        selectedDeviceKey = d.string(forKey: Key.selectedDeviceKey)
         magicMouseTrackingSpeed = d.double(forKey: Key.magicMouseTrackingSpeed)
         wheelTrackingSpeed = d.double(forKey: Key.wheelTrackingSpeed)
         modifierActions = Settings.loadModifierActions(d)
@@ -223,7 +241,46 @@ final class Settings: ObservableObject {
         c.blockScrollWhileWheelPressed = blockScrollWhileWheelPressed
         c.smoothWheelScroll = smoothWheelScroll
         c.wheelScrollSpeed = min(max(wheelScrollSpeed, 1), Settings.maximumWheelScrollSpeed)
+        c.reverseMagicMouseScroll = reverseMagicMouseScroll
         return RuleSet(base: c, appRules: appRules)
+    }
+
+    // MARK: Per device
+
+    /// A wheel mouse with no settings of its own gets these: today's global wheel settings.
+    var wheelTemplate: WheelSettings {
+        WheelSettings(reverse: reverseWheelScroll, blockWhilePressed: blockScrollWhileWheelPressed,
+                      smooth: smoothWheelScroll,
+                      speed: min(max(wheelScrollSpeed, 1), Settings.maximumWheelScrollSpeed))
+    }
+
+    func wheelSettings(for key: String) -> WheelSettings {
+        wheelDevices[key]?.wheel ?? wheelTemplate
+    }
+
+    /// Changes one wheel mouse's settings. Its first change copies the template, so the
+    /// settings it doesn't touch stay as they were.
+    func updateWheel(for key: String, _ change: (inout WheelSettings) -> Void) {
+        var device = wheelDevices[key] ?? WheelDevice(wheel: wheelTemplate, trackingSpeed: chosenWheelTrackingSpeed)
+        change(&device.wheel)
+        device.wheel.speed = min(max(device.wheel.speed, 1), Settings.maximumWheelScrollSpeed)
+        wheelDevices[key] = device
+    }
+
+    /// nil: this mouse's speed was never chosen, so it is left alone.
+    func wheelTrackingSpeed(for key: String) -> Double? {
+        if let device = wheelDevices[key] { return device.trackingSpeed }
+        return chosenWheelTrackingSpeed
+    }
+
+    func setWheelTrackingSpeed(_ speed: Double, for key: String) {
+        var device = wheelDevices[key] ?? WheelDevice(wheel: wheelTemplate, trackingSpeed: chosenWheelTrackingSpeed)
+        device.trackingSpeed = speed
+        wheelDevices[key] = device
+    }
+
+    func typeOverride(for key: String) -> MouseTypeSetting {
+        deviceTypeOverrides[key] ?? mouseType
     }
 
     var tapConfig: TapConfig {
@@ -389,8 +446,24 @@ final class Settings: ObservableObject {
         d.set(try? JSONEncoder().encode(customPresets), forKey: Key.customPresets)
     }
 
+    private static func load<T: Decodable>(_ type: T.Type, _ key: String, _ d: UserDefaults) -> T? {
+        guard let data = d.data(forKey: key) else { return nil }
+        return try? JSONDecoder().decode(T.self, from: data)
+    }
+
+    private func save<T: Encodable>(_ value: T, _ key: String) {
+        d.set(try? JSONEncoder().encode(value), forKey: key)
+    }
+
     private func changed() {
         guard !loading else { return }
         NotificationCenter.default.post(name: Settings.didChange, object: self)
     }
+}
+
+/// One wheel mouse's own settings.
+struct WheelDevice: Codable, Equatable {
+    var wheel: WheelSettings
+    /// nil until this mouse's tracking speed is chosen; until then it is left alone.
+    var trackingSpeed: Double?
 }
