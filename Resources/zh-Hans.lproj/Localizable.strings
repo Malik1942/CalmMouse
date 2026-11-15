@@ -221,3 +221,6 @@
 
 /* 1.2: another mouse utility is running */
 "%@ is changing your mouse too. If something feels doubled, turn it off in one of them." = "%@ 也在改变鼠标的行为。如果某个动作像是做了两次，请在其中一个里关掉它。";
+
+/* 1.2: how a same-named mouse connects */
+"Bluetooth" = "蓝牙";

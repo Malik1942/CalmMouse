@@ -455,6 +455,9 @@ private struct DeviceColumn: View {
             Text(device.name)
                 .font(.headline)
                 .lineLimit(1)
+            if let detail = device.detail {
+                Text(detail).foregroundStyle(.secondary)
+            }
             if let battery = batteryText(device) {
                 Text(battery).foregroundStyle(.secondary)
             }
@@ -473,7 +476,7 @@ private struct DeviceColumn: View {
                     HStack(spacing: Theme.Space.medium) {
                         Image(systemName: symbol(device))
                             .frame(width: Theme.Size.rowIcon)
-                        Text(device.name)
+                        Text(device.detail.map { "\(device.name) · \($0)" } ?? device.name)
                             .lineLimit(1)
                             .truncationMode(.middle)
                         Spacer(minLength: Theme.Space.small)
@@ -504,8 +507,8 @@ private struct TreatAsSection: View {
             Section {
                 ExplainedRow(caption: L("Only if CalmMouse took this mouse\nfor the wrong kind.")) {
                     Picker("Treat as", selection: Binding(
-                        get: { settings.typeOverride(for: device.key) },
-                        set: { settings.deviceTypeOverrides[device.key] = $0 })) {
+                        get: { settings.typeOverride(key: device.key, name: device.name) },
+                        set: { settings.setTypeOverride($0, key: device.key, name: device.name) })) {
                         Text("Automatic").tag(MouseTypeSetting.automatic)
                         Divider()
                         Text("Magic Mouse").tag(MouseTypeSetting.magicMouse)
@@ -747,12 +750,12 @@ private struct WheelDeviceForm: View {
     let device: DeviceEntry
 
     var body: some View {
-        let wheel = settings.wheelSettings(for: device.key)
+        let wheel = settings.wheelSettings(key: device.key, name: device.name)
         Form {
             Section("Pointer") {
                 SliderRow("Tracking speed",
-                          value: Binding(get: { settings.wheelTrackingSpeed(for: device.key) ?? 0 },
-                                         set: { settings.setWheelTrackingSpeed($0, for: device.key) }),
+                          value: Binding(get: { settings.wheelTrackingSpeed(key: device.key, name: device.name) ?? 0 },
+                                         set: { settings.setWheelTrackingSpeed($0, key: device.key, name: device.name) }),
                           in: -1...1, step: 0.25, from: "Slow", to: "Fast")
             }
             Section("Scrolling") {
@@ -776,8 +779,8 @@ private struct WheelDeviceForm: View {
     }
 
     private func binding<Value>(_ path: WritableKeyPath<WheelSettings, Value>) -> Binding<Value> {
-        Binding(get: { settings.wheelSettings(for: device.key)[keyPath: path] },
-                set: { value in settings.updateWheel(for: device.key) { $0[keyPath: path] = value } })
+        Binding(get: { settings.wheelSettings(key: device.key, name: device.name)[keyPath: path] },
+                set: { value in settings.updateWheel(key: device.key, name: device.name) { $0[keyPath: path] = value } })
     }
 }
 

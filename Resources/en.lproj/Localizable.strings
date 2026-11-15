@@ -222,3 +222,6 @@
 
 /* 1.2: another mouse utility is running */
 "%@ is changing your mouse too. If something feels doubled, turn it off in one of them." = "%@ is changing your mouse too. If something feels doubled, turn it off in one of them.";
+
+/* 1.2: how a same-named mouse connects */
+"Bluetooth" = "Bluetooth";

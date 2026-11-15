@@ -70,12 +70,13 @@ final class DeviceIdentifier {
             PointerIdentity(isMagicMouse: isMagicMouse, isTrackpad: isTrackpad, isMouse: declaresMouse)
         }
 
-        /// Keys a device's own settings. By name, because one mouse reports different IDs over
-        /// its USB receiver and over Bluetooth (measured: MCHOSE A7 Ultra is 5253:0011 on its
-        /// receiver and 005D:4762 over Bluetooth LE) but keeps its name. A device without a
-        /// name falls back to its IDs. Stays on this Mac; feedback never carries it.
+        /// Keys a device's own settings: IDs plus name, so two different mice that share a
+        /// name stay apart. One mouse reports different IDs over its USB receiver and over
+        /// Bluetooth (measured: MCHOSE A7 Ultra is 5253:0011 on its receiver, 005D:4762 over
+        /// Bluetooth LE); `DeviceSettingsIndex` lets the second connection start from the
+        /// first by name. Stays on this Mac; feedback never carries it.
         var settingsKey: String {
-            product.isEmpty ? String(format: "%04X:%04X", vendorID, productID) : product
+            String(format: "%04X:%04X:", vendorID, productID) + product
         }
 
         /// The hardware identity without the name, for `--status`.

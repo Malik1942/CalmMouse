@@ -30,12 +30,12 @@ final class ConflictMonitor: ObservableObject {
     func refresh() {
         guard let settings, let mice else { return }
         let devices = mice.devices(for: settings)
-        let wheelKeys = devices.filter { $0.kind == .wheelMouse }.map(\.key)
+        let wheels = devices.filter { $0.kind == .wheelMouse }
         let hasMagicMouse = devices.contains { $0.kind == .magicMouse }
         let speedChosen = (hasMagicMouse && settings.chosenMagicMouseTrackingSpeed != nil)
-            || wheelKeys.contains { settings.wheelTrackingSpeed(for: $0) != nil }
+            || wheels.contains { settings.wheelTrackingSpeed(key: $0.key, name: $0.name) != nil }
         let areas = Self.activeAreas(enabled: settings.enabled, hasMagicMouse: hasMagicMouse,
-                                     wheels: wheelKeys.map(settings.wheelSettings(for:)),
+                                     wheels: wheels.map { settings.wheelSettings(key: $0.key, name: $0.name) },
                                      trackingSpeedChosen: speedChosen)
         let running = NSWorkspace.shared.runningApplications.map {
             MouseUtilityConflicts.RunningApp(bundleID: $0.bundleIdentifier, name: $0.localizedName)
