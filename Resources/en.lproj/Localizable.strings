@@ -191,3 +191,6 @@
 /* Low-battery notification */
 "Magic Mouse battery low" = "Magic Mouse battery low";
 "%ld%% left — worth plugging it in before it dies mid-click." = "%ld%% left — worth plugging it in before it dies mid-click.";
+
+/* Menu: open a prefilled GitHub issue */
+"Send Feedback…" = "Send Feedback…";
