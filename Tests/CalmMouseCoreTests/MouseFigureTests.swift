@@ -58,6 +58,22 @@ final class MouseFigureTests: XCTestCase {
         XCTAssertEqual(front.y, 5.675, accuracy: 1e-6) // front points to +y
     }
 
+    /// The lid must curve evenly round its middle: built from rays alone it creased along the
+    /// diagonals and came to a point there, which glossy reflections showed as a little pyramid.
+    func testTheLidCurvesEvenlyRoundItsMiddle() {
+        func height(_ x: Double, _ l: Double) -> Double {
+            MagicMouseFigure.surface(u: x / MagicMouseFigure.halfWidth(l), v: l / 5.675).z
+        }
+        let h = 0.01, rho = 0.6
+        let curvature = (0..<72).map { i -> Double in
+            let a = 2 * Double.pi * Double(i) / 72, x = rho * cos(a), l = rho * sin(a)
+            return (height(x + h, l) + height(x - h, l) + height(x, l + h) + height(x, l - h) - 4 * height(x, l)) / (h * h)
+        }
+        let mean = curvature.reduce(0, +) / Double(curvature.count)
+        let spread = (curvature.max()! - curvature.min()!) / abs(mean)
+        XCTAssertLessThan(spread, 0.2, "curvature varies \(Int(spread * 100))% round the middle: a crease")
+    }
+
     func testTheLidFacesStraightUpAtItsTop() {
         let n = MagicMouseFigure.surfaceNormal(u: 0, v: 0)
         XCTAssertEqual(n.z, 1, accuracy: 0.001)

@@ -33,6 +33,8 @@ struct PageState: Equatable {
     var scrollY = 0.0
     var scrollX = 0.0
     var zoom = 1.0
+    /// A button under the pointer, for the stories that click.
+    var button = false
     var flash = 0.0
     var object: Double?
     var menu = 0.0
@@ -162,6 +164,7 @@ private enum Story {
     /// A light tap clicks: no need to press the mouse down.
     static func tapToClick(_ t: Double) -> StoryFrame {
         var f = StoryFrame()
+        f.page.button = true
         var alpha = 0.0
         for start in [0.4, 1.5] {
             alpha = max(alpha, pulse(t, start, start + 0.22, fade: 0.08))
@@ -181,6 +184,7 @@ private enum Story {
         f.ripples = [StoryRipple(u: right.u, v: right.v, progress: seg(t, 0.5, 0.95)),
                      StoryRipple(u: left.u, v: left.v, progress: seg(t, 2.3, 2.75))]
         f.page.menu = seg(t, 0.55, 0.75) * (1 - seg(t, 1.8, 2.0))
+        f.page.button = true
         f.page.flash = pulse(t, 2.35, 2.75)
         return f
     }
@@ -203,6 +207,7 @@ private enum Story {
                      StoryTouch(u: back.u, v: back.v, alpha: pulse(t, 1.6, 2.3, fade: 0.1), ignored: true)]
         f.ripples = [StoryRipple(u: front.u, v: front.v, progress: seg(t, 0.5, 1.0))]
         f.crossOnLid = .init(u: back.u, v: back.v - 36.0 / 130, alpha: pulse(t, 1.8, 2.4))
+        f.page.button = true
         f.page.flash = pulse(t, 0.55, 0.95)
         return f
     }
@@ -249,5 +254,53 @@ private enum Story {
         f.page.scrollY = (on ? -26 : 26) * seg(t, 0.55, 1.6)
         f.page.arrows = .init(kind: .flipped(on), page: pulse(t, 0.6, 2.7))
         return f
+    }
+}
+
+/// The big ring around the whole mouse: a one-time moment, never a loop. Its motion follows
+/// Apple's AirPods rings: it draws itself round, lobes of longer ticks travel round it while the
+/// colour drifts between cyan and blue the other way, and once in the middle it blooms out into
+/// a halo of dots before settling and fading.
+enum PresenceRing {
+    struct Frame: Equatable {
+        /// How much of the ring has been drawn, from the front round.
+        var sweep: Double
+        /// In cm, on the desk around the mouse's middle: the ticks' outer ends.
+        var radius: Double
+        var alpha: Double
+        /// How far the lobes and colours have travelled, in radians.
+        var phase: Double
+        /// 0…1: how far the ring has bloomed out into dots.
+        var bloom: Double
+    }
+
+    struct Tick: Equatable {
+        /// In cm, inward from the ring.
+        var length: Double
+        /// In cm, outward from the ring: the bloom's dots.
+        var bloom: Double
+        /// 0 deep blue … 1 cyan.
+        var mix: Double
+    }
+
+    static let duration = 3.0
+
+    static func frame(at t: Double) -> Frame? {
+        guard t >= 0, t <= duration else { return nil }
+        func seg(_ a: Double, _ b: Double) -> Double {
+            let x = min(max((t - a) / (b - a), 0), 1)
+            return x * x * (3 - 2 * x)
+        }
+        let open = 1 - pow(1 - min(t, 1), 2)
+        return Frame(sweep: seg(0, 0.8), radius: 5.05 + 0.25 * open, alpha: seg(0, 0.3) * (1 - seg(2.4, 3.0)),
+                     phase: 2.4 * t, bloom: seg(1.0, 1.6) * (1 - seg(1.9, 2.5)))
+    }
+
+    /// One tick of the ring at `angle` (radians round it).
+    static func tick(_ f: Frame, angle: Double) -> Tick {
+        let lobe = pow(0.5 + 0.5 * cos(2 * (angle - f.phase)), 1.6)
+        return Tick(length: 0.1 + 0.32 * lobe,
+                    bloom: f.bloom * (0.25 + 0.38 * lobe),
+                    mix: 0.5 + 0.5 * cos(angle + 1.3 * f.phase + 0.8))
     }
 }

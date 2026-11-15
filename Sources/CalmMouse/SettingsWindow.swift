@@ -421,7 +421,8 @@ private struct DeviceColumn: View {
             if devices.count > 1 { switcher }
             if let selected, selected.kind == .magicMouse {
                 // The rendered mouse plays each setting's story on itself.
-                MouseShowcase(preview: focus.preview) { details(selected, turnHint: true) }
+                MouseShowcase(preview: focus.preview, connected: selected.connected,
+                              presetID: settings.activePreset?.id) { details(selected, turnHint: true) }
             } else if let preview = focus.preview {
                 PreviewCanvas(preview: preview)
                     .frame(width: 250, height: 150)
