@@ -16,7 +16,6 @@
 "CalmMouse needs Accessibility permission" = "CalmMouse 需要輔助使用權限";
 "CalmMouse is paused" = "CalmMouse 已暫停";
 "CalmMouse couldn't start its event tap" = "CalmMouse 無法啟動事件監聽";
-"CalmMouse — active · Magic Mouse battery low" = "CalmMouse — 運作中 · 巧控滑鼠電量不足";
 "CalmMouse — active" = "CalmMouse — 運作中";
 "⚠︎ Event tap failed to start" = "⚠︎ 事件監聽啟動失敗";
 "Update available — CalmMouse %@…" = "有可用更新 — CalmMouse %@…";
@@ -188,7 +187,6 @@
 "Tracking speed" = "軌跡速度";
 
 /* Low-battery notification */
-"Magic Mouse battery low" = "巧控滑鼠電量不足";
 "%ld%% left — worth plugging it in before it dies mid-click." = "還剩 %ld%%，最好現在就充電，免得用到一半沒電。";
 
 /* Menu: open a prefilled GitHub issue */
@@ -216,3 +214,7 @@
 "Up and down only" = "只能上下";
 "Flips only the Magic Mouse.\nThe trackpad stays as it is." = "只反轉巧控滑鼠的方向。\n軌跡板不受影響。";
 "Tap the right side to right-click" = "輕點右側來右鍵點按";
+
+/* 1.2: every mouse's battery */
+"%@ battery low" = "%@ 電量不足";
+"CalmMouse — active · Mouse battery low" = "CalmMouse — 運作中 · 滑鼠電量不足";

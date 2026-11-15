@@ -181,6 +181,20 @@ final class AppBehaviourTests: XCTestCase {
         XCTAssertEqual(BatteryMonitor.percent(of: "Magic Mouse", in: [office]), 12)
     }
 
+    func testEveryConnectedMouseWithALevelIsWatched() {
+        let levels = ["MCHOSE A7 Ultra": 9, "Office Magic Mouse": 50]
+        let all = BatteryMonitor.readings(magicMice: [home], otherMice: ["MCHOSE A7 Ultra", "Silent Mouse"],
+                                          level: { levels[$0] })
+        XCTAssertEqual(all.map(\.deviceName), ["Home Magic Mouse", "MCHOSE A7 Ultra"],
+                       "a mouse that reports no level is skipped")
+        XCTAssertEqual(BatteryMonitor.lowest(all)?.deviceName, "MCHOSE A7 Ultra")
+    }
+
+    func testAMagicMouseIsNotCountedTwice() {
+        let all = BatteryMonitor.readings(magicMice: [home], otherMice: ["Home Magic Mouse"], level: { _ in 3 })
+        XCTAssertEqual(all, [home], "its registry reading wins")
+    }
+
     func testTheLowBatteryWarningWatchesTheEmptiestMouse() {
         XCTAssertEqual(BatteryMonitor.lowest([home, office]), office)
         XCTAssertNil(BatteryMonitor.lowest([]))
