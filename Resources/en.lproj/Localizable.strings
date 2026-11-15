@@ -201,3 +201,19 @@
 "Like CalmMouse?" = "Like CalmMouse?";
 "Star on GitHub" = "Star on GitHub";
 "⭐ %@ accidental scrolls stopped. Star on GitHub?" = "⭐ %@ accidental scrolls stopped. Star on GitHub?";
+
+/* 1.2: Devices, Treat as, direction, Magic Mouse reverse */
+"Devices" = "Devices";
+"Point at a setting\nto see what it does." = "Point at a setting\nto see what it does.";
+"Not connected" = "Not connected";
+"Only if CalmMouse took this mouse\nfor the wrong kind." = "Only if CalmMouse took this mouse\nfor the wrong kind.";
+"Treat as" = "Treat as";
+"Wheel mouse" = "Wheel mouse";
+"CalmMouse has nothing to change on this mouse." = "CalmMouse has nothing to change on this mouse.";
+"Straight lines: a swipe can't drift.\nUp and down only: no sideways at all." = "Straight lines: a swipe can't drift.\nUp and down only: no sideways at all.";
+"Direction" = "Direction";
+"Any direction" = "Any direction";
+"Straight lines" = "Straight lines";
+"Up and down only" = "Up and down only";
+"Flips only the Magic Mouse.\nThe trackpad stays as it is." = "Flips only the Magic Mouse.\nThe trackpad stays as it is.";
+"Tap the right side to right-click" = "Tap the right side to right-click";

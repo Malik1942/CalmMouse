@@ -48,6 +48,7 @@ struct ExplainedRow<Content: View>: View {
 
     @State private var showPopover = false
     @State private var pending: DispatchWorkItem?
+    @Environment(\.previewFocus) private var focus
 
     var body: some View {
         HStack(spacing: 0) {
@@ -68,6 +69,11 @@ struct ExplainedRow<Content: View>: View {
             .frame(width: preview == nil ? nil : 274, alignment: .leading)
         }
         .onHover { hovering in
+            // Inside Devices the left column explains; no popover.
+            if let focus {
+                if hovering, !caption.isEmpty { focus.show(preview, caption: caption) }
+                return
+            }
             pending?.cancel()
             if hovering, !caption.isEmpty {
                 let work = DispatchWorkItem { showPopover = true }
@@ -79,6 +85,34 @@ struct ExplainedRow<Content: View>: View {
                 showPopover = false
             }
         }
+    }
+}
+
+/// What the left column of Devices is explaining: the row under the pointer.
+final class PreviewFocus: ObservableObject {
+    @Published private(set) var preview: SettingPreview?
+    @Published private(set) var caption: String?
+
+    func show(_ preview: SettingPreview?, caption: String) {
+        self.preview = preview
+        self.caption = caption
+    }
+
+    func clear() {
+        preview = nil
+        caption = nil
+    }
+}
+
+private struct PreviewFocusKey: EnvironmentKey {
+    static let defaultValue: PreviewFocus? = nil
+}
+
+extension EnvironmentValues {
+    /// Set inside Devices, where rows explain themselves in the left column.
+    var previewFocus: PreviewFocus? {
+        get { self[PreviewFocusKey.self] }
+        set { self[PreviewFocusKey.self] = newValue }
     }
 }
 

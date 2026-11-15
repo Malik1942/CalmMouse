@@ -21,6 +21,8 @@ enum Theme {
 
     enum Size {
         static let paneWidth: CGFloat = 480
+        /// Devices' left column: the device, and what the setting under the pointer does.
+        static let deviceColumn: CGFloat = 290
         /// App icons and other artwork that leads a row.
         static let rowIcon: CGFloat = 20
         /// Every slider track is this long, so a column of them lines up.
