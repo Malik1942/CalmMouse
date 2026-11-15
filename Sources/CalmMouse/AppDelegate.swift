@@ -26,10 +26,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let permissionItem = NSMenuItem(title: L("Grant Accessibility permission…"), action: #selector(openAccessibility), keyEquivalent: "")
     private let updateItem = NSMenuItem(title: "", action: #selector(openUpdate), keyEquivalent: "")
     private let enabledItem = NSMenuItem(title: L("CalmMouse enabled"), action: #selector(toggleEnabled), keyEquivalent: "")
-    private let blockItem = NSMenuItem(title: L("Don't scroll while clicking"), action: #selector(toggleBlock), keyEquivalent: "")
-    private let momentumItem = NSMenuItem(title: L("Keep gliding after a swipe"), action: #selector(toggleMomentum), keyEquivalent: "")
-    private let axisLockItem = NSMenuItem(title: L("Scroll in straight lines"), action: #selector(toggleAxisLock), keyEquivalent: "")
-    private let tapToClickItem = NSMenuItem(title: L("Tap to click"), action: #selector(toggleTapToClick), keyEquivalent: "")
     private let perAppItem = NSMenuItem(title: L("Ignore scrolling in this app"), action: #selector(togglePerApp), keyEquivalent: "")
     private let starInviteItem = NSMenuItem(title: "", action: #selector(acceptStarInvite), keyEquivalent: "")
     /// How much of `tap.swallowedCount` is already in `settings.blockedScrollsTotal`.
@@ -216,13 +212,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         starInviteItem.isHidden = true
         menu.addItem(starInviteItem)
 
-        // Frequently-flipped switches live here; everything else is in the settings window.
+        // Only what gets switched often lives here: everything set once is in Settings.
         menu.addItem(enabledItem)
-        menu.addItem(.separator())
-        menu.addItem(blockItem)
-        menu.addItem(momentumItem)
-        menu.addItem(axisLockItem)
-        menu.addItem(tapToClickItem)
         menu.addItem(perAppItem)
         menu.addItem(.separator())
 
@@ -277,7 +268,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let trusted = AXIsProcessTrusted()
         // The quick switches are all Magic Mouse ones; with only a wheel mouse around they
         // would do nothing, so they step aside.
-        let hasMagicMouse = mice.kindsToShow(for: settings).contains(.magicMouse)
+        let hasMagicMouse = mice.devices(for: settings).contains { $0.kind == .magicMouse }
         // Words only when something is wrong. The switches below already say the rest.
         let tapFailed = trusted && settings.enabled && !tap.isRunning
         statusLine.title = L("⚠︎ Event tap failed to start")
@@ -295,15 +286,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshStarInvite()
 
         enabledItem.state = settings.enabled ? .on : .off
-        blockItem.state = settings.blockScrollWhileClicked ? .on : .off
-        momentumItem.state = settings.momentumEnabled ? .on : .off
-        axisLockItem.state = settings.axisLock ? .on : .off
-        tapToClickItem.state = settings.tapToClick ? .on : .off
-        blockItem.isHidden = !hasMagicMouse
-        momentumItem.isHidden = !hasMagicMouse
-        axisLockItem.isHidden = !hasMagicMouse
+        // App rules are about Magic Mouse scrolling.
         perAppItem.isHidden = !hasMagicMouse
-        tapToClickItem.isHidden = !TapController.isSupported || !hasMagicMouse
 
         if let app = NSWorkspace.shared.frontmostApplication,
            let bundleID = app.bundleIdentifier, bundleID != Bundle.main.bundleIdentifier {
@@ -419,10 +403,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: Actions
 
     @objc private func toggleEnabled() { settings.enabled.toggle() }
-    @objc private func toggleBlock() { settings.blockScrollWhileClicked.toggle() }
-    @objc private func toggleMomentum() { settings.momentumEnabled.toggle() }
-    @objc private func toggleAxisLock() { settings.axisLock.toggle() }
-    @objc private func toggleTapToClick() { settings.tapToClick.toggle() }
 
     @objc private func togglePerApp(_ sender: NSMenuItem) {
         guard let pair = sender.representedObject as? [String], pair.count == 2 else { return }

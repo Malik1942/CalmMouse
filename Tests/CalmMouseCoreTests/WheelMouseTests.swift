@@ -425,21 +425,4 @@ final class WheelMouseTests: XCTestCase {
         XCTAssertEqual(TrackingSpeed.resolution(forSpeed: -1), 1600 << 16)
         XCTAssertEqual(TrackingSpeed.resolution(forSpeed: 9), 100 << 16, "out of range is clamped")
     }
-
-    // MARK: What the settings window shows
-
-    func testSettingsDefaultToTheMagicMouseAndAddTheWheelWhenOneIsConnected() {
-        func shown(_ setting: MouseTypeSetting, _ connected: Set<MouseKind>, _ remembered: Set<MouseKind>) -> Set<MouseKind> {
-            MouseClassifier.kindsToShow(setting: setting, connected: connected, remembered: remembered)
-        }
-        XCTAssertEqual(shown(.automatic, [], []), [.magicMouse], "nothing ever seen: the Magic Mouse it is")
-        XCTAssertEqual(shown(.automatic, [.wheelMouse], []), [.wheelMouse])
-        // A sleeping Magic Mouse is off Bluetooth; its settings must not vanish.
-        XCTAssertEqual(shown(.automatic, [.wheelMouse], [.magicMouse]), [.magicMouse, .wheelMouse])
-        XCTAssertEqual(shown(.automatic, [], [.magicMouse]), [.magicMouse])
-        // A wheel mouse that is switched off takes its page with it.
-        XCTAssertEqual(shown(.automatic, [], [.wheelMouse]), [.magicMouse])
-        XCTAssertEqual(shown(.magicMouse, [.wheelMouse], [.wheelMouse]), [.magicMouse])
-        XCTAssertEqual(shown(.wheelMouse, [.magicMouse], [.magicMouse]), [.wheelMouse])
-    }
 }

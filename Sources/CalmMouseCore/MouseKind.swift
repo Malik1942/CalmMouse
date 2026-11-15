@@ -92,21 +92,4 @@ public enum MouseClassifier {
         case .wheelMouse: return detected == .magicMouse ? nil : .wheelMouse
         }
     }
-
-    /// Which kinds the settings window should show options for.
-    ///
-    /// The Magic Mouse is the default: with nothing connected, its settings are what shows, and
-    /// once one has been seen they stay, because it drops off Bluetooth whenever it sleeps. A
-    /// wheel mouse's settings show only while one is connected. A forced type shows only itself.
-    public static func kindsToShow(setting: MouseTypeSetting, connected: Set<MouseKind>,
-                                   remembered: Set<MouseKind>) -> Set<MouseKind> {
-        switch setting {
-        case .magicMouse: return [.magicMouse]
-        case .wheelMouse: return [.wheelMouse]
-        case .automatic:
-            var kinds = connected
-            if connected.isEmpty || remembered.contains(.magicMouse) { kinds.insert(.magicMouse) }
-            return kinds
-        }
-    }
 }
