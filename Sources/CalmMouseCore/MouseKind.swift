@@ -83,6 +83,16 @@ public enum MouseClassifier {
         return .wheelMouse
     }
 
+    /// What a device is handled as once the user has said what it is ("Treat as" on its page).
+    /// It matches `kind(of:event:setting:)`: a real Magic Mouse set to Scroll Wheel is left alone.
+    public static func effectiveKind(detected: MouseKind?, override: MouseTypeSetting) -> MouseKind? {
+        switch override {
+        case .automatic: return detected
+        case .magicMouse: return .magicMouse
+        case .wheelMouse: return detected == .magicMouse ? nil : .wheelMouse
+        }
+    }
+
     /// Which kinds the settings window should show options for.
     ///
     /// The Magic Mouse is the default: with nothing connected, its settings are what shows, and
