@@ -92,8 +92,6 @@ final class MouseStageView: NSView {
     var frames: MouseFrames?
     private var state = MouseStageState()
     private var timer: Timer?
-    /// When the page card began showing, for its fade-in.
-    private var cardSince: Double?
 
     var running = false {
         didSet {
@@ -129,25 +127,31 @@ final class MouseStageView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         guard let cg = NSGraphicsContext.current?.cgContext, let frames else { return }
-        let now = Date().timeIntervalSinceReferenceDate
         effectiveAppearance.performAsCurrentDrawingAppearance {
             let pen = Pen(cg: cg)
             cg.saveGState()
             cg.clip(to: CGRect(origin: .zero, size: MouseStage.size))
             MouseStageDrawing(pen: pen, state: state, frames: frames).draw()
             cg.restoreGState()
-            guard let story = state.story else { cardSince = nil; return }
-            let since = cardSince ?? now
-            cardSince = since
-            let k = min(max((now - since) / 0.2, 0), 1)
-            cg.saveGState()
-            cg.translateBy(x: (bounds.width - MouseStage.cardSize.width) / 2, y: MouseStage.cardTop)
-            cg.setAlpha(1 - (1 - k) * (1 - k))   // ease out, as the idle text fades away
-            cg.beginTransparencyLayer(auxiliaryInfo: nil)
-            PageCardDrawing(pen: pen, size: MouseStage.cardSize, page: story.page).draw()
-            cg.endTransparencyLayer()
-            cg.restoreGState()
+            // The page card: the row just left fades out under the one pointed at now.
+            let incoming = state.story == nil ? 0 : state.storyAlpha
+            if let outgoing = state.outgoing {
+                drawCard(outgoing.page, alpha: StoryFade.underlay(outgoing: state.outgoingAlpha, incoming: incoming), pen)
+            }
+            if let story = state.story { drawCard(story.page, alpha: state.storyAlpha, pen) }
         }
+    }
+
+    private func drawCard(_ page: PageState, alpha: Double, _ pen: Pen) {
+        guard alpha > 0.001 else { return }
+        let cg = pen.cg
+        cg.saveGState()
+        cg.translateBy(x: (bounds.width - MouseStage.cardSize.width) / 2, y: MouseStage.cardTop)
+        cg.setAlpha(alpha)
+        cg.beginTransparencyLayer(auxiliaryInfo: nil)
+        PageCardDrawing(pen: pen, size: MouseStage.cardSize, page: page).draw()
+        cg.endTransparencyLayer()
+        cg.restoreGState()
     }
 }
 
@@ -236,6 +240,11 @@ struct MouseStageState {
     /// nil at rest, else which of the 72 turn frames.
     var turnFrame: Int?
     var story: StoryFrame?
+    /// How far the story has faded in.
+    var storyAlpha = 1.0
+    /// The row just left: its story frozen on its last frame while it fades out.
+    var outgoing: StoryFrame?
+    var outgoingAlpha = 0.0
     /// The big ring around the mouse, while it plays.
     var ring: PresenceRing.Frame?
 }
@@ -255,6 +264,9 @@ final class MouseStageModel: ObservableObject {
     private var autoHome: DispatchWorkItem?
     private var ringRequested = false
     private var ringStart: Double?
+    private var lastStory: StoryFrame?
+    private var outgoing: StoryFrame?
+    private var outgoingSince: Double?
 
     private var atRest: Bool { !dragging && !homing && velocity == 0 && yaw == 0 }
 
@@ -301,6 +313,15 @@ final class MouseStageModel: ObservableObject {
         let dt = min(max(now - (lastTick ?? now), 0), 0.05)
         lastTick = now
         if preview != storyPreview {
+            if let last = lastStory {
+                // The row just left fades out from where it was; keep the clock going until it has.
+                outgoing = last
+                outgoingSince = now
+                DispatchQueue.main.async { [weak self] in
+                    if self?.animating == false { self?.setAnimating(true) }
+                }
+            }
+            lastStory = nil
             storyPreview = preview
             storyStart = nil
             if preview != nil && !atRest { homing = true }
@@ -327,7 +348,20 @@ final class MouseStageModel: ObservableObject {
             state.turnFrame = ((Int((yaw / 5).rounded()) % n) + n) % n
         }
         if let preview, let start = storyStart {
-            state.story = preview.frame(elapsed: now - start)
+            let story = preview.frame(elapsed: now - start)
+            state.story = story
+            state.storyAlpha = StoryFade.fadeIn(age: now - start)
+            lastStory = story
+        }
+        if let since = outgoingSince {
+            let alpha = StoryFade.fadeOut(age: now - since)
+            if alpha > 0 {
+                state.outgoing = outgoing
+                state.outgoingAlpha = alpha
+            } else {
+                outgoing = nil
+                outgoingSince = nil
+            }
         }
         if let start = ringStart {
             state.ring = PresenceRing.frame(at: now - start)
@@ -339,7 +373,7 @@ final class MouseStageModel: ObservableObject {
 
     /// Stop the clock when nothing moves; a mouse left turned goes back by itself after a while.
     private func settle() {
-        guard !dragging, !homing, velocity == 0, ringStart == nil, !ringRequested else { return }
+        guard !dragging, !homing, velocity == 0, ringStart == nil, !ringRequested, outgoingSince == nil else { return }
         if yaw != 0, autoHome == nil {
             let work = DispatchWorkItem { [weak self] in
                 guard let self, !self.dragging else { return }
@@ -412,19 +446,24 @@ private struct MouseStageDrawing {
     private let touchBlue = NSColor(srgbRed: 0.33, green: 0.64, blue: 0.98, alpha: 1)
 
     func draw() {
-        let frame = state.story
         let camera = DeskCamera(yaw: Double(state.turnFrame ?? 0) * 5, frame: MouseStage.frameSide,
                                 originX: MouseStage.frameOrigin.x, originY: MouseStage.frameOrigin.y)
-        let slide = frame?.slide ?? 0
+        // A row just left takes the mouse back home with its fade.
+        let slide = (state.story?.slide ?? 0) + (state.outgoing?.slide ?? 0) * state.outgoingAlpha
         let dx = slide == 0 ? 0 : camera.project(Vec3(0, 0, 0), slide: slide).x - camera.project(Vec3(0, 0, 0)).x
         if let ring = state.ring { drawRing(ring, camera, yaw: Double(state.turnFrame ?? 0) * 5) }
         let image = state.turnFrame.flatMap { frames.turn($0) } ?? frames.rest
         if let image {
-            let rect = CGRect(x: MouseStage.frameOrigin.x + dx, y: MouseStage.frameOrigin.y + ((frame?.pressed ?? false) ? 0.8 : 0),
+            let rect = CGRect(x: MouseStage.frameOrigin.x + dx, y: MouseStage.frameOrigin.y + ((state.story?.pressed ?? false) ? 0.8 : 0),
                               width: MouseStage.frameSide, height: MouseStage.frameSide)
             pen.image(image, in: rect)
         }
-        guard let frame else { return }
+        if let outgoing = state.outgoing { layer(alpha: state.outgoingAlpha) { drawMarks(outgoing, camera, slide) } }
+        if let story = state.story { layer(alpha: state.storyAlpha) { drawMarks(story, camera, slide) } }
+    }
+
+    /// What a story puts on the lid: its zone, ripples, the hold dial, fingers and the ignored cross.
+    private func drawMarks(_ frame: StoryFrame, _ camera: DeskCamera, _ slide: Double) {
         drawZone(frame, camera, slide)
         for ripple in frame.ripples where ripple.progress > 0 && ripple.progress < 1 { drawRipple(ripple, camera, slide) }
         if let dial = frame.dial, dial.progress > 0, dial.progress < 1 {
@@ -434,6 +473,18 @@ private struct MouseStageDrawing {
         }
         for touch in frame.touches where touch.alpha > 0.01 { drawTouch(touch, camera, slide) }
         if let mark = frame.crossOnLid, mark.alpha > 0.01 { drawIgnoredMark(mark, camera, slide) }
+    }
+
+    /// Draws `body` at `alpha`, as one layer.
+    private func layer(alpha: Double, _ body: () -> Void) {
+        guard alpha > 0.001 else { return }
+        guard alpha < 0.999 else { body(); return }
+        pen.cg.saveGState()
+        pen.cg.setAlpha(alpha)
+        pen.cg.beginTransparencyLayer(auxiliaryInfo: nil)
+        body()
+        pen.cg.endTransparencyLayer()
+        pen.cg.restoreGState()
     }
 
     private func point(_ p: (x: Double, y: Double)) -> CGPoint { CGPoint(x: p.x, y: p.y) }

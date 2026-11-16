@@ -95,6 +95,27 @@ extension SettingPreview {
     }
 }
 
+/// How a story's layer on the stage fades in, out, and hands over to the next row's.
+enum StoryFade {
+    static let duration = 0.2
+
+    /// Opacity `age` seconds after a story began showing: eases out, as the idle text does.
+    static func fadeIn(age: Double) -> Double {
+        let k = min(max(age / duration, 0), 1)
+        return 1 - (1 - k) * (1 - k)
+    }
+
+    /// Opacity `age` seconds after a story was left: the complement of `fadeIn`, so one story
+    /// fading out under another fading in always adds up to full.
+    static func fadeOut(age: Double) -> Double { 1 - fadeIn(age: age) }
+
+    /// The opacity to draw an opaque card at when another is drawn over it at `incoming`, so the
+    /// old one still shows at `outgoing` and the pair never lets the background through.
+    static func underlay(outgoing: Double, incoming: Double) -> Double {
+        incoming >= 1 ? 0 : min(outgoing / (1 - incoming), 1)
+    }
+}
+
 private enum Story {
     /// Where a finger naturally rests: the middle, a little back.
     static let rest = (u: 0.0, v: 0.15)
