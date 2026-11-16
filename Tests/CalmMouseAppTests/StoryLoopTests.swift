@@ -36,4 +36,46 @@ final class StoryLoopTests: XCTestCase {
         XCTAssertLessThan(up.frame(elapsed: 2 * up.loop + 1.7).page.scrollY,
                           up.frame(elapsed: up.loop + 1.7).page.scrollY - 20, "reversed, the page keeps going up")
     }
+
+    func testNothingJumpsAtTheEndOfALoop() {
+        for p in Self.all {
+            for (a, b, name) in boundaries(p) {
+                XCTAssertEqual(a.slide, b.slide, accuracy: 0.005, "\(name): the mouse")
+                XCTAssertEqual(a.pressed, b.pressed, name)
+                XCTAssertEqual(a.page.fade, b.page.fade, accuracy: 0.01, "\(name): the page's contents")
+                XCTAssertEqual(a.page.menu, b.page.menu, accuracy: 0.01, name)
+                XCTAssertEqual(a.page.flash, b.page.flash, accuracy: 0.01, name)
+                XCTAssertEqual(a.page.cross, b.page.cross, accuracy: 0.01, name)
+                XCTAssertEqual(a.page.arrows?.page ?? 0, b.page.arrows?.page ?? 0, accuracy: 0.01, name)
+                XCTAssertEqual(a.crossOnLid?.alpha ?? 0, b.crossOnLid?.alpha ?? 0, accuracy: 0.01, name)
+                if a.page.fade > 0.05 || b.page.fade > 0.05 {
+                    XCTAssertEqual(a.page.zoom, b.page.zoom, accuracy: 0.01, "\(name): zoom")
+                    XCTAssertEqual(a.page.object ?? 0, b.page.object ?? 0, accuracy: 0.5, "\(name): the dragged item")
+                }
+                XCTAssertEqual(a.touches.count, b.touches.count, name)
+                for (x, y) in zip(a.touches, b.touches) {
+                    XCTAssertEqual(x.alpha, y.alpha, accuracy: 0.01, "\(name): a finger")
+                    if x.alpha > 0.01 {
+                        XCTAssertEqual(x.u, y.u, accuracy: 0.01, name)
+                        XCTAssertEqual(x.v, y.v, accuracy: 0.01, name)
+                    }
+                }
+                let moving = { (f: StoryFrame) in f.ripples.filter { $0.progress > 0 && $0.progress < 1 }.count }
+                XCTAssertEqual(moving(a), moving(b), "\(name): ripples")
+            }
+        }
+    }
+
+    func testTheStoriesThatCantCarryOnStartOverUnseen() {
+        for (p, before) in [(SettingPreview.tapAndDrag, 4.0), (.twoFingerDrag, 3.8), (.keyZoom, 3.2)] {
+            XCTAssertEqual(p.frame(at: 0).page.fade, 0, accuracy: 0.001, "\(p) starts unseen")
+            XCTAssertEqual(p.frame(at: p.loop).page.fade, 0, accuracy: 0.001, "\(p) ends unseen")
+            XCTAssertEqual(p.frame(at: p.loop).slide, 0, accuracy: 0.001, "\(p): the mouse is back in the middle")
+            XCTAssertLessThanOrEqual(p.loop, before + 0.4, "\(p) grows by at most 0.4 s")
+        }
+        let drag = SettingPreview.tapAndDrag
+        XCTAssertEqual(drag.frame(at: 2.6).page.fade, 1, accuracy: 0.001, "the drop is shown in full")
+        XCTAssertGreaterThan(drag.frame(at: 3.1).slide, 1.2, "the mouse stays put until the finger has lifted")
+        XCTAssertEqual(SettingPreview.keyZoom.frame(at: 2.5).page.fade, 1, accuracy: 0.001, "the zoom is shown in full")
+    }
 }

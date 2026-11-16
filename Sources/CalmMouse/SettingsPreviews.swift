@@ -31,9 +31,9 @@ enum SettingPreview: Equatable {
         case .tapToClick:         return 2.6
         case .tapRightClick:      return 3.4
         case .tapZone:            return 3.0
-        case .tapAndDrag:         return 4.0
-        case .twoFingerDrag:      return 3.8
-        case .keyZoom:            return 3.2
+        case .tapAndDrag:         return 4.3
+        case .twoFingerDrag:      return 4.2
+        case .keyZoom:            return 3.3
         case .reverseScroll:      return 3.0
         }
     }
