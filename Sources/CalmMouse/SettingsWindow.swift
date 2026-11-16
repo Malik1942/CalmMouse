@@ -19,12 +19,18 @@ final class SettingsWindowController: NSWindowController {
         let panes = SettingsPanesController(settings: settings, updater: updater)
         self.panes = panes
         let window = NSWindow(contentViewController: panes)
-        window.styleMask = [.titled, .closable, .miniaturizable]
+        // Resizable so Devices can be dragged taller or shorter. Every other pane holds the window
+        // to its own size (see `sizeWindow(to:)`), and nothing zooms or goes full screen.
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+        window.collectionBehavior.insert(.fullScreenNone)
         window.toolbarStyle = .preference
         window.isReleasedWhenClosed = false
         super.init(window: window)
+        window.standardWindowButton(.zoomButton)?.isEnabled = false
         panes.sizeWindowToSelectedPane(animated: false)
         window.center()
+        NotificationCenter.default.addObserver(forName: NSWindow.didEndLiveResizeNotification, object: window,
+                                               queue: nil) { [weak panes] _ in panes?.rememberDevicesHeight() }
     }
 
     /// Shows this pane, if it is one of the panes on show.
@@ -106,6 +112,10 @@ private final class SettingsPanesController: NSTabViewController {
     private var cancellables = Set<AnyCancellable>()
     private var mouseTimer: Timer?
     private static let selectionKey = "settingsPane"
+    /// The content height Devices was last dragged to.
+    private static let devicesHeightKey = "settingsDevicesHeight"
+    /// What Devices can't be shorter than: its banner and left column at their natural height.
+    private var devicesMinimum: CGFloat = 0
 
     init(settings: Settings, updater: UpdateChecker) {
         self.settings = settings
@@ -118,8 +128,11 @@ private final class SettingsPanesController: NSTabViewController {
         let maxHeight = max(360, min(720, screenHeight - 110))
         let mice = self.mice
         func pane<V: View>(_ pane: SettingsPane, @ViewBuilder _ content: @escaping () -> V) {
-            let host = NSHostingController(rootView: AnyView(PaneFrame(width: pane.width, maxHeight: maxHeight, content: content)))
-            host.sizingOptions = [.preferredContentSize]
+            // Devices takes the height it is given (its list scrolls); the others fit their content.
+            let host = pane == .devices
+                ? NSHostingController(rootView: AnyView(content().frame(width: pane.width).frame(maxHeight: .infinity)))
+                : NSHostingController(rootView: AnyView(PaneFrame(width: pane.width, maxHeight: maxHeight, content: content)))
+            host.sizingOptions = pane == .devices ? [] : [.preferredContentSize]
             host.title = pane.title     // AppKit titles the window after the selected pane
             let item = NSTabViewItem(viewController: host)
             item.label = pane.title
@@ -134,7 +147,9 @@ private final class SettingsPanesController: NSTabViewController {
             })
         }
         pane(.general) { GeneralPane(settings: settings, updater: updater, mice: mice) }
-        pane(.devices) { DevicesPane(settings: settings, mice: mice) }
+        pane(.devices) {
+            DevicesPane(settings: settings, mice: mice) { [weak self] in self?.devicesMinimumChanged($0) }
+        }
         pane(.advanced) { AdvancedPane(settings: settings, mice: mice) }
 
         showPanesForCurrentMice()
@@ -214,12 +229,58 @@ private final class SettingsPanesController: NSTabViewController {
     private func sizeWindow(to pane: SettingsPane, animated: Bool) {
         guard let window = view.window, let host = hosts[pane] else { return }
         window.title = pane.title
-        let content = host.sizeThatFits(in: NSSize(width: pane.width, height: 10_000))
+        let content = pane == .devices
+            ? NSSize(width: pane.width, height: devicesHeight(in: window))
+            : host.sizeThatFits(in: NSSize(width: pane.width, height: 10_000))
         guard content.width > 0, content.height > 0 else { return }
+        // Free while it changes size, then held to what this pane allows.
+        window.contentMinSize = .zero
+        window.contentMaxSize = NSSize(width: 100_000, height: 100_000)
         let size = window.frameRect(forContentRect: NSRect(origin: .zero, size: content)).size
-        guard size != window.frame.size else { return }
-        let frame = SettingsWindowFrame.resized(window.frame, to: size, within: window.screen?.visibleFrame)
-        window.setFrame(frame, display: true, animate: animated && window.isVisible)
+        if size != window.frame.size {
+            let frame = SettingsWindowFrame.resized(window.frame, to: size, within: window.screen?.visibleFrame)
+            window.setFrame(frame, display: true, animate: animated && window.isVisible)
+        }
+        let actual = window.contentRect(forFrameRect: window.frame).size
+        if pane == .devices {
+            window.contentMinSize = NSSize(width: pane.width, height: min(devicesMinimum, actual.height))
+            window.contentMaxSize = NSSize(width: pane.width, height: max(devicesMaximum(in: window), actual.height))
+        } else {
+            window.contentMinSize = actual
+            window.contentMaxSize = actual
+        }
+    }
+
+    // MARK: Devices' height
+
+    private func devicesHeight(in window: NSWindow) -> CGFloat {
+        let standard = window.contentRect(forFrameRect: NSRect(
+            x: 0, y: 0, width: SettingsPane.devices.width, height: DevicesPaneHeight.standardWindow)).height
+        let saved = UserDefaults.standard.double(forKey: Self.devicesHeightKey)
+        return DevicesPaneHeight.content(saved: saved > 0 ? saved : nil, standard: standard,
+                                         minimum: devicesMinimum, maximum: devicesMaximum(in: window))
+    }
+
+    private func devicesMaximum(in window: NSWindow) -> CGFloat {
+        guard let screen = window.screen ?? NSScreen.main else { return 100_000 }
+        return window.contentRect(forFrameRect: NSRect(
+            x: 0, y: 0, width: SettingsPane.devices.width, height: screen.visibleFrame.height)).height
+    }
+
+    /// The left column reports its natural height once it is laid out, and again when it changes
+    /// (a second device adds the switcher).
+    private func devicesMinimumChanged(_ height: CGFloat) {
+        let height = height.rounded(.up)
+        guard abs(height - devicesMinimum) >= 1 else { return }
+        devicesMinimum = height
+        if selectedPane == .devices { sizeWindowToSelectedPane(animated: false) }
+    }
+
+    /// After the person drags the window, Devices opens at that height from then on.
+    func rememberDevicesHeight() {
+        guard selectedPane == .devices, let window = view.window else { return }
+        UserDefaults.standard.set(Double(window.contentRect(forFrameRect: window.frame).height),
+                                  forKey: Self.devicesHeightKey)
     }
 
     // MARK: Watching for mice
@@ -270,7 +331,7 @@ private struct GeneralPane: View {
                 }
             }
 
-            Section {
+            Section(L("CalmMouse")) {
                 Toggle("Enable CalmMouse", isOn: $settings.enabled)
                 Toggle("Launch at login", isOn: Binding(
                     get: { launchAtLogin },
@@ -286,7 +347,7 @@ private struct GeneralPane: View {
 
             UpdatesSection(updater: updater)
 
-            Section("Support CalmMouse") {
+            Section(L("Support")) {
                 LabeledContent("Something not right?") {
                     Button("Send Feedback…") {
                         NotificationCenter.default.post(name: Feedback.sendRequested, object: nil)
@@ -331,7 +392,7 @@ private struct UpdatesSection: View {
     @ObservedObject var updater: UpdateChecker
 
     var body: some View {
-        Section {
+        Section(L("About")) {
             LabeledContent("Version \(UpdateChecker.currentVersion)") {
                 HStack(spacing: Theme.Space.medium) {
                     switch updater.state {
@@ -393,6 +454,9 @@ private struct UpdatesSection: View {
 private struct DevicesPane: View {
     @ObservedObject var settings: Settings
     @ObservedObject var mice: MouseEnvironment
+    /// Told the height the pane can't go below: the banner and the left column. The settings
+    /// beside the column scroll, so they don't count.
+    let onMinimumHeight: (CGFloat) -> Void
     @StateObject private var focus = PreviewFocus()
     @ObservedObject private var conflicts = ConflictMonitor.shared
 
@@ -401,19 +465,24 @@ private struct DevicesPane: View {
         let selected = devices.first { $0.key == settings.selectedDeviceKey } ?? devices.first
         VStack(spacing: 0) {
             if let message = conflicts.message {
-                HStack(alignment: .firstTextBaseline, spacing: Theme.Space.medium) {
-                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                    Text(message).fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
+                VStack(spacing: 0) {
+                    HStack(alignment: .firstTextBaseline, spacing: Theme.Space.medium) {
+                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                        Text(message).fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, Theme.Space.large * 2)
+                    .padding(.vertical, Theme.Space.large)
+                    .background(Color.orange.opacity(0.1))
+                    Divider()
                 }
-                .padding(.horizontal, Theme.Space.large * 2)
-                .padding(.vertical, Theme.Space.large)
-                .background(Color.orange.opacity(0.1))
-                Divider()
+                .reportsHeight()
             }
             columns(devices: devices, selected: selected)
         }
         .onAppear { conflicts.refresh() }
+        // Out of the layout pass: the window resizes in answer.
+        .onPreferenceChange(MinimumHeightKey.self) { height in DispatchQueue.main.async { onMinimumHeight(height) } }
     }
 
     private func columns(devices: [DeviceEntry], selected: DeviceEntry?) -> some View {
@@ -437,6 +506,18 @@ private struct DevicesPane: View {
     }
 }
 
+/// Adds up the natural heights of the views that report one: what Devices can't be shorter than.
+private struct MinimumHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value += nextValue() }
+}
+
+private extension View {
+    func reportsHeight() -> some View {
+        background(GeometryReader { Color.clear.preference(key: MinimumHeightKey.self, value: $0.size.height) })
+    }
+}
+
 /// The left column. It explains instead of popovers: point at a row and its animation and
 /// caption show here.
 private struct DeviceColumn: View {
@@ -446,29 +527,61 @@ private struct DeviceColumn: View {
     @ObservedObject var mice: MouseEnvironment
     @ObservedObject var focus: PreviewFocus
 
+    private static let verticalPadding = Theme.Space.large * 2
+
     var body: some View {
         VStack(spacing: Theme.Space.large) {
-            if devices.count > 1 { switcher }
-            if let selected, selected.kind == .magicMouse {
-                // The rendered mouse plays each setting's story on itself.
-                MouseShowcase(preview: focus.preview, connected: selected.connected,
-                              presetID: settings.activePreset?.id) { details(selected, turnHint: true) }
-            } else if let preview = focus.preview {
-                PreviewCanvas(preview: preview)
-                    .frame(width: 250, height: 150)
-            } else if let selected {
-                hero(selected)
+            if devices.count > 1 { switcher.reportsHeight() }
+            // The device and what it explains, in the middle of what is left. The column is as
+            // tall as the window, and the window can be dragged taller.
+            VStack(spacing: Theme.Space.large) {
+                showcase
+                caption
             }
-            Text(focus.caption ?? L("Point at a setting\nto see what it does."))
-                .multilineTextAlignment(.center)
-                .lineSpacing(Theme.Space.small)
-                .foregroundStyle(focus.caption == nil ? .secondary : .primary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
+            .reportsHeight()
+            .frame(maxHeight: .infinity)
         }
         .padding(.horizontal, (Theme.Size.deviceColumn - 250) / 2)
-        .padding(.vertical, Theme.Space.large * 2)
+        .padding(.vertical, Self.verticalPadding)
         .frame(maxHeight: .infinity, alignment: .top)
+        .transformPreference(MinimumHeightKey.self) {
+            $0 += 2 * Self.verticalPadding + (devices.count > 1 ? Theme.Space.large : 0)
+        }
+    }
+
+    /// The same height whether the pointer is on a setting or not, so the window never resizes
+    /// on hover.
+    @ViewBuilder private var showcase: some View {
+        if let selected, selected.kind == .magicMouse {
+            // The rendered mouse plays each setting's story on itself.
+            MouseShowcase(preview: focus.preview, connected: selected.connected,
+                          presetID: settings.activePreset?.id) { details(selected, turnHint: true) }
+        } else if let selected {
+            ZStack(alignment: .top) {
+                hero(selected).opacity(focus.preview == nil ? 1 : 0)
+                if let preview = focus.preview {
+                    PreviewCanvas(preview: preview).frame(width: 250, height: 150)
+                }
+            }
+        } else if let preview = focus.preview {
+            PreviewCanvas(preview: preview).frame(width: 250, height: 150)
+        }
+    }
+
+    /// Always room for three lines, the longest any caption runs to (`DeviceCaptionTests`), so
+    /// pointing at another setting moves nothing.
+    private var caption: some View {
+        Text(" \n \n ")
+            .lineSpacing(Theme.Space.small)
+            .frame(maxWidth: .infinity)
+            .hidden()
+            .overlay(alignment: .top) {
+                Text(focus.caption ?? L("Point at a setting\nto see what it does."))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(Theme.Space.small)
+                    .foregroundStyle(focus.caption == nil ? .secondary : .primary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
     }
 
     private func symbol(_ device: DeviceEntry) -> String {
@@ -1026,5 +1139,17 @@ enum SettingsHelpers {
     static func openAccessibilityPane() {
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
         NSWorkspace.shared.open(url)
+    }
+}
+
+
+/// How tall the Devices pane is: what the person last dragged it to, or a window about 600 pt
+/// tall, never shorter than its left column needs, and no taller than the screen unless that
+/// column needs it.
+enum DevicesPaneHeight {
+    static let standardWindow: CGFloat = 600
+
+    static func content(saved: CGFloat?, standard: CGFloat, minimum: CGFloat, maximum: CGFloat) -> CGFloat {
+        max(min(saved ?? standard, maximum), minimum)
     }
 }

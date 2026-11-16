@@ -53,8 +53,9 @@ struct MouseShowcase<Idle: View>: View {
                 .animation(.easeOut(duration: 0.2), value: preview == nil)
         }
         .background {
+            // As wide as the column, so the render's shadow fades out on its own beside the stage.
             MouseStageCanvas(model: model, preview: preview, finish: finish, running: preview != nil || model.animating)
-                .frame(width: MouseStage.size.width, height: MouseStage.cardTop + MouseStage.cardSize.height)
+                .frame(width: Theme.Size.deviceColumn, height: MouseStage.cardTop + MouseStage.cardSize.height)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
@@ -129,8 +130,11 @@ final class MouseStageView: NSView {
         guard let cg = NSGraphicsContext.current?.cgContext, let frames else { return }
         effectiveAppearance.performAsCurrentDrawingAppearance {
             let pen = Pen(cg: cg)
+            // The stage sits in the middle of the canvas. Nothing clips it: the render's shadow
+            // runs up to 18 pt past the stage's sides and 12 pt below it, and cut along the
+            // stage's edges it showed as a faint box on a light background.
             cg.saveGState()
-            cg.clip(to: CGRect(origin: .zero, size: MouseStage.size))
+            cg.translateBy(x: (bounds.width - MouseStage.size.width) / 2, y: 0)
             MouseStageDrawing(pen: pen, state: state, frames: frames).draw()
             cg.restoreGState()
             // The page card: the row just left fades out under the one pointed at now.
