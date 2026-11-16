@@ -363,10 +363,6 @@
   color: var(--color-accent);
 }
 
-.window__group--spaced {
-  margin-top: var(--space-3);
-}
-
 /* The row the pointer is resting on, in the Devices mock. */
 .window__row--pointed {
   background: color-mix(in srgb, var(--color-accent) 9%, transparent);
