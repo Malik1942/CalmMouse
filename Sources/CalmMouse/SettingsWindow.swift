@@ -570,8 +570,10 @@ private struct MagicMouseForm: View {
             }
 
             Section("Pointer") {
-                SliderRow("Tracking speed", value: $settings.magicMouseTrackingSpeed, in: -1...1,
-                          step: 0.25, from: "Slow", to: "Fast")
+                ExplainedRow(caption: L("How far the pointer goes\nwhen you move the Magic Mouse.")) {
+                    SliderRow("Tracking speed", value: $settings.magicMouseTrackingSpeed, in: -1...1,
+                              step: 0.25, from: "Slow", to: "Fast")
+                }
             }
 
             Section("Scrolling") {
@@ -708,8 +710,11 @@ private struct MagicMouseForm: View {
                 SliderRow("Tap firmness", value: $settings.tapSensitivity, in: 0...1, from: "Firm", to: "Light")
             }
             if settings.tapZoneEnabled {
-                SliderRow("Size of the tap area", value: $settings.tapZoneDepth, in: 0.25...0.75, step: 0.05,
-                          reading: "\(Int((settings.tapZoneDepth * 100).rounded()))%")
+                ExplainedRow(preview: .tapZone(depth: settings.tapZoneDepth),
+                             caption: L("How far back from the front\na tap still counts.")) {
+                    SliderRow("Size of the tap area", value: $settings.tapZoneDepth, in: 0.25...0.75, step: 0.05,
+                              reading: "\(Int((settings.tapZoneDepth * 100).rounded()))%")
+                }
             }
             ExplainedRow(preview: .twoFingerDrag,
                          caption: L("Rest two fingers and hold a moment.\nMove the mouse to drag.\nLift your fingers to drop.")) {
@@ -782,18 +787,22 @@ private struct WheelDeviceForm: View {
         let wheel = settings.wheelSettings(key: device.key, name: device.name)
         Form {
             Section("Pointer") {
-                SliderRow("Tracking speed",
-                          value: Binding(get: { settings.wheelTrackingSpeed(key: device.key, name: device.name) ?? 0 },
-                                         set: { settings.setWheelTrackingSpeed($0, key: device.key, name: device.name) }),
-                          in: -1...1, step: 0.25, from: "Slow", to: "Fast")
+                ExplainedRow(caption: L("How far the pointer goes\nwhen you move this mouse.")) {
+                    SliderRow("Tracking speed",
+                              value: Binding(get: { settings.wheelTrackingSpeed(key: device.key, name: device.name) ?? 0 },
+                                             set: { settings.setWheelTrackingSpeed($0, key: device.key, name: device.name) }),
+                              in: -1...1, step: 0.25, from: "Slow", to: "Fast")
+                }
             }
             Section("Scrolling") {
                 ExplainedRow(caption: L("The page glides instead of jumping.\nZooming stays one step per notch.")) {
                     Toggle("Smooth scrolling", isOn: binding(\.smooth))
                 }
                 if wheel.smooth {
-                    SliderRow("Scrolling speed", value: binding(\.speed),
-                              in: 1...Settings.maximumWheelScrollSpeed, from: "Slow", to: "Fast")
+                    ExplainedRow(caption: L("How far the page moves\nfor each notch of the wheel.")) {
+                        SliderRow("Scrolling speed", value: binding(\.speed),
+                                  in: 1...Settings.maximumWheelScrollSpeed, from: "Slow", to: "Fast")
+                    }
                 }
                 ExplainedRow(caption: L("Flips only the wheel's direction.\nOther devices stay as they are.")) {
                     Toggle("Reverse direction", isOn: binding(\.reverse))

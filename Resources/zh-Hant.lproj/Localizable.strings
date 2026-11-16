@@ -185,6 +185,10 @@
 "Clicking" = "點按";
 "Pointer" = "指標";
 "Tracking speed" = "軌跡速度";
+"How far the pointer goes\nwhen you move the Magic Mouse." = "移動巧控滑鼠時，\n指標移動多遠。";
+"How far the pointer goes\nwhen you move this mouse." = "移動這隻滑鼠時，\n指標移動多遠。";
+"How far back from the front\na tap still counts." = "從前端往後多遠，\n輕點仍然算數。";
+"How far the page moves\nfor each notch of the wheel." = "滾輪每轉一格，\n頁面移動多遠。";
 
 /* Low-battery notification */
 "%ld%% left — worth plugging it in before it dies mid-click." = "還剩 %ld%%，最好現在就充電，免得用到一半沒電。";

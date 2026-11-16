@@ -186,6 +186,10 @@
 "Clicking" = "Clicking";
 "Pointer" = "Pointer";
 "Tracking speed" = "Tracking speed";
+"How far the pointer goes\nwhen you move the Magic Mouse." = "How far the pointer goes\nwhen you move the Magic Mouse.";
+"How far the pointer goes\nwhen you move this mouse." = "How far the pointer goes\nwhen you move this mouse.";
+"How far back from the front\na tap still counts." = "How far back from the front\na tap still counts.";
+"How far the page moves\nfor each notch of the wheel." = "How far the page moves\nfor each notch of the wheel.";
 
 /* Low-battery notification */
 "%ld%% left — worth plugging it in before it dies mid-click." = "%ld%% left — worth plugging it in before it dies mid-click.";
