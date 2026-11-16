@@ -111,6 +111,7 @@ private final class SettingsPanesController: NSTabViewController {
         self.settings = settings
         super.init(nibName: nil, bundle: nil)
         tabStyle = .toolbar
+        transitionOptions = []   // a pane swaps in at once: no crossfade, no sliding
 
         // Leave room for the menu bar, the Dock and the window's own toolbar.
         let screenHeight = NSScreen.main?.visibleFrame.height ?? 800
@@ -187,16 +188,31 @@ private final class SettingsPanesController: NSTabViewController {
 
     // MARK: Following the selected pane
 
+    override func tabView(_ tabView: NSTabView, willSelect tabViewItem: NSTabViewItem?) {
+        // Fit the window to the incoming pane first, about its middle. Left to itself AppKit
+        // resizes it from the left edge as the pane swaps in, and correcting that afterwards
+        // made the tab buttons jump sideways and slide back. The pane can only be measured
+        // exactly once it is in the window (didSelect fits it again), so the screen waits for
+        // the whole switch and shows it in one step.
+        view.window?.disableScreenUpdatesUntilFlush()
+        if let pane = items.first(where: { $0.value === tabViewItem })?.key { sizeWindow(to: pane, animated: false) }
+        super.tabView(tabView, willSelect: tabViewItem)
+    }
+
     override func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
         super.tabView(tabView, didSelect: tabViewItem)
         if let pane = selectedPane { UserDefaults.standard.set(pane.rawValue, forKey: Self.selectionKey) }
-        sizeWindowToSelectedPane(animated: true)
+        sizeWindowToSelectedPane(animated: false)
     }
 
     /// Names the window after the pane and fits it to the pane, keeping the title bar and the
     /// middle where they are (see `SettingsWindowFrame`).
     func sizeWindowToSelectedPane(animated: Bool) {
-        guard let window = view.window, let pane = selectedPane, let host = hosts[pane] else { return }
+        if let pane = selectedPane { sizeWindow(to: pane, animated: animated) }
+    }
+
+    private func sizeWindow(to pane: SettingsPane, animated: Bool) {
+        guard let window = view.window, let host = hosts[pane] else { return }
         window.title = pane.title
         let content = host.sizeThatFits(in: NSSize(width: pane.width, height: 10_000))
         guard content.width > 0, content.height > 0 else { return }
