@@ -567,8 +567,10 @@ private struct PageCardDrawing {
         cg.addPath(shape.cgPath)
         cg.clip()
         cg.clip(to: CGRect(x: window.minX, y: content.minY, width: window.width, height: content.height))
-        if page.button { drawDialog() } else { drawText() }
-        if let object = page.object { drawObject(at: object) }
+        faded {
+            if page.button { drawDialog() } else { drawText() }
+            if let object = page.object { drawObject(at: object) }
+        }
         // Text running off the page fades instead of being cut.
         pen.fade(CGRect(x: window.minX, y: content.minY, width: window.width, height: 9), paper,
                  from: CGPoint(x: 0, y: content.minY), to: CGPoint(x: 0, y: content.minY + 9))
@@ -577,11 +579,23 @@ private struct PageCardDrawing {
         if let arrows = page.arrows { drawArrows(arrows) }
         cg.restoreGState()
         if page.button || page.menu > 0.01 || page.object != nil {
-            drawCursor(page.object.map { CGPoint(x: objectRect($0).midX + 4, y: objectRect($0).midY + 4) } ?? pointer)
+            faded { drawCursor(page.object.map { CGPoint(x: objectRect($0).midX + 4, y: objectRect($0).midY + 4) } ?? pointer) }
         }
         if page.menu > 0.01 { drawMenu(alpha: page.menu) }
         if let held = page.key { drawKey(held: held > 0.5) }
         if page.cross > 0.01 { drawIgnoredBadge(alpha: page.cross) }
+    }
+
+    /// Draws `body` at the opacity of the page's contents, as one layer.
+    private func faded(_ body: () -> Void) {
+        guard page.fade > 0.001 else { return }
+        guard page.fade < 0.999 else { body(); return }
+        cg.saveGState()
+        cg.setAlpha(page.fade)
+        cg.beginTransparencyLayer(auxiliaryInfo: nil)
+        body()
+        cg.endTransparencyLayer()
+        cg.restoreGState()
     }
 
     /// A page of text: headings, paragraphs and pictures, scrolling by `scrollY` and zooming.

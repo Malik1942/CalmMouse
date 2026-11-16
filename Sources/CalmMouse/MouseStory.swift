@@ -41,6 +41,9 @@ struct PageState: Equatable {
     var cross = 0.0
     var arrows: Arrows?
     var key: Double?
+    /// How much of the page's contents shows (the text or dialog, the dragged item, the pointer).
+    /// The stories that can't carry on into their next loop fade them out to start over unseen.
+    var fade = 1.0
 }
 
 struct StoryFrame: Equatable {
@@ -225,36 +228,41 @@ private enum Story {
     }
 
     /// Double tap, stay down on the second, move the mouse: the object comes along; lift to drop.
+    /// Then the mouse is set back in the middle, and the page starts over unseen.
     static func tapAndDrag(_ t: Double) -> StoryFrame {
         let move = 22 * seg(t, 1.3, 2.4), holding = t > 1.35 && t < 2.9
         let second = seg(t, 0.8, 0.95) * (1 - seg(t, 2.9, 3.1)), first = pulse(t, 0.3, 0.5, fade: 0.08)
-        var f = StoryFrame(pressed: holding, slide: move * 0.06)
+        var f = StoryFrame(pressed: holding, slide: move * 0.06 * (1 - seg(t, 3.2, 3.8)))
         f.touches = [finger(alpha: max(first, second), pressing: holding)]
         f.ripples = [StoryRipple(u: rest.u, v: rest.v, progress: seg(t, 0.4, 0.8)),
                      StoryRipple(u: rest.u, v: rest.v, progress: seg(t, 0.85, 1.25))]
         f.page.object = move
+        f.page.fade = seg(t, 0, 0.3) * (1 - seg(t, 3.85, 4.15))
         return f
     }
 
-    /// Rest two fingers, hold a moment, then move to drag.
+    /// Rest two fingers, hold a moment, then move to drag. Then the mouse is set back in the
+    /// middle, and the page starts over unseen.
     static func twoFingerDrag(_ t: Double) -> StoryFrame {
         let move = 22 * seg(t, 1.5, 2.5), holding = t > 1.2 && t < 3.0
         let alpha = seg(t, 0.3, 0.5) * (1 - seg(t, 3.0, 3.2)), v = 6.0 / 53
-        var f = StoryFrame(pressed: holding, slide: move * 0.06)
+        var f = StoryFrame(pressed: holding, slide: move * 0.06 * (1 - seg(t, 3.25, 3.8)))
         f.touches = [StoryTouch(u: -9.0 / 31, v: v, alpha: alpha, pressing: holding),
                      StoryTouch(u: 9.0 / 31, v: v, alpha: alpha, pressing: holding)]
         f.dial = .init(u: 0, v: v - 24.0 / 53, progress: seg(t, 0.5, 1.2))
         f.page.object = move
+        f.page.fade = seg(t, 0, 0.3) * (1 - seg(t, 3.85, 4.15))
         return f
     }
 
-    /// Hold a key and scroll: the page zooms instead.
+    /// Hold a key and scroll: the page zooms instead. Then it starts over unseen, back at 100%.
     static func keyZoom(_ t: Double) -> StoryFrame {
         let held = t > 0.3 && t < 2.6, s = seg(t, 0.7, 1.9)
         var f = StoryFrame()
         f.touches = [finger(along: 18 * s, alpha: seg(t, 0.4, 0.6) * (1 - seg(t, 2.4, 2.6)))]
         f.page.zoom = 1 + 0.5 * s
         f.page.key = held ? 1 : 0
+        f.page.fade = seg(t, 0, 0.3) * (1 - seg(t, 2.9, 3.2))
         return f
     }
 
