@@ -83,6 +83,20 @@ private struct PaneFrame<Content: View>: View {
     }
 }
 
+/// Where the window goes when a tab needs a different size. The tab buttons are centred in the
+/// toolbar, so the window keeps its middle (and its title bar): the button just clicked stays
+/// under the pointer. Devices is wider than General and Advanced; anchored at the left edge the
+/// buttons slid 145 pt sideways on every switch.
+enum SettingsWindowFrame {
+    static func resized(_ frame: NSRect, to size: NSSize, within screen: NSRect?) -> NSRect {
+        var x = (frame.midX - size.width / 2).rounded()
+        if let screen, size.width <= screen.width {
+            x = min(max(x, screen.minX), screen.maxX - size.width)
+        }
+        return NSRect(x: x, y: frame.maxY - size.height, width: size.width, height: size.height)
+    }
+}
+
 private final class SettingsPanesController: NSTabViewController {
     private let settings: Settings
     private let mice = MouseEnvironment.shared
@@ -179,16 +193,16 @@ private final class SettingsPanesController: NSTabViewController {
         sizeWindowToSelectedPane(animated: true)
     }
 
-    /// Names the window after the pane and fits it to the pane's height, keeping the title
-    /// bar where it is so the window grows and shrinks downwards.
+    /// Names the window after the pane and fits it to the pane, keeping the title bar and the
+    /// middle where they are (see `SettingsWindowFrame`).
     func sizeWindowToSelectedPane(animated: Bool) {
         guard let window = view.window, let pane = selectedPane, let host = hosts[pane] else { return }
         window.title = pane.title
         let content = host.sizeThatFits(in: NSSize(width: pane.width, height: 10_000))
         guard content.width > 0, content.height > 0 else { return }
-        var frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: content))
-        frame.origin = NSPoint(x: window.frame.minX, y: window.frame.maxY - frame.height)
-        guard frame.size != window.frame.size else { return }
+        let size = window.frameRect(forContentRect: NSRect(origin: .zero, size: content)).size
+        guard size != window.frame.size else { return }
+        let frame = SettingsWindowFrame.resized(window.frame, to: size, within: window.screen?.visibleFrame)
         window.setFrame(frame, display: true, animate: animated && window.isVisible)
     }
 
