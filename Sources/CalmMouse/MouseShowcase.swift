@@ -327,8 +327,7 @@ final class MouseStageModel: ObservableObject {
             state.turnFrame = ((Int((yaw / 5).rounded()) % n) + n) % n
         }
         if let preview, let start = storyStart {
-            let t = (now - start).truncatingRemainder(dividingBy: preview.loop)
-            state.story = preview.frame(at: t)
+            state.story = preview.frame(elapsed: now - start)
         }
         if let start = ringStart {
             state.ring = PresenceRing.frame(at: now - start)
