@@ -197,7 +197,9 @@
 "Send Feedback…" = "傳送意見回饋…";
 
 /* Settings → General → Support CalmMouse, and the one-time star invite */
-"Support CalmMouse" = "支持 CalmMouse";
+"CalmMouse" = "CalmMouse";
+"About" = "關於";
+"Support" = "支持";
 "Something not right?" = "遇到問題？";
 "Like CalmMouse?" = "喜歡 CalmMouse？";
 "Star on GitHub" = "到 GitHub 收藏";
