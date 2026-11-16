@@ -80,6 +80,18 @@ extension SettingPreview {
     }
 }
 
+extension SettingPreview {
+    /// The story `elapsed` seconds after it began, looping. Each loop starts where the last one
+    /// left the page, so it scrolls on instead of jumping back to the top (its text repeats every
+    /// 100 pt, so it can scroll forever).
+    func frame(elapsed: Double) -> StoryFrame {
+        let n = max((elapsed / loop).rounded(.down), 0)
+        var f = frame(at: elapsed - n * loop)
+        if n > 0 { f.page.scrollY += n * frame(at: loop).page.scrollY }
+        return f
+    }
+}
+
 private enum Story {
     /// Where a finger naturally rests: the middle, a little back.
     static let rest = (u: 0.0, v: 0.15)
