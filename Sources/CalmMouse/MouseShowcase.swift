@@ -20,51 +20,196 @@ struct MouseShowcase<Idle: View>: View {
     private var finish: MouseFinish { MouseFinish(rawValue: finishRaw) ?? .white }
 
     var body: some View {
-        // 30fps, and only while something moves: every frame is main-thread work the event tap's
-        // run loop waits behind.
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: preview == nil && !model.animating)) { timeline in
-            let state = model.advance(to: timeline.date.timeIntervalSinceReferenceDate, preview: preview)
-            VStack(spacing: Theme.Space.medium) {
-                Canvas { ctx, _ in MouseStageDrawing(ctx: ctx, state: state, frames: MouseFrames.shared(for: finish)).draw() }
-                    .frame(width: MouseStage.size.width, height: MouseStage.size.height)
-                    .contentShape(Rectangle())
-                    .gesture(DragGesture(minimumDistance: 1)
-                        .onChanged { model.drag(to: $0.translation.width, at: $0.time) }
-                        .onEnded { _ in model.release() })
-                    .simultaneousGesture(TapGesture(count: 2).onEnded { model.goHome() })
-                    .onHover { inside in
-                        guard inside != pointerInside else { return }
-                        pointerInside = inside
-                        if inside { NSCursor.openHand.push() } else { NSCursor.pop() }
-                    }
-                    // Switching device or pane takes the mouse away under the pointer: give the cursor back.
-                    .onDisappear { if pointerInside { pointerInside = false; NSCursor.pop() } }
-                    .contextMenu {
-                        Picker(L("Mouse color"), selection: $finishRaw) {
-                            Text(L("White")).tag(MouseFinish.white.rawValue)
-                            Text(L("Black")).tag(MouseFinish.black.rawValue)
-                        }
-                    }
-                    .accessibilityElement()
-                    .accessibilityLabel(L("Magic Mouse"))
-                    .accessibilityHint(L("Drag to turn it. Double-click to put it back."))
-                    // The column is padded to 250; the mouse may use all 290 to turn.
-                    .padding(.horizontal, (250 - MouseStage.size.width) / 2)
-                ZStack {
-                    idle().opacity(state.story == nil ? 1 : 0)
-                    Canvas { ctx, size in
-                        if let story = state.story { PageCardDrawing(ctx: ctx, size: size, page: story.page).draw() }
-                    }
-                    .opacity(state.story == nil ? 0 : 1)
-                    .accessibilityHidden(true)
+        VStack(spacing: Theme.Space.medium) {
+            // The stage takes the pointer; the drawing underneath doesn't.
+            Color.clear
+                .frame(width: MouseStage.size.width, height: MouseStage.size.height)
+                .contentShape(Rectangle())
+                .gesture(DragGesture(minimumDistance: 1)
+                    .onChanged { model.drag(to: $0.translation.width, at: $0.time) }
+                    .onEnded { _ in model.release() })
+                .simultaneousGesture(TapGesture(count: 2).onEnded { model.goHome() })
+                .onHover { inside in
+                    guard inside != pointerInside else { return }
+                    pointerInside = inside
+                    if inside { NSCursor.openHand.push() } else { NSCursor.pop() }
                 }
-                .frame(width: 250, height: 104)
-                .animation(.easeOut(duration: 0.2), value: state.story == nil)
-            }
+                // Switching device or pane takes the mouse away under the pointer: give the cursor back.
+                .onDisappear { if pointerInside { pointerInside = false; NSCursor.pop() } }
+                .contextMenu {
+                    Picker(L("Mouse color"), selection: $finishRaw) {
+                        Text(L("White")).tag(MouseFinish.white.rawValue)
+                        Text(L("Black")).tag(MouseFinish.black.rawValue)
+                    }
+                }
+                .accessibilityElement()
+                .accessibilityLabel(L("Magic Mouse"))
+                .accessibilityHint(L("Drag to turn it. Double-click to put it back."))
+                // The column is padded to 250; the mouse may use all 290 to turn.
+                .padding(.horizontal, (250 - MouseStage.size.width) / 2)
+            idle()
+                .frame(width: 250, height: MouseStage.cardSize.height)
+                .opacity(preview == nil ? 1 : 0)
+                .animation(.easeOut(duration: 0.2), value: preview == nil)
+        }
+        .background {
+            MouseStageCanvas(model: model, preview: preview, finish: finish, running: preview != nil || model.animating)
+                .frame(width: MouseStage.size.width, height: MouseStage.cardTop + MouseStage.cardSize.height)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
         }
         .onAppear { model.playRing() }
         .onChange(of: connected) { if $0 { model.playRing() } }
         .onChange(of: presetID) { if $0 != nil { model.playRing() } }
+    }
+}
+
+/// Draws the stage, and the page under it while a story plays, in an AppKit view redrawn on a
+/// timer only while something moves. As a SwiftUI Canvas in a TimelineView each frame went
+/// through SwiftUI's update, layout and commit, about a quarter of a core at 30fps on the main
+/// thread the event tap's run loop waits behind; redrawing one view costs well under half that.
+private struct MouseStageCanvas: NSViewRepresentable {
+    let model: MouseStageModel
+    let preview: SettingPreview?
+    let finish: MouseFinish
+    let running: Bool
+
+    func makeNSView(context: Context) -> MouseStageView { MouseStageView(model: model) }
+
+    func updateNSView(_ view: MouseStageView, context: Context) {
+        view.preview = preview
+        view.frames = MouseFrames.shared(for: finish)
+        view.running = running
+        view.tick()
+    }
+
+    static func dismantleNSView(_ view: MouseStageView, coordinator: ()) { view.running = false }
+}
+
+final class MouseStageView: NSView {
+    private let model: MouseStageModel
+    var preview: SettingPreview?
+    var frames: MouseFrames?
+    private var state = MouseStageState()
+    private var timer: Timer?
+    /// When the page card began showing, for its fade-in.
+    private var cardSince: Double?
+
+    var running = false {
+        didSet {
+            guard running != oldValue else { return }
+            timer?.invalidate()
+            timer = nil
+            guard running else { return }
+            let timer = Timer(timeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in self?.tick() }
+            RunLoop.main.add(timer, forMode: .common)   // keep going while a drag tracks the pointer
+            self.timer = timer
+        }
+    }
+
+    init(model: MouseStageModel) {
+        self.model = model
+        super.init(frame: .zero)
+        setAccessibilityElement(false)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    deinit { timer?.invalidate() }
+
+    override var isFlipped: Bool { true }
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    override func viewDidChangeEffectiveAppearance() { needsDisplay = true }
+
+    /// Steps the model to now and asks for a redraw.
+    func tick() {
+        state = model.advance(to: Date().timeIntervalSinceReferenceDate, preview: preview)
+        needsDisplay = true
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        guard let cg = NSGraphicsContext.current?.cgContext, let frames else { return }
+        let now = Date().timeIntervalSinceReferenceDate
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            let pen = Pen(cg: cg)
+            cg.saveGState()
+            cg.clip(to: CGRect(origin: .zero, size: MouseStage.size))
+            MouseStageDrawing(pen: pen, state: state, frames: frames).draw()
+            cg.restoreGState()
+            guard let story = state.story else { cardSince = nil; return }
+            let since = cardSince ?? now
+            cardSince = since
+            let k = min(max((now - since) / 0.2, 0), 1)
+            cg.saveGState()
+            cg.translateBy(x: (bounds.width - MouseStage.cardSize.width) / 2, y: MouseStage.cardTop)
+            cg.setAlpha(1 - (1 - k) * (1 - k))   // ease out, as the idle text fades away
+            cg.beginTransparencyLayer(auxiliaryInfo: nil)
+            PageCardDrawing(pen: pen, size: MouseStage.cardSize, page: story.page).draw()
+            cg.endTransparencyLayer()
+            cg.restoreGState()
+        }
+    }
+}
+
+/// Core Graphics with GraphicsContext's manners: SwiftUI paths, opacities that multiply, and
+/// shadows offset the way SwiftUI's are (y down).
+private struct Pen {
+    let cg: CGContext
+
+    /// `color` with its alpha multiplied by `opacity`, resolved for the appearance being drawn.
+    static func tint(_ color: NSColor, _ opacity: Double = 1) -> CGColor {
+        let c = color.usingColorSpace(.sRGB) ?? color
+        return c.withAlphaComponent(c.alphaComponent * CGFloat(opacity)).cgColor
+    }
+
+    func fill(_ path: Path, _ color: NSColor, _ opacity: Double = 1) {
+        cg.addPath(path.cgPath)
+        cg.setFillColor(Pen.tint(color, opacity))
+        cg.fillPath()
+    }
+
+    func stroke(_ path: Path, _ color: NSColor, _ opacity: Double = 1, width: CGFloat,
+                cap: CGLineCap = .butt, join: CGLineJoin = .miter, dash: [CGFloat] = []) {
+        cg.saveGState()
+        cg.addPath(path.cgPath)
+        cg.setStrokeColor(Pen.tint(color, opacity))
+        cg.setLineWidth(width)
+        cg.setLineCap(cap)
+        cg.setLineJoin(join)
+        cg.setLineDash(phase: 0, lengths: dash)
+        cg.strokePath()
+        cg.restoreGState()
+    }
+
+    /// Whatever `body` draws, as one layer with a drop shadow under it and an overall opacity.
+    func shadowed(_ color: NSColor, _ opacity: Double, radius: CGFloat, y: CGFloat, layerOpacity: Double = 1, _ body: () -> Void) {
+        cg.saveGState()
+        cg.setAlpha(CGFloat(layerOpacity))
+        cg.setShadow(offset: CGSize(width: 0, height: -y), blur: radius * 2, color: Pen.tint(color, opacity))
+        cg.beginTransparencyLayer(auxiliaryInfo: nil)
+        body()
+        cg.endTransparencyLayer()
+        cg.restoreGState()
+    }
+
+    /// A CGImage upright in a flipped view.
+    func image(_ image: CGImage, in rect: CGRect) {
+        cg.saveGState()
+        cg.interpolationQuality = .high
+        cg.translateBy(x: 0, y: rect.minY * 2 + rect.height)
+        cg.scaleBy(x: 1, y: -1)
+        cg.draw(image, in: rect)
+        cg.restoreGState()
+    }
+
+    /// `rect` filled with `color` fading to clear from `start` to `end`.
+    func fade(_ rect: CGRect, _ color: NSColor, from start: CGPoint, to end: CGPoint) {
+        let colors = [Pen.tint(color), Pen.tint(color, 0)] as CFArray
+        guard let gradient = CGGradient(colorsSpace: CGColorSpace(name: CGColorSpace.sRGB), colors: colors, locations: [0, 1]) else { return }
+        cg.saveGState()
+        cg.clip(to: rect)
+        cg.drawLinearGradient(gradient, start: start, end: end, options: [])
+        cg.restoreGState()
     }
 }
 
@@ -79,6 +224,9 @@ enum MouseStage {
     static let frameSide = 720 * 0.452
     static let frameOrigin = CGPoint(x: 145 - 360 * 0.452, y: 112 - 389.4 * 0.452)
     static let frameCount = 72
+    /// The page card under the stage.
+    static let cardSize = CGSize(width: 250, height: 104)
+    static let cardTop = size.height + Theme.Space.medium
 }
 
 // MARK: - Turning
@@ -255,14 +403,14 @@ final class MouseFrames {
 
 /// The frame, then the story on the lid in the same camera the frame was rendered with.
 private struct MouseStageDrawing {
-    var ctx: GraphicsContext
+    let pen: Pen
     let state: MouseStageState
     let frames: MouseFrames
 
-    private let accent = Color.accentColor
-    private let ignored = Color.secondary
+    private let accent = NSColor.controlAccentColor
+    private let ignored = NSColor.secondaryLabelColor
     /// Fingertips and taps: one flat, translucent light blue.
-    private let touchBlue = Color(red: 0.33, green: 0.64, blue: 0.98)
+    private let touchBlue = NSColor(srgbRed: 0.33, green: 0.64, blue: 0.98, alpha: 1)
 
     func draw() {
         let frame = state.story
@@ -275,7 +423,7 @@ private struct MouseStageDrawing {
         if let image {
             let rect = CGRect(x: MouseStage.frameOrigin.x + dx, y: MouseStage.frameOrigin.y + ((frame?.pressed ?? false) ? 0.8 : 0),
                               width: MouseStage.frameSide, height: MouseStage.frameSide)
-            ctx.draw(Image(decorative: image, scale: 1), in: rect)
+            pen.image(image, in: rect)
         }
         guard let frame else { return }
         drawZone(frame, camera, slide)
@@ -283,7 +431,7 @@ private struct MouseStageDrawing {
         if let dial = frame.dial, dial.progress > 0, dial.progress < 1 {
             let ring = camera.disc(u: dial.u, v: dial.v, radius: 0.42, slide: slide, steps: 40)
             let arc = path(Array(ring.prefix(max(2, Int((40 * dial.progress).rounded())))), closed: false)
-            ctx.stroke(arc, with: .color(accent), style: StrokeStyle(lineWidth: 1.8, lineCap: .round))
+            pen.stroke(arc, accent, width: 1.8, cap: .round)
         }
         for touch in frame.touches where touch.alpha > 0.01 { drawTouch(touch, camera, slide) }
         if let mark = frame.crossOnLid, mark.alpha > 0.01 { drawIgnoredMark(mark, camera, slide) }
@@ -313,18 +461,17 @@ private struct MouseStageDrawing {
             let edge = min(1, max(0, Double(min(outer.x, MouseStage.size.width - outer.x)) / 18))
             let alpha = ring.alpha * edge
             guard alpha > 0.01 else { continue }
-            let color = Color(red: 0.16 + 0.09 * tick.mix, green: 0.42 + 0.42 * tick.mix, blue: 1 - 0.06 * tick.mix)
+            let color = NSColor(srgbRed: 0.16 + 0.09 * tick.mix, green: 0.42 + 0.42 * tick.mix, blue: 1 - 0.06 * tick.mix, alpha: 1)
             let strength = 0.5 + 0.5 * (tick.length - 0.1) / 0.32
             var dash = Path()
             dash.move(to: outer); dash.addLine(to: at(ring.radius - tick.length, a))
-            ctx.stroke(dash, with: .color(color.opacity(0.92 * alpha * strength)), style: StrokeStyle(lineWidth: 1.1, lineCap: .round))
+            pen.stroke(dash, color, 0.92 * alpha * strength, width: 1.1, cap: .round)
             // The bloom: rows of dots carried outward, fading as they go.
             let rows = Int(tick.bloom / 0.11)
             if rows > 0 {
                 for j in 1...rows {
                     let p = at(ring.radius + Double(j) * 0.11, a), k = 1 - Double(j) / Double(rows + 1)
-                    ctx.fill(Path(ellipseIn: CGRect(x: p.x - 0.65, y: p.y - 0.65, width: 1.3, height: 1.3)),
-                             with: .color(color.opacity(0.85 * alpha * k)))
+                    pen.fill(Path(ellipseIn: CGRect(x: p.x - 0.65, y: p.y - 0.65, width: 1.3, height: 1.3)), color, 0.85 * alpha * k)
                 }
             }
         }
@@ -351,23 +498,23 @@ private struct MouseStageDrawing {
         case .rightSide(let split):
             walk(split, -e, e, -e, 16); walk(e, -e, e, e, 40); walk(e, e, split, e, 16); walk(split, e, split, -e, 40, isEdge: true)
         }
-        ctx.fill(path(region, closed: true), with: .color(accent.opacity(0.12)))
-        ctx.stroke(path(edge, closed: false), with: .color(accent.opacity(0.7)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+        pen.fill(path(region, closed: true), accent, 0.12)
+        pen.stroke(path(edge, closed: false), accent, 0.7, width: 1, dash: [3, 3])
     }
 
     /// A tap: a soft flat disc in the fingertip's colour that swells a little and fades.
     private func drawRipple(_ ripple: StoryRipple, _ camera: DeskCamera, _ slide: Double) {
         let p = ripple.progress, fade = (1 - p) * (1 - p)
         let disc = path(camera.disc(u: ripple.u, v: ripple.v, radius: 0.5 + 0.55 * p, slide: slide), closed: true)
-        ctx.fill(disc, with: .color(touchBlue.opacity(0.3 * fade)))
+        pen.fill(disc, touchBlue, 0.3 * fade)
     }
 
     /// A fingertip on the lid: a flat, translucent light-blue disc lying on the surface; firmer
     /// while it presses. A grip finger that doesn't count is grey.
     private func drawTouch(_ touch: StoryTouch, _ camera: DeskCamera, _ slide: Double) {
         let disc = path(camera.disc(u: touch.u, v: touch.v, radius: 0.5, slide: slide), closed: true)
-        let color = touch.ignored ? Color(white: 0.5) : touchBlue
-        ctx.fill(disc, with: .color(color.opacity((touch.pressing ? 0.68 : 0.46) * touch.alpha)))
+        let color = touch.ignored ? NSColor(srgbRed: 0.5, green: 0.5, blue: 0.5, alpha: 1) : touchBlue
+        pen.fill(disc, color, (touch.pressing ? 0.68 : 0.46) * touch.alpha)
     }
 
     /// A grip finger that doesn't count: a small cross beside it.
@@ -376,7 +523,7 @@ private struct MouseStageDrawing {
         var x = Path()
         x.move(to: CGPoint(x: c.x - r, y: c.y - r)); x.addLine(to: CGPoint(x: c.x + r, y: c.y + r))
         x.move(to: CGPoint(x: c.x + r, y: c.y - r)); x.addLine(to: CGPoint(x: c.x - r, y: c.y + r))
-        ctx.stroke(x, with: .color(ignored.opacity(mark.alpha)), style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
+        pen.stroke(x, ignored, mark.alpha, width: 1.6, cap: .round)
     }
 }
 
@@ -385,13 +532,14 @@ private struct MouseStageDrawing {
 /// The little window under the mouse: what the setting does on screen. A page of text that
 /// scrolls or holds still, a button that clicks, a menu, a thing being dragged.
 private struct PageCardDrawing {
-    var ctx: GraphicsContext
+    let pen: Pen
     let size: CGSize
     let page: PageState
 
-    private let accent = Color.accentColor
-    private let ink = Color.primary
-    private let paper = Color(nsColor: .textBackgroundColor)
+    private var cg: CGContext { pen.cg }
+    private let accent = NSColor.controlAccentColor
+    private let ink = NSColor.labelColor
+    private let paper = NSColor.textBackgroundColor
     private let bar: CGFloat = 15
 
     private var window: CGRect { CGRect(x: 14, y: 5, width: size.width - 28, height: size.height - 13) }
@@ -406,31 +554,29 @@ private struct PageCardDrawing {
 
     func draw() {
         let shape = Path(roundedRect: window, cornerRadius: 9)
-        ctx.drawLayer { layer in
-            layer.addFilter(.shadow(color: .black.opacity(0.13), radius: 7, x: 0, y: 2))
-            layer.fill(shape, with: .color(paper))
-        }
-        ctx.stroke(shape, with: .color(ink.opacity(0.1)), lineWidth: 0.5)
+        pen.shadowed(.black, 0.13, radius: 7, y: 2) { pen.fill(shape, paper) }
+        pen.stroke(shape, ink, 0.1, width: 0.5)
         for i in 0..<3 {
             let c = CGPoint(x: window.minX + 10 + CGFloat(i) * 8, y: window.minY + bar / 2)
-            ctx.fill(Path(ellipseIn: CGRect(x: c.x - 2.3, y: c.y - 2.3, width: 4.6, height: 4.6)), with: .color(ink.opacity(0.16)))
+            pen.fill(Path(ellipseIn: CGRect(x: c.x - 2.3, y: c.y - 2.3, width: 4.6, height: 4.6)), ink, 0.16)
         }
         var divider = Path()
         divider.move(to: CGPoint(x: window.minX, y: window.minY + bar)); divider.addLine(to: CGPoint(x: window.maxX, y: window.minY + bar))
-        ctx.stroke(divider, with: .color(ink.opacity(0.07)), lineWidth: 0.5)
+        pen.stroke(divider, ink, 0.07, width: 0.5)
 
-        var inside = ctx
-        inside.clip(to: shape)
-        inside.clip(to: Path(CGRect(x: window.minX, y: content.minY, width: window.width, height: content.height)))
-        if page.button { drawDialog(&inside) } else { drawText(&inside) }
-        if let object = page.object { drawObject(&inside, at: object) }
+        cg.saveGState()
+        cg.addPath(shape.cgPath)
+        cg.clip()
+        cg.clip(to: CGRect(x: window.minX, y: content.minY, width: window.width, height: content.height))
+        if page.button { drawDialog() } else { drawText() }
+        if let object = page.object { drawObject(at: object) }
         // Text running off the page fades instead of being cut.
-        let fade = Gradient(colors: [paper, paper.opacity(0)])
-        inside.fill(Path(CGRect(x: window.minX, y: content.minY, width: window.width, height: 9)),
-                    with: .linearGradient(fade, startPoint: CGPoint(x: 0, y: content.minY), endPoint: CGPoint(x: 0, y: content.minY + 9)))
-        inside.fill(Path(CGRect(x: window.minX, y: content.maxY - 12, width: window.width, height: 12)),
-                    with: .linearGradient(fade, startPoint: CGPoint(x: 0, y: content.maxY), endPoint: CGPoint(x: 0, y: content.maxY - 12)))
-        if let arrows = page.arrows { drawArrows(&inside, arrows) }
+        pen.fade(CGRect(x: window.minX, y: content.minY, width: window.width, height: 9), paper,
+                 from: CGPoint(x: 0, y: content.minY), to: CGPoint(x: 0, y: content.minY + 9))
+        pen.fade(CGRect(x: window.minX, y: content.maxY - 12, width: window.width, height: 12), paper,
+                 from: CGPoint(x: 0, y: content.maxY), to: CGPoint(x: 0, y: content.maxY - 12))
+        if let arrows = page.arrows { drawArrows(arrows) }
+        cg.restoreGState()
         if page.button || page.menu > 0.01 || page.object != nil {
             drawCursor(page.object.map { CGPoint(x: objectRect($0).midX + 4, y: objectRect($0).midY + 4) } ?? pointer)
         }
@@ -440,13 +586,14 @@ private struct PageCardDrawing {
     }
 
     /// A page of text: headings, paragraphs and pictures, scrolling by `scrollY` and zooming.
-    private func drawText(_ c: inout GraphicsContext) {
-        var c = c
-        let zoom = page.zoom
+    private func drawText() {
+        cg.saveGState()
+        defer { cg.restoreGState() }
+        let zoom = CGFloat(page.zoom)
         if zoom != 1 {
-            c.translateBy(x: content.minX, y: content.minY)
-            c.scaleBy(x: zoom, y: zoom)
-            c.translateBy(x: -content.minX, y: -content.minY)
+            cg.translateBy(x: content.minX, y: content.minY)
+            cg.scaleBy(x: zoom, y: zoom)
+            cg.translateBy(x: -content.minX, y: -content.minY)
         }
         let period: CGFloat = 100, scroll = CGFloat(page.scrollY) * 1.2, shift = CGFloat(page.scrollX) * 1.2
         let width = content.width - (page.arrows == nil ? 0 : 30)
@@ -456,23 +603,23 @@ private struct PageCardDrawing {
             func line(_ y: CGFloat, _ x: CGFloat, _ w: CGFloat, thick: CGFloat = 2.6, alpha: Double = 0.15) {
                 var p = Path()
                 p.move(to: CGPoint(x: x - shift, y: top + y)); p.addLine(to: CGPoint(x: x + w - shift, y: top + y))
-                c.stroke(p, with: .color(ink.opacity(alpha)), style: StrokeStyle(lineWidth: thick, lineCap: .round))
+                pen.stroke(p, ink, alpha, width: thick, cap: .round)
             }
             let x0 = content.minX
             line(4, x0, width * 0.5, thick: 4.5, alpha: 0.28)
             for (i, w) in [0.94, 0.86, 0.9, 0.55].enumerated() { line(16 + CGFloat(i) * 9, x0, width * w) }
             let picture = CGRect(x: x0 - shift, y: top + 56, width: 46, height: 28)
-            c.fill(Path(roundedRect: picture, cornerRadius: 4), with: .color(ink.opacity(0.07)))
+            pen.fill(Path(roundedRect: picture, cornerRadius: 4), ink, 0.07)
             for (i, w) in [0.62, 0.55, 0.38].enumerated() { line(60 + CGFloat(i) * 9, x0 + 56, (width - 56) * w) }
         }
     }
 
     /// For the stories that click: a short message with a button under the pointer.
-    private func drawDialog(_ c: inout GraphicsContext) {
+    private func drawDialog() {
         func line(_ y: CGFloat, _ w: CGFloat, thick: CGFloat = 2.6, alpha: Double = 0.15) {
             var p = Path()
             p.move(to: CGPoint(x: content.minX, y: content.minY + y)); p.addLine(to: CGPoint(x: content.minX + w, y: content.minY + y))
-            c.stroke(p, with: .color(ink.opacity(alpha)), style: StrokeStyle(lineWidth: thick, lineCap: .round))
+            pen.stroke(p, ink, alpha, width: thick, cap: .round)
         }
         line(10, content.width * 0.45, thick: 4.5, alpha: 0.28)
         line(22, content.width * 0.9)
@@ -480,12 +627,11 @@ private struct PageCardDrawing {
         let flash = page.flash
         let button = buttonRect.insetBy(dx: flash > 0.5 ? 0.6 : 0, dy: flash > 0.5 ? 0.4 : 0)
         let shape = Path(roundedRect: button, cornerRadius: button.height / 2)
-        c.fill(shape, with: .color(accent.opacity(0.12 + 0.88 * flash)))
-        c.stroke(shape, with: .color(accent.opacity(0.45 + 0.5 * flash)), lineWidth: 0.8)
+        pen.fill(shape, accent, 0.12 + 0.88 * flash)
+        pen.stroke(shape, accent, 0.45 + 0.5 * flash, width: 0.8)
         var label = Path()
         label.move(to: CGPoint(x: button.midX - 11, y: button.midY)); label.addLine(to: CGPoint(x: button.midX + 11, y: button.midY))
-        c.stroke(label, with: .color(flash > 0.3 ? Color.white.opacity(0.95) : accent.opacity(0.75)),
-                 style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
+        if flash > 0.3 { pen.stroke(label, .white, 0.95, width: 2.6, cap: .round) } else { pen.stroke(label, accent, 0.75, width: 2.6, cap: .round) }
     }
 
     private func objectRect(_ move: Double) -> CGRect {
@@ -493,13 +639,10 @@ private struct PageCardDrawing {
     }
 
     /// The thing being dragged, lifted off the page.
-    private func drawObject(_ c: inout GraphicsContext, at move: Double) {
+    private func drawObject(at move: Double) {
         let r = objectRect(move), shape = Path(roundedRect: r, cornerRadius: 6)
-        c.drawLayer { layer in
-            layer.addFilter(.shadow(color: .black.opacity(0.25), radius: 4, x: 0, y: 2))
-            layer.fill(shape, with: .color(accent.opacity(0.9)))
-        }
-        c.stroke(shape, with: .color(.white.opacity(0.35)), lineWidth: 0.8)
+        pen.shadowed(.black, 0.25, radius: 4, y: 2) { pen.fill(shape, accent, 0.9) }
+        pen.stroke(shape, .white, 0.35, width: 0.8)
     }
 
     /// The right-click menu, popping up at the pointer.
@@ -507,20 +650,15 @@ private struct PageCardDrawing {
         let at = pointer
         let r = CGRect(x: at.x + 2, y: max(window.minY + bar + 2, at.y - 50), width: 76, height: 46)
         let shape = Path(roundedRect: r, cornerRadius: 6)
-        ctx.drawLayer { layer in
-            layer.opacity = alpha
-            layer.addFilter(.shadow(color: .black.opacity(0.22), radius: 8, x: 0, y: 3))
-            layer.fill(shape, with: .color(paper))
-        }
-        ctx.stroke(shape, with: .color(ink.opacity(0.12 * alpha)), lineWidth: 0.5)
+        pen.shadowed(.black, 0.22, radius: 8, y: 3, layerOpacity: alpha) { pen.fill(shape, paper) }
+        pen.stroke(shape, ink, 0.12 * alpha, width: 0.5)
         let row = CGRect(x: r.minX + 4, y: r.minY + 4, width: r.width - 8, height: 12)
-        ctx.fill(Path(roundedRect: row, cornerRadius: 3), with: .color(accent.opacity(alpha)))
+        pen.fill(Path(roundedRect: row, cornerRadius: 3), accent, alpha)
         for (i, w) in [36.0, 28.0, 40.0].enumerated() {
             var p = Path()
             let y = r.minY + 10 + CGFloat(i) * 13
             p.move(to: CGPoint(x: r.minX + 10, y: y)); p.addLine(to: CGPoint(x: r.minX + 10 + w, y: y))
-            ctx.stroke(p, with: .color(i == 0 ? Color.white.opacity(alpha) : ink.opacity(0.3 * alpha)),
-                       style: StrokeStyle(lineWidth: 2.4, lineCap: .round))
+            if i == 0 { pen.stroke(p, .white, alpha, width: 2.4, cap: .round) } else { pen.stroke(p, ink, 0.3 * alpha, width: 2.4, cap: .round) }
         }
     }
 
@@ -530,17 +668,14 @@ private struct PageCardDrawing {
         let pts: [(CGFloat, CGFloat)] = [(0, 0), (0, 13.5), (3.4, 10.4), (5.8, 15.6), (7.7, 14.8), (5.4, 9.6), (9.8, 9.6)]
         p.addLines(pts.map { CGPoint(x: at.x + $0.0, y: at.y + $0.1) })
         p.closeSubpath()
-        ctx.drawLayer { layer in
-            layer.addFilter(.shadow(color: .black.opacity(0.3), radius: 1.5, x: 0, y: 1))
-            layer.fill(p, with: .color(.black))
-        }
-        ctx.stroke(p, with: .color(.white), style: StrokeStyle(lineWidth: 1, lineJoin: .round))
+        pen.shadowed(.black, 0.3, radius: 1.5, y: 1) { pen.fill(p, .black) }
+        pen.stroke(p, .white, width: 1, join: .round)
     }
 
     /// What the page does, beside it: the straight line it keeps, or which way it now goes.
-    private func drawArrows(_ c: inout GraphicsContext, _ arrows: PageState.Arrows) {
+    private func drawArrows(_ arrows: PageState.Arrows) {
         let x = content.maxX - 10, top = content.minY + 10, bottom = content.maxY - 10
-        func arrow(_ a: CGPoint, _ b: CGPoint, _ color: Color, _ alpha: Double, dashed: Bool = false) {
+        func arrow(_ a: CGPoint, _ b: CGPoint, _ color: NSColor, _ alpha: Double, dashed: Bool = false) {
             guard alpha > 0.01 else { return }
             var p = Path()
             p.move(to: a); p.addLine(to: b)
@@ -549,11 +684,11 @@ private struct PageCardDrawing {
                 p.move(to: b)
                 p.addLine(to: CGPoint(x: b.x - 6 * cos(angle + side * 0.55), y: b.y - 6 * sin(angle + side * 0.55)))
             }
-            c.stroke(p, with: .color(color.opacity(alpha)), style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round, dash: dashed ? [3, 3] : []))
+            pen.stroke(p, color, alpha, width: 1.8, cap: .round, join: .round, dash: dashed ? [3, 3] : [])
         }
         switch arrows.kind {
         case .straight:
-            arrow(CGPoint(x: x - 14, y: bottom), CGPoint(x: x - 5, y: top), Color.secondary, arrows.drift, dashed: true)
+            arrow(CGPoint(x: x - 14, y: bottom), CGPoint(x: x - 5, y: top), .secondaryLabelColor, arrows.drift, dashed: true)
             arrow(CGPoint(x: x + 3, y: bottom), CGPoint(x: x + 3, y: top), accent, arrows.page)
         case .diagonal:
             arrow(CGPoint(x: x - 10, y: bottom), CGPoint(x: x + 3, y: top), accent, arrows.page)
@@ -566,23 +701,23 @@ private struct PageCardDrawing {
     private func drawKey(held: Bool) {
         let r = CGRect(x: window.maxX - 38, y: window.maxY - 25, width: 28, height: 19)
         let shape = Path(roundedRect: r, cornerRadius: 5)
-        ctx.drawLayer { layer in
-            layer.addFilter(.shadow(color: .black.opacity(0.18), radius: 2, x: 0, y: 1))
-            layer.fill(shape, with: .color(paper))
-        }
-        ctx.fill(shape, with: .color(held ? accent.opacity(0.18) : ink.opacity(0.04)))
-        ctx.stroke(shape, with: .color(held ? accent.opacity(0.9) : ink.opacity(0.3)), lineWidth: 1)
-        ctx.draw(Text("⌘").font(.system(size: 11, weight: .medium)).foregroundColor(held ? accent : ink.opacity(0.7)),
-                 at: CGPoint(x: r.midX, y: r.midY))
+        pen.shadowed(.black, 0.18, radius: 2, y: 1) { pen.fill(shape, paper) }
+        if held { pen.fill(shape, accent, 0.18) } else { pen.fill(shape, ink, 0.04) }
+        if held { pen.stroke(shape, accent, 0.9, width: 1) } else { pen.stroke(shape, ink, 0.3, width: 1) }
+        let color = held ? accent.usingColorSpace(.sRGB) ?? accent : NSColor(cgColor: Pen.tint(ink, 0.7)) ?? ink
+        let glyph = NSAttributedString(string: "⌘", attributes: [.font: NSFont.systemFont(ofSize: 11, weight: .medium),
+                                                                   .foregroundColor: color])
+        let g = glyph.size()
+        glyph.draw(at: CGPoint(x: r.midX - g.width / 2, y: r.midY - g.height / 2))
     }
 
     /// In the title bar: the page ignored that.
     private func drawIgnoredBadge(alpha: Double) {
         let c = CGPoint(x: window.maxX - 12, y: window.minY + bar / 2)
-        ctx.fill(Path(ellipseIn: CGRect(x: c.x - 5.5, y: c.y - 5.5, width: 11, height: 11)), with: .color(Color.secondary.opacity(0.85 * alpha)))
+        pen.fill(Path(ellipseIn: CGRect(x: c.x - 5.5, y: c.y - 5.5, width: 11, height: 11)), .secondaryLabelColor, 0.85 * alpha)
         var x = Path()
         x.move(to: CGPoint(x: c.x - 2.3, y: c.y - 2.3)); x.addLine(to: CGPoint(x: c.x + 2.3, y: c.y + 2.3))
         x.move(to: CGPoint(x: c.x + 2.3, y: c.y - 2.3)); x.addLine(to: CGPoint(x: c.x - 2.3, y: c.y + 2.3))
-        ctx.stroke(x, with: .color(.white.opacity(alpha)), style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
+        pen.stroke(x, .white, alpha, width: 1.4, cap: .round)
     }
 }
