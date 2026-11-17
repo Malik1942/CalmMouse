@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let updater = UpdateChecker()
     private let mice = MouseEnvironment.shared
     private let pointerSpeed = PointerSpeedController()
+    private let gamepad = GamepadController.shared
 
     private var statusItem: NSStatusItem!
     private var settingsWindow: SettingsWindowController?
@@ -27,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let updateItem = NSMenuItem(title: "", action: #selector(openUpdate), keyEquivalent: "")
     private let enabledItem = NSMenuItem(title: L("CalmMouse enabled"), action: #selector(toggleEnabled), keyEquivalent: "")
     private let perAppItem = NSMenuItem(title: L("Ignore scrolling in this app"), action: #selector(togglePerApp), keyEquivalent: "")
+    private let controllerItem = NSMenuItem(title: L("Use controller as mouse"), action: #selector(toggleControllerPointer), keyEquivalent: "")
     private let starInviteItem = NSMenuItem(title: "", action: #selector(acceptStarInvite), keyEquivalent: "")
     /// How much of `tap.swallowedCount` is already in `settings.blockedScrollsTotal`.
     private var blockedScrollsSaved = 0
@@ -45,6 +47,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mice.refresh()
         // A mouse waking up or being connected with no window open.
         pointerSpeed.onMouseAppeared = { [weak self] in self?.mice.refresh() }
+
+        // Options + Create held on the controller: the same switch as the menu's.
+        gamepad.onToggleRequested = { [weak self] in
+            guard let self else { return }
+            self.settings.controllerPointer.toggle()
+            NSSound(named: self.settings.controllerPointer ? "Tink" : "Pop")?.play()
+        }
+        gamepad.start()
 
         applySettings()
 
@@ -104,6 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         saveBlockedScrolls()
         // Hand every mouse back at its normal speed; the next launch sets it again.
         applyPointerSpeeds(enabled: false)
+        gamepad.setWanted(false)
         tap.stop()
         tapToClick.stop()
         battery.stop()
@@ -152,6 +163,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             tapToClick.stop()
         }
+        // Moving the pointer and clicking need the same grant.
+        gamepad.setWanted(settings.enabled && settings.controllerPointer && AXIsProcessTrusted())
         refreshStatusIcon()
         writeStatusFile()
     }
@@ -176,6 +189,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         applyPointerSpeeds(enabled: settings.enabled)
         battery.enabled = settings.batteryWarningEnabled
         battery.threshold = settings.batteryWarningThreshold
+        gamepad.update(config: settings.controllerConfig)
+        gamepad.pauseInGames = settings.controllerPauseInGames
     }
 
     @objc private func settingsChanged() {
@@ -219,6 +234,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Only what gets switched often lives here: everything set once is in Settings.
         menu.addItem(enabledItem)
         menu.addItem(perAppItem)
+        menu.addItem(controllerItem)
         menu.addItem(.separator())
 
         let settingsItem = NSMenuItem(title: L("Settings…"), action: #selector(openSettings), keyEquivalent: ",")
@@ -290,6 +306,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshStarInvite()
 
         enabledItem.state = settings.enabled ? .on : .off
+        // Only with a controller connected: everyone else never needs it.
+        controllerItem.isHidden = gamepad.controllers.isEmpty
+        controllerItem.state = settings.controllerPointer ? .on : .off
         // App rules are about Magic Mouse scrolling.
         perAppItem.isHidden = !hasMagicMouse
 
@@ -350,6 +369,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             line.isEnabled = false
             return line
         }
+        batteryLines += gamepad.controllers.compactMap { controller in
+            guard let percent = controller.battery else { return nil }
+            let line = NSMenuItem(title: "\(controller.name) \(percent)%", action: nil, keyEquivalent: "")
+            line.isEnabled = false
+            return line
+        }
         for (index, line) in batteryLines.enumerated() { menu.insertItem(line, at: index) }
     }
 
@@ -401,13 +426,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settingsWindowOpen: settingsWindow?.window?.isVisible ?? false,
             scrollBlocker: blocker.debugSnapshot(at: MachTime.now()),
             dragConversionActive: tap.syntheticDragClickState != nil,
-            otherMouseApps: ConflictMonitor.shared.conflicts.map(\.name)
+            otherMouseApps: ConflictMonitor.shared.conflicts.map(\.name),
+            controllers: gamepad.controllers.map(\.summary),
+            unsupportedControllers: gamepad.unsupported.map { "\($0.name) transport=\($0.transport)" },
+            controllerPointer: settings.controllerPointer,
+            controllerPointerActive: gamepad.isActive,
+            controllerEventsPosted: gamepad.eventsPosted,
+            controllerInputsReceived: gamepad.inputsReceived
         ))
     }
 
     // MARK: Actions
 
     @objc private func toggleEnabled() { settings.enabled.toggle() }
+
+    @objc private func toggleControllerPointer() { settings.controllerPointer.toggle() }
 
     @objc private func togglePerApp(_ sender: NSMenuItem) {
         guard let pair = sender.representedObject as? [String], pair.count == 2 else { return }
@@ -483,6 +516,7 @@ extension AppDelegate: NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
         battery.poll()
         mice.refresh()
+        gamepad.refreshList()
         refreshMenu()
     }
 }

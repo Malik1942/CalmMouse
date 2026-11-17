@@ -77,6 +77,13 @@ Everything here is for the **Magic Mouse**. A mouse with a scroll wheel gets a f
 - **Reverse direction**: flip the wheel alone. Other devices stay as they are.
 - **Still while pressed**: pressing the wheel doesn't scroll the page.
 
+**Game controllers**
+
+- **Controller as mouse**, off until you turn it on: from the menu bar, or by holding the two small middle buttons.
+- **PS5 / PS4 controllers** use the touchpad like a laptop's: slide to point, tap to click, two fingers to scroll and right-click, press to drag.
+- **Every controller**: the left stick points, the right stick scrolls. Press the left stick or ✕ / A to click, the right stick or ○ / B to right-click.
+- **Steps aside for games**: while a game is in front, the controller is left to the game.
+
 **And**
 
 - **Per-app rules**: no scrolling in Figma, no sideways scroll in Excel, no momentum in your editor.

@@ -56,6 +56,12 @@ final class Settings: ObservableObject {
         static let wheelDevices = "wheelDevices"
         static let deviceTypeOverrides = "deviceTypeOverrides"
         static let selectedDeviceKey = "selectedDeviceKey"
+        static let controllerPointer = "controllerPointer"
+        static let controllerPointerSpeed = "controllerPointerSpeed"
+        static let controllerScrollSpeed = "controllerScrollSpeed"
+        static let controllerTapToClick = "controllerTapToClick"
+        static let controllerPauseInGames = "controllerPauseInGames"
+        static let controllerStickClicks = "controllerStickClicks"
     }
 
     /// Whether the first-launch welcome tour has been seen (or dismissed).
@@ -139,6 +145,14 @@ final class Settings: ObservableObject {
     @Published var smoothWheelScroll: Bool { didSet { d.set(smoothWheelScroll, forKey: Key.smoothWheelScroll); changed() } }
     @Published var wheelScrollSpeed: Double { didSet { d.set(wheelScrollSpeed, forKey: Key.wheelScrollSpeed); changed() } }
     @Published var reverseMagicMouseScroll: Bool { didSet { d.set(reverseMagicMouseScroll, forKey: Key.reverseMagicMouseScroll); changed() } }
+    // A game controller as the pointer. Off until switched on: someone already playing games
+    // with a controller must not find it moving the pointer after an update.
+    @Published var controllerPointer: Bool { didSet { d.set(controllerPointer, forKey: Key.controllerPointer); changed() } }
+    @Published var controllerPointerSpeed: Double { didSet { d.set(controllerPointerSpeed, forKey: Key.controllerPointerSpeed); changed() } }
+    @Published var controllerScrollSpeed: Double { didSet { d.set(controllerScrollSpeed, forKey: Key.controllerScrollSpeed); changed() } }
+    @Published var controllerTapToClick: Bool { didSet { d.set(controllerTapToClick, forKey: Key.controllerTapToClick); changed() } }
+    @Published var controllerPauseInGames: Bool { didSet { d.set(controllerPauseInGames, forKey: Key.controllerPauseInGames); changed() } }
+    @Published var controllerStickClicks: Bool { didSet { d.set(controllerStickClicks, forKey: Key.controllerStickClicks); changed() } }
     /// Each wheel mouse's own settings, by `DeviceInfo.settingsKey`. A mouse with no entry
     /// uses the four wheel settings above, which is all a wheel mouse had before 1.2.
     @Published var wheelDevices: [String: WheelDevice] { didSet { save(wheelDevices, Key.wheelDevices); changed() } }
@@ -187,6 +201,12 @@ final class Settings: ObservableObject {
             Key.smoothWheelScroll: false,
             Key.wheelScrollSpeed: 3.0,
             Key.reverseMagicMouseScroll: false,
+            Key.controllerPointer: false,
+            Key.controllerPointerSpeed: 0.0,
+            Key.controllerScrollSpeed: 0.0,
+            Key.controllerTapToClick: true,
+            Key.controllerPauseInGames: true,
+            Key.controllerStickClicks: true,
         ])
         loading = true
         enabled = d.bool(forKey: Key.enabled)
@@ -214,6 +234,12 @@ final class Settings: ObservableObject {
         smoothWheelScroll = d.bool(forKey: Key.smoothWheelScroll)
         wheelScrollSpeed = d.double(forKey: Key.wheelScrollSpeed)
         reverseMagicMouseScroll = d.bool(forKey: Key.reverseMagicMouseScroll)
+        controllerPointer = d.bool(forKey: Key.controllerPointer)
+        controllerPointerSpeed = d.double(forKey: Key.controllerPointerSpeed)
+        controllerScrollSpeed = d.double(forKey: Key.controllerScrollSpeed)
+        controllerTapToClick = d.bool(forKey: Key.controllerTapToClick)
+        controllerPauseInGames = d.bool(forKey: Key.controllerPauseInGames)
+        controllerStickClicks = d.bool(forKey: Key.controllerStickClicks)
         wheelDevices = Settings.load([String: WheelDevice].self, Key.wheelDevices, d) ?? [:]
         deviceTypeOverrides = Settings.load([String: TypeOverride].self, Key.deviceTypeOverrides, d) ?? [:]
         selectedDeviceKey = d.string(forKey: Key.selectedDeviceKey)
@@ -296,6 +322,17 @@ final class Settings: ObservableObject {
 
     func setTypeOverride(_ type: MouseTypeSetting, key: String, name: String) {
         deviceTypeOverrides[key] = TypeOverride(name: name, type: type, updatedAt: Date())
+    }
+
+    var controllerConfig: ControllerConfig {
+        var c = ControllerConfig()
+        c.pointerSpeed = min(max(controllerPointerSpeed, -1), 1)
+        c.scrollSpeed = min(max(controllerScrollSpeed, -1), 1)
+        c.tapToClick = controllerTapToClick
+        c.stickClicks = controllerStickClicks
+        // The system's own "Natural scrolling" (System Settings › Trackpad / Mouse).
+        c.naturalScrolling = (UserDefaults.standard.object(forKey: "com.apple.swipescrolldirection") as? Bool) ?? true
+        return c
     }
 
     var tapConfig: TapConfig {

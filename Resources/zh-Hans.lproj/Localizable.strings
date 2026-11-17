@@ -237,3 +237,18 @@
 "Mouse color" = "鼠标颜色";
 "White" = "白色";
 "Black" = "黑色";
+
+/* Game controllers */
+"Use controller as mouse" = "用手柄当鼠标";
+"Game controller" = "游戏手柄";
+"Use as mouse" = "用作鼠标";
+"Pause while playing games" = "玩游戏时暂停";
+"✕ or A clicks, ○ or B right-clicks.\nHold the two small middle buttons\nto switch this on or off." = "✕ 或 A 点按，○ 或 B 右键点按。\n按住中间两个小按钮，\n可以随时开关。";
+"Slide a finger on the touchpad\nor push the left stick." = "在触控板上滑动一根手指，\n或推左摇杆。";
+"A light tap on the touchpad clicks,\nwith two fingers it right-clicks.\nPress the touchpad to click and drag." = "轻点触控板来点按，\n两指轻点来右键点按。\n按下触控板可以点按和拖移。";
+"Push the left stick.\nThe further, the faster." = "推左摇杆。\n推得越深，走得越快。";
+"Slide two fingers on the touchpad\nor push the right stick." = "在触控板上用两指滑动，\n或推右摇杆。";
+"Push the right stick\nthe way you want to go." = "往想去的方向\n推右摇杆。";
+"While a game is in front,\nthe controller is left to the game." = "游戏在前台时，\n手柄只交给游戏。";
+"Click with the sticks" = "按下摇杆来点按";
+"Press the left stick to click,\nthe right stick to right-click.\nHold it down and move to drag." = "按下左摇杆来点按，\n按下右摇杆来右键点按。\n按住再推动可以拖移。";

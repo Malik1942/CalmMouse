@@ -110,6 +110,8 @@ struct DeviceEntry: Identifiable, Equatable {
     let connected: Bool
     /// How it connects, shown only when another listed device has the same name.
     var detail: String? = nil
+    /// Set for a game controller, which is listed after the mice.
+    var controller: ConnectedController? = nil
     var id: String { key }
 }
 
@@ -155,9 +157,22 @@ extension MouseEnvironment {
         return transport.isEmpty ? nil : transport
     }
 
-    func devices(for settings: Settings) -> [DeviceEntry] {
+    func devices(for settings: Settings, controllers: [ConnectedController] = []) -> [DeviceEntry] {
         Self.deviceList(connected: connected, typeOverride: settings.typeOverride(key:name:),
                         rememberedMagicMouse: settings.rememberedMouseKinds.contains(.magicMouse))
+            + Self.controllerEntries(controllers)
+    }
+
+    /// Game controllers, listed after the mice. How one connects is shown only when another
+    /// controller has the same name.
+    static func controllerEntries(_ controllers: [ConnectedController]) -> [DeviceEntry] {
+        controllers.map { controller in
+            let shared = controllers.filter { $0.name == controller.name }.count > 1
+            return DeviceEntry(key: controller.settingsKey, name: controller.name, detected: nil, kind: nil,
+                               connected: true,
+                               detail: shared ? controller.transport.flatMap(connectionName) : nil,
+                               controller: controller)
+        }
     }
 }
 

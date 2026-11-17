@@ -57,6 +57,14 @@ enum StatusReporter {
         var dragConversionActive: Bool
         /// Other apps changing mouse input in the same areas CalmMouse is busy with.
         var otherMouseApps: [String] = []
+        /// Game controllers connected, and whether one is driving the pointer right now.
+        var controllers: [String] = []
+        /// Game controllers macOS lists but GameController can't read.
+        var unsupportedControllers: [String] = []
+        var controllerPointer = false
+        var controllerPointerActive = false
+        var controllerEventsPosted = 0
+        var controllerInputsReceived = 0
     }
 
     static var fileURL: URL {

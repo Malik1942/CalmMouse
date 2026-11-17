@@ -238,3 +238,18 @@
 "Mouse color" = "Mouse color";
 "White" = "White";
 "Black" = "Black";
+
+/* Game controllers */
+"Use controller as mouse" = "Use controller as mouse";
+"Game controller" = "Game controller";
+"Use as mouse" = "Use as mouse";
+"Pause while playing games" = "Pause while playing games";
+"✕ or A clicks, ○ or B right-clicks.\nHold the two small middle buttons\nto switch this on or off." = "✕ or A clicks, ○ or B right-clicks.\nHold the two small middle buttons\nto switch this on or off.";
+"Slide a finger on the touchpad\nor push the left stick." = "Slide a finger on the touchpad\nor push the left stick.";
+"A light tap on the touchpad clicks,\nwith two fingers it right-clicks.\nPress the touchpad to click and drag." = "A light tap on the touchpad clicks,\nwith two fingers it right-clicks.\nPress the touchpad to click and drag.";
+"Push the left stick.\nThe further, the faster." = "Push the left stick.\nThe further, the faster.";
+"Slide two fingers on the touchpad\nor push the right stick." = "Slide two fingers on the touchpad\nor push the right stick.";
+"Push the right stick\nthe way you want to go." = "Push the right stick\nthe way you want to go.";
+"While a game is in front,\nthe controller is left to the game." = "While a game is in front,\nthe controller is left to the game.";
+"Click with the sticks" = "Click with the sticks";
+"Press the left stick to click,\nthe right stick to right-click.\nHold it down and move to drag." = "Press the left stick to click,\nthe right stick to right-click.\nHold it down and move to drag.";

@@ -288,11 +288,13 @@ private final class SettingsPanesController: NSTabViewController {
     override func viewDidAppear() {
         super.viewDidAppear()
         mice.refresh()
+        GamepadController.shared.refreshList()
         sizeWindowToSelectedPane(animated: false)
         // Catch a mouse being plugged in or waking up while the window is open.
         mouseTimer?.invalidate()
         mouseTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
             self?.mice.refresh()
+            GamepadController.shared.refreshList()
         }
     }
 
@@ -459,9 +461,10 @@ private struct DevicesPane: View {
     let onMinimumHeight: (CGFloat) -> Void
     @StateObject private var focus = PreviewFocus()
     @ObservedObject private var conflicts = ConflictMonitor.shared
+    @ObservedObject private var gamepad = GamepadController.shared
 
     var body: some View {
-        let devices = mice.devices(for: settings)
+        let devices = mice.devices(for: settings, controllers: gamepad.controllers)
         let selected = devices.first { $0.key == settings.selectedDeviceKey } ?? devices.first
         VStack(spacing: 0) {
             if let message = conflicts.message {
@@ -491,7 +494,9 @@ private struct DevicesPane: View {
                 .frame(width: Theme.Size.deviceColumn)
             Divider()
             Group {
-                if let selected {
+                if let selected, let controller = selected.controller {
+                    ControllerForm(settings: settings, controller: controller)
+                } else if let selected {
                     switch selected.kind {
                     case .magicMouse: MagicMouseForm(settings: settings, device: selected)
                     case .wheelMouse: WheelDeviceForm(settings: settings, device: selected)
@@ -585,10 +590,12 @@ private struct DeviceColumn: View {
     }
 
     private func symbol(_ device: DeviceEntry) -> String {
-        device.kind == .magicMouse || device.detected == .magicMouse ? "magicmouse" : "computermouse"
+        if device.controller != nil { return "gamecontroller" }
+        return device.kind == .magicMouse || device.detected == .magicMouse ? "magicmouse" : "computermouse"
     }
 
     private func batteryText(_ device: DeviceEntry) -> String? {
+        if let controller = device.controller { return controller.battery.map { "\($0)%" } }
         if let level = mice.batteries[device.name] { return "\(level)%" }
         return device.connected ? nil : L("Not connected")
     }
@@ -962,6 +969,66 @@ private struct WheelDeviceForm: View {
     private func binding<Value>(_ path: WritableKeyPath<WheelSettings, Value>) -> Binding<Value> {
         Binding(get: { settings.wheelSettings(key: device.key, name: device.name)[keyPath: path] },
                 set: { value in settings.updateWheel(key: device.key, name: device.name) { $0[keyPath: path] = value } })
+    }
+}
+
+// MARK: - Game controllers
+
+/// A game controller as the pointer. Every controller shares these.
+private struct ControllerForm: View {
+    @ObservedObject var settings: Settings
+    let controller: ConnectedController
+
+    var body: some View {
+        Form {
+            Section {
+                ExplainedRow(caption: L("✕ or A clicks, ○ or B right-clicks.\nHold the two small middle buttons\nto switch this on or off.")) {
+                    Toggle("Use as mouse", isOn: $settings.controllerPointer)
+                }
+            }
+            Section("Pointer") {
+                if controller.hasTouchpad {
+                    ExplainedRow(caption: L("Slide a finger on the touchpad\nor push the left stick.")) {
+                        SliderRow("Tracking speed", value: $settings.controllerPointerSpeed,
+                                  in: -1...1, step: 0.25, from: "Slow", to: "Fast")
+                    }
+                } else {
+                    ExplainedRow(caption: L("Push the left stick.\nThe further, the faster.")) {
+                        SliderRow("Tracking speed", value: $settings.controllerPointerSpeed,
+                                  in: -1...1, step: 0.25, from: "Slow", to: "Fast")
+                    }
+                }
+            }
+            Section("Clicking") {
+                if controller.hasTouchpad {
+                    ExplainedRow(caption: L("A light tap on the touchpad clicks,\nwith two fingers it right-clicks.\nPress the touchpad to click and drag.")) {
+                        Toggle("Tap to click", isOn: $settings.controllerTapToClick)
+                    }
+                }
+                ExplainedRow(caption: L("Press the left stick to click,\nthe right stick to right-click.\nHold it down and move to drag.")) {
+                    Toggle("Click with the sticks", isOn: $settings.controllerStickClicks)
+                }
+            }
+            Section("Scrolling") {
+                if controller.hasTouchpad {
+                    ExplainedRow(caption: L("Slide two fingers on the touchpad\nor push the right stick.")) {
+                        SliderRow("Scrolling speed", value: $settings.controllerScrollSpeed,
+                                  in: -1...1, step: 0.25, from: "Slow", to: "Fast")
+                    }
+                } else {
+                    ExplainedRow(caption: L("Push the right stick\nthe way you want to go.")) {
+                        SliderRow("Scrolling speed", value: $settings.controllerScrollSpeed,
+                                  in: -1...1, step: 0.25, from: "Slow", to: "Fast")
+                    }
+                }
+            }
+            Section {
+                ExplainedRow(caption: L("While a game is in front,\nthe controller is left to the game.")) {
+                    Toggle("Pause while playing games", isOn: $settings.controllerPauseInGames)
+                }
+            }
+        }
+        .formStyle(.grouped)
     }
 }
 
