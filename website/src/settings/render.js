@@ -96,13 +96,14 @@ function renderRow(r) {
       return `<div ${attrs}>${label}<button type="button" class="sw__switch" role="switch" aria-checked="${r.on}" aria-labelledby="sw-l-${r.id}" data-set="${r.id}"></button></div>`;
     case "slider": {
       const p = (r.value - r.min) / (r.max - r.min);
+      const valuetext = r.reading ? ` aria-valuetext="${esc(r.reading)}"` : "";
       const before = r.ends ? `<span class="sw__end">${esc(r.ends[0])}</span>` : "";
       const after = r.ends
         ? `<span class="sw__end">${esc(r.ends[1])}</span>`
         : `<span class="sw__reading" data-reading="${r.id}">${esc(r.reading)}</span>`;
       return (
         `<div ${attrs}>${label}<span class="sw__slider">${before}` +
-        `<input type="range" min="${r.min}" max="${r.max}" step="${r.step ?? "any"}" value="${r.value}" style="--p:${p}" aria-labelledby="sw-l-${r.id}" data-set="${r.id}">` +
+        `<input type="range" min="${r.min}" max="${r.max}" step="${r.step ?? "any"}" value="${r.value}" style="--p:${p}"${valuetext} aria-labelledby="sw-l-${r.id}" data-set="${r.id}">` +
         `${after}</span></div>`
       );
     }
