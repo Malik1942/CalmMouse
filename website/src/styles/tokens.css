@@ -36,7 +36,6 @@
   --color-accent: var(--palette-blue-500);
   --color-on-accent: var(--palette-white);
   --color-scrim: rgba(255, 255, 255, 0.72); /* nav backdrop */
-  --color-knob: var(--palette-white);       /* switch handle */
 
   /* Magic Mouse illustration — its own scale because the glass
      material needs light/dark values that aren't UI surfaces. */
@@ -317,7 +316,6 @@
     --color-accent: var(--palette-blue-400);
     --color-on-accent: var(--palette-white);
     --color-scrim: rgba(0, 0, 0, 0.65);
-    --color-knob: #d5d5d8;
 
     --color-shell-top: #2e2e32;
     --color-shell-bottom: #0e0e10;
