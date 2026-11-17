@@ -326,6 +326,11 @@
   justify-content: center;
 }
 
+/* The settings window sits below its section's copy as the figures do. */
+.section__copy + .sw-frame {
+  margin-top: var(--space-14);
+}
+
 /* ---------- Tile grid ---------------------------------------------- */
 .tile-grid {
   list-style: none;
@@ -409,6 +414,7 @@
 
   .bento,
   .figure-center,
+  .section__copy + .sw-frame,
   .compare {
     margin-top: var(--space-10);
   }
