@@ -1,13 +1,25 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createSettings, change } from "../src/settings/model.js";
-import { esc, renderWindow, renderForm, renderStaticWindow } from "../src/settings/render.js";
+import { readFileSync } from "node:fs";
+import config from "../vite.config.js";
+import { esc, renderWindow, renderForm } from "../src/settings/render.js";
 import { ICONS } from "../src/settings/icons.js";
 
 const ctx = { version: "1.2.2", update: "idle" };
 
-test("the window in index.html is the window a visitor first sees", () => {
-  assert.equal(renderStaticWindow("1.2.2"), renderWindow({ state: createSettings(), pane: "devices", version: "1.2.2" }));
+test("the window in index.html is the window a visitor first sees", async () => {
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const version = html.match(/class="changelog__version">([^<]+)</)[1].trim();
+  const plugin = config.plugins[0];
+  const out = plugin.transformIndexHtml(html);
+  assert.ok(out.includes(renderWindow({ state: createSettings(), pane: "devices", version })));
+  assert.ok(!out.includes("<!-- settings-window -->"));
+});
+
+test("the build plugin refuses an index.html with no placeholder", () => {
+  const plugin = config.plugins[0];
+  assert.throws(() => plugin.transformIndexHtml('<p class="changelog__version">1.0.0</p>'), /placeholder/);
 });
 
 test("Devices opens selected, with General and Advanced rendered but hidden", () => {

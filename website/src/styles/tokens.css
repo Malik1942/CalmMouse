@@ -101,6 +101,11 @@
   --sw-pane-width: 480px;       /* General and Advanced */
   --sw-radius: 16px;
   --sw-radius-phone: 20px;
+  --sw-focus-width: 3px;        /* the keyboard focus ring */
+  --sw-focus-offset: 1px;
+  --sw-focus-offset-popup: 2px; /* around a pop-up button */
+  --sw-spinner-border: 2px;
+  --sw-z-menu: 2;               /* menus and popovers above the rows */
   --sw-rule: 1px;               /* the column rule and the rule under the toolbar */
   --sw-titlebar: 32px;
   --sw-title-top: 7px;          /* the title's line box, from the window's top */
