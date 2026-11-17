@@ -41,7 +41,9 @@ Loose BEM: `.block`, `.block__element`, `.block--modifier`. State classes are
 
 `.btn` (`--primary`, `--sm`, `--lg`), `.link-arrow`, `.link-quiet`, `.eyebrow`,
 `.lede`, `.fineprint`, `.card` (`__icon`, `__title`, `__body`, `--wide`),
-`.tile`, `.step`, `.switch` (`--on`), `.window`.
+`.tile`, `.step`, `.sw` (the settings window, in `settings-window.css`).
+
+`.switch` and `.window` belong to the old window pictures and go with them.
 
 Components carry no outer margin and make no assumption about where they sit —
 that's what makes them reusable. Placement belongs to the pattern.
