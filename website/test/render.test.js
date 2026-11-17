@@ -65,7 +65,7 @@ test("no icon has a duplicated attribute", () => {
     const count = (opening.match(/stroke-width=/g) ?? []).length;
     assert.ok(count <= 1, `${name} repeats stroke-width`);
   }
-  assert.match(ICONS.chevronRight, /stroke-width="2\.4"/);
+  assert.match(ICONS.chevronRight, /stroke-width="1\.3"/);
   assert.match(ICONS.gears, /stroke-width="1\.3"/);
 });
 

@@ -58,20 +58,29 @@
   --sw-column-rule: #e6e6e6;
   --sw-label: rgba(0, 0, 0, 0.85);
   --sw-secondary: rgba(0, 0, 0, 0.5);
+  --sw-tertiary: rgba(0, 0, 0, 0.26);       /* disclosure chevrons */
   --sw-title: #585858;
-  --sw-tab: #707070;
-  --sw-tab-selected: #0072f6;
+  --sw-tab: #717171;
+  --sw-tab-selected: #0070f4;
+  --sw-tab-symbol: #7f7f7f;
+  --sw-tab-symbol-selected: #007aff;  /* in both appearances */
   --sw-pill: #ffffff;
-  --sw-pill-shadow: 0 3px 14px rgba(0, 0, 0, 0.07);
+  --sw-pill-edge: transparent;
+  --sw-pill-edge-inner: transparent;
+  --sw-pill-shadow: 0 3px 24px rgba(0, 0, 0, 0.1);
   --sw-button: #e4e4e4;
-  --sw-button-text: rgba(0, 0, 0, 0.86);
+  --sw-button-text: rgba(0, 0, 0, 0.845);
   --sw-button-pressed: #d4d4d4;
   --sw-accent: #007aff;
   --sw-control-accent: #0576f6;
   --sw-track: #dedede;
   --sw-slider-track: #dfdfdf;
+  --sw-slider-fill: #0077f8;
   --sw-knob: #ffffff;
-  --sw-knob-edge: rgba(0, 0, 0, 0.14);
+  --sw-knob-on: #ffffff;
+  --sw-slider-knob: #ffffff;
+  --sw-knob-shadow: 0 1px 8px rgba(0, 0, 0, 0.13);
+  --sw-slider-knob-shadow: 0 1.5px 8px rgba(0, 0, 0, 0.15);
   --sw-green: #34c759;
   --sw-on-green: #ffffff;
   --sw-on-accent: #ffffff;
@@ -80,6 +89,9 @@
   --sw-light-red: #ff5c60;
   --sw-light-yellow: #fac800;
   --sw-light-off: #dcdcdc;
+  --sw-light-red-edge: #fc1827;
+  --sw-light-yellow-edge: #f9b700;
+  --sw-light-off-edge: #d2d2d2;
   --sw-menu: rgba(246, 246, 246, 0.97);
   --sw-menu-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 10px 30px rgba(0, 0, 0, 0.2);
   --sw-focus: rgba(0, 122, 255, 0.5);
@@ -88,20 +100,27 @@
   --sw-width: 800px;            /* Devices: 320 column + 480 settings */
   --sw-height: 600px;
   --sw-pane-width: 480px;       /* General and Advanced */
-  --sw-radius: 26px;
+  --sw-radius: 16px;
   --sw-radius-phone: 20px;
+  --sw-rule: 1px;               /* the column rule and the rule under the toolbar */
   --sw-titlebar: 32px;
+  --sw-title-top: 7px;          /* the title's line box, from the window's top */
+  --sw-title-weight: 700;       /* the window title and the device's name */
+  --sw-heading-weight: 600;     /* section headings */
   --sw-chrome: 88px;            /* title bar + toolbar, to the rule under it */
-  --sw-light: 13px;
-  --sw-light-gap: 10px;
+  --sw-light: 14px;
+  --sw-light-gap: 9px;
   --sw-light-inset: 9px;
+  --sw-light-edge: 0.5px;
   --sw-tab-height: 48px;
-  --sw-tab-pad: 8px;
-  --sw-tab-top: 5.5px;
-  --sw-tab-gap: 2px;
-  --sw-tab-radius: 12px;
-  --sw-tab-icon: 20px;
-  --sw-tab-label-gap: 3.5px;
+  --sw-tab-min: 55px;           /* General and Devices; Advanced is wider */
+  --sw-tab-pad: 6px;
+  --sw-tab-top: 4px;
+  --sw-tab-gap: 1px;
+  --sw-tab-radius: 7px;
+  --sw-tab-icon: 24px;          /* the icons' height; Advanced's is wider */
+  --sw-tab-label-gap: 1px;
+  --sw-pill-edge-width: 0.5px;
   --sw-tab-text: 11px;
   --sw-tab-line: 13px;
   --sw-text: 13px;
@@ -112,34 +131,46 @@
   --sw-inset: 10px;             /* group padding; separators start here */
   --sw-group-radius: 10px;
   --sw-heading-gap: 10px;
-  --sw-section-gap: 30px;
-  --sw-row: 36.8px;
+  --sw-section-gap: 30px;       /* above a section with a heading */
+  --sw-group-gap: 10px;         /* above a section without one */
+  /* Rows, separator not included. Text starts --sw-row-pad from the top;
+     controls sit in the middle. Rows with a push button keep the button
+     --sw-row-control-top from the top, whatever their height. */
+  --sw-row-pad: 10px;
+  --sw-row: 36px;               /* sliders, disclosure rows */
+  --sw-row-switch: 36.5px;
+  --sw-row-popup: 37.25px;
   --sw-row-control: 40px;       /* rows with a push button */
-  --sw-row-preset: 41px;
+  --sw-row-control-top: 6px;
+  --sw-row-preset: 42.5px;      /* the presets' symbols outgrow the button; Just fix clicking's
+                                   doesn't, so its row is --sw-row-control */
   --sw-row-gap: 8px;
-  --sw-label-gap: 11px;
+  --sw-label-gap: 10px;
   --sw-preset-icon: 20px;
-  --sw-preset-glyph: 15px;
+  --sw-preset-glyph: 24px;      /* drawn in points, wider than its column */
+  --sw-row-glyph: 15px;         /* an app's icon, the paused mark */
   --sw-check: 16px;
   --sw-control-height: 24px;
-  --sw-control-pad: 13px;
-  --sw-control-radius: 7px;
-  --sw-button-icon: 15px;
+  --sw-control-pad: 12px;
+  --sw-control-radius: 6px;
+  --sw-button-icon: 16px;
+  --sw-button-icon-gap: 10.5px;
   --sw-switch-width: 36px;
   --sw-switch-height: 16px;
-  --sw-knob-width: 20px;
-  --sw-knob-height: 11px;
-  --sw-knob-inset: 2px;
+  --sw-knob-width: 21px;
+  --sw-knob-height: 13px;
+  --sw-knob-inset: 1.5px;
   --sw-slider: 150px;
   --sw-slider-height: 6px;
   --sw-slider-knob-width: 20px;
-  --sw-slider-knob-height: 14px;
+  --sw-slider-knob-height: 16px;
   --sw-reading: 44px;
   --sw-chevrons: 20px;
   --sw-chevrons-glyph: 12px;
-  --sw-popup-gap: 13px;
+  --sw-popup-gap: 12px;
   --sw-popup-trail: 3.5px;
-  --sw-chevron: 11px;
+  --sw-chevron-width: 8px;
+  --sw-chevron-height: 10px;
   --sw-column: 320px;
   --sw-column-pad: 24px;
   --sw-explainer: 250px;
@@ -159,6 +190,8 @@
   --sw-menu-item: 22px;
   --sw-popover-width: 260px;
   --sw-spinner: 14px;
+  --sw-duration-toggle: 0.15s;  /* a switch's knob, a disclosure chevron */
+  --sw-duration-spin: 0.8s;     /* one turn of the spinner */
 
   /* ---------- Typography --------------------------------------- */
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
@@ -295,29 +328,37 @@
 
     --sw-window: #24292c;
     --sw-group: #2b2f32;
-    --sw-separator: #36393c;
+    --sw-separator: #35393c;
     --sw-toolbar-rule: #232323;
-    --sw-column-rule: #3a3e41;
+    --sw-column-rule: #393e41;
     --sw-label: rgba(255, 255, 255, 0.85);
     --sw-secondary: rgba(255, 255, 255, 0.55);
+    --sw-tertiary: rgba(255, 255, 255, 0.25);
     --sw-title: #a0a5a8;
     --sw-tab: #929496;
     --sw-tab-selected: #0e87ff;
+    --sw-tab-symbol: #a0a5a8;
     --sw-pill: #262c30;
-    --sw-pill-shadow: 0 3px 14px rgba(0, 0, 0, 0.35);
-    --sw-button: #3c3f42;
-    --sw-button-text: rgba(255, 255, 255, 0.86);
+    --sw-pill-edge: #3f4d57;
+    --sw-pill-edge-inner: #334046;
+    --sw-button: #3b3f42;
+    --sw-button-text: rgba(255, 255, 255, 0.845);
     --sw-button-pressed: #4a4d50;
     --sw-accent: #0a84ff;
     --sw-control-accent: #117dfd;
     --sw-track: #404245;
     --sw-slider-track: #414346;
+    --sw-slider-fill: #117dff;
     --sw-knob: #e3e3e3;
-    --sw-knob-edge: rgba(0, 0, 0, 0.35);
+    --sw-knob-on: #dfebff;
+    --sw-slider-knob: #e0e0e0;
     --sw-green: #30d158;
     --sw-paper: #1e1e1e;
     --sw-destructive: #ff453a;
-    --sw-light-off: #4a4d50;
+    --sw-light-off: #474c4f;
+    --sw-light-red-edge: #f2001b;
+    --sw-light-yellow-edge: #efae00;
+    --sw-light-off-edge: #51565a;
     --sw-menu: rgba(40, 42, 45, 0.97);
     --sw-menu-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 10px 30px rgba(0, 0, 0, 0.5);
     --sw-focus: rgba(10, 132, 255, 0.55);

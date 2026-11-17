@@ -11,7 +11,7 @@ export default defineConfig({
         const version = html.match(/class="changelog__version">([^<]+)</)?.[1]?.trim();
         if (!version) throw new Error("index.html has no .changelog__version to read the version from");
         if (!html.includes("<!-- settings-window -->")) throw new Error("index.html has no <!-- settings-window --> placeholder");
-        return html.replace("<!-- settings-window -->", renderStaticWindow(version));
+        return html.replace("<!-- settings-window -->", () => renderStaticWindow(version));
       },
     },
   ],
