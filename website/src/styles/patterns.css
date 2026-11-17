@@ -326,24 +326,6 @@
   justify-content: center;
 }
 
-/* Two window mocks side by side, stacking when the row runs out of room.
-   The Devices mock is wider than General, as in the app. */
-.figure-center--pair {
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: var(--space-6);
-}
-
-.figure-center--pair .window {
-  width: min(460px, 100%);
-  display: flex;
-  flex-direction: column;
-}
-
-.figure-center--pair .window__body {
-  flex: 1;
-}
-
 /* ---------- Tile grid ---------------------------------------------- */
 .tile-grid {
   list-style: none;
