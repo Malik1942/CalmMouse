@@ -44,8 +44,8 @@
 }
 
 .sw :focus-visible {
-  outline: 3px solid var(--sw-focus);
-  outline-offset: 1px;
+  outline: var(--sw-focus-width) solid var(--sw-focus);
+  outline-offset: var(--sw-focus-offset);
 }
 
 /* ---------- Title bar and toolbar ---------- */
@@ -247,7 +247,6 @@
   min-width: 0;
   padding: var(--sw-gutter);
   overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
 .sw__section + .sw__section { margin-top: var(--sw-section-gap); }
@@ -510,8 +509,8 @@
 }
 
 .sw__popup:has(select:focus-visible) {
-  outline: 3px solid var(--sw-focus);
-  outline-offset: 2px;
+  outline: var(--sw-focus-width) solid var(--sw-focus);
+  outline-offset: var(--sw-focus-offset-popup);
   border-radius: var(--sw-control-radius);
 }
 
@@ -540,7 +539,7 @@
 .sw__spinner {
   width: var(--sw-spinner);
   height: var(--sw-spinner);
-  border: 2px solid var(--sw-track);
+  border: var(--sw-spinner-border) solid var(--sw-track);
   border-top-color: var(--sw-secondary);
   border-radius: 50%;
   animation: sw-spin var(--sw-duration-spin) linear infinite;
@@ -552,7 +551,7 @@
 .sw__menu,
 .sw__popover {
   position: absolute;
-  z-index: 2;
+  z-index: var(--sw-z-menu);
   padding: var(--sw-menu-pad);
   border-radius: var(--sw-menu-radius);
   background: var(--sw-menu);
@@ -597,6 +596,7 @@
 }
 
 /* ---------- Phones: the columns stack ---------- */
+/* A media query can't read a custom property, so the phone breakpoint is written out here. */
 @media (max-width: 640px) {
   .sw-frame {
     width: auto;

@@ -98,7 +98,18 @@ function line(g, x0, y0, x1, y1, style, width, cap = "butt") {
 }
 function rounded(g, r, radius) {
   g.beginPath();
-  g.roundRect(r.x, r.y, r.w, r.h, radius);
+  if (typeof g.roundRect === "function") {
+    g.roundRect(r.x, r.y, r.w, r.h, radius);
+    return;
+  }
+  // Safari 15 and Firefox before 112 have no roundRect.
+  const k = Math.min(radius, r.w / 2, r.h / 2);
+  g.moveTo(r.x + k, r.y);
+  g.arcTo(r.x + r.w, r.y, r.x + r.w, r.y + r.h, k);
+  g.arcTo(r.x + r.w, r.y + r.h, r.x, r.y + r.h, k);
+  g.arcTo(r.x, r.y + r.h, r.x, r.y, k);
+  g.arcTo(r.x, r.y, r.x + r.w, r.y, k);
+  g.closePath();
 }
 /** A drop shadow as the app's Pen.shadowed sets it: blur `radius × 2`, `y` points down. Canvas
  * shadows ignore the transform, so they're scaled by the pixel ratio here. */

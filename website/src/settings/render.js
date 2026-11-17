@@ -56,7 +56,7 @@ function renderColumn() {
   return (
     `<div class="sw__column"><div class="sw__explainer"><div class="sw__showcase">` +
     `<canvas class="sw__canvas" aria-hidden="true"></canvas>` +
-    `<div class="sw__stage" tabindex="0" role="img" aria-label="Magic Mouse. Drag to turn it. Double-click to put it back.">` +
+    `<div class="sw__stage" tabindex="0" role="img" aria-roledescription="interactive picture" aria-label="Magic Mouse. Drag or use the arrow keys to turn it; double-click or press Escape to put it back. Right-click for its colour.">` +
     `<picture class="sw__still"><source media="(prefers-color-scheme: dark)" srcset="${FRAMES}/black/home.webp">` +
     `<img src="${FRAMES}/white/home.webp" alt="" width="720" height="720"></picture></div>` +
     `<div class="sw__details"><p class="sw__name">Magic Mouse</p><p class="sw__hint">Drag to turn · double-click to put back</p></div>` +

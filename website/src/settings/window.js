@@ -1,7 +1,7 @@
 // The working settings window: renders it, keeps its settings, and joins pointing at a row to
 // the mouse on the left, as the app's Settings › Devices does.
 
-import { IDLE_CAPTION, change, createSettings, devicesSections, findRow } from "./model.js";
+import { IDLE_CAPTION, activePreset, change, createSettings, devicesSections, findRow } from "./model.js";
 import { PANES, renderForm, renderWindow } from "./render.js";
 import { createStage } from "./stage.js";
 
@@ -36,7 +36,12 @@ export function mountSettingsWindow(frame) {
   });
 
   // ---------- The left column ----------
+  let captionText = null;
+  let captionIdle = null;
   function setCaption(text, idle) {
+    if (text === captionText && idle === captionIdle) return; // it's a live region: don't repeat it
+    captionText = text;
+    captionIdle = idle;
     caption.replaceChildren(...text.split("\n").flatMap((line, i) => (i ? [document.createElement("br"), line] : [line])));
     caption.classList.toggle("is-idle", idle);
   }
@@ -108,6 +113,7 @@ export function mountSettingsWindow(frame) {
   }
 
   // ---------- Tabs ----------
+  let visible = true; // whether the window is on screen; the stage rests when it isn't
   function selectPane(next, { focus = false } = {}) {
     if (next === pane) return;
     pane = next;
@@ -123,7 +129,7 @@ export function mountSettingsWindow(frame) {
     }
     for (const body of win.querySelectorAll("[data-body]")) body.hidden = body.dataset.body !== pane;
     hidePopover();
-    stage.setActive(pane === "devices");
+    stage.setActive(visible && pane === "devices");
     if (pane === "devices") {
       clearExplanation();
       stage.playRing(); // the app's ring plays each time Devices appears
@@ -151,22 +157,25 @@ export function mountSettingsWindow(frame) {
     }, CHECK_TIME);
   }
 
+  /** Changes a setting. The app plays its ring whenever a preset becomes the active one. */
+  function apply(id, value) {
+    const before = activePreset(state)?.id ?? null;
+    state = value === undefined ? change(state, id) : change(state, id, value);
+    const after = activePreset(state)?.id ?? null;
+    if (after && after !== before) stage.playRing();
+  }
+
   win.addEventListener("click", (e) => {
     const t = e.target.closest("[data-tab], [data-set], [data-toggle], [data-action]");
     if (!t || !win.contains(t) || t.matches("select, input")) return;
     if (t.dataset.tab) return selectPane(t.dataset.tab);
     if (t.dataset.set) {
       const id = t.dataset.set;
-      if (id.startsWith("preset-")) {
-        state = change(state, id);
-        stage.playRing();
-      } else {
-        state = change(state, id, t.getAttribute("aria-checked") !== "true");
-      }
+      apply(id, id.startsWith("preset-") ? undefined : t.getAttribute("aria-checked") !== "true");
       return rerender();
     }
     if (t.dataset.toggle) {
-      state = change(state, t.dataset.toggle);
+      apply(t.dataset.toggle);
       return rerender();
     }
     switch (t.dataset.action) {
@@ -175,10 +184,10 @@ export function mountSettingsWindow(frame) {
       case "tour":
         return document.getElementById("problem")?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
       case "addApp":
-        state = change(state, "addApp");
+        apply("addApp");
         return rerender();
       case "remove":
-        state = change(state, "rule.remove");
+        apply("rule.remove");
         return rerender();
     }
   });
@@ -186,7 +195,7 @@ export function mountSettingsWindow(frame) {
   win.addEventListener("change", (e) => {
     const id = e.target.dataset?.set;
     if (!id) return;
-    state = change(state, id, e.target.value);
+    apply(id, e.target.value);
     rerender();
   });
 
@@ -195,7 +204,7 @@ export function mountSettingsWindow(frame) {
     const t = e.target;
     if (t.type !== "range" || !t.dataset.set) return;
     const id = t.dataset.set;
-    state = change(state, id, t.value);
+    apply(id, t.value);
     t.style.setProperty("--p", String((t.valueAsNumber - Number(t.min)) / (Number(t.max) - Number(t.min))));
     const row = findRow(devicesSections({ ...state, showFineTuning: true }), id);
     const reading = win.querySelector(`[data-reading="${CSS.escape(id)}"]`);
@@ -227,6 +236,10 @@ export function mountSettingsWindow(frame) {
       explain(row);
       keyboardExplained = false;
     }
+  });
+  // On touch nothing says the pointer left, so a tap anywhere else puts the explanation away.
+  document.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "touch" && focusRow && !devicesForm.contains(e.target)) clearExplanation();
   });
   devicesForm.addEventListener("focusin", (e) => {
     if (rerendering) return;
@@ -312,4 +325,11 @@ export function mountSettingsWindow(frame) {
     }
   }, { threshold: 0.4 });
   seen.observe(win.querySelector(".sw__stage"));
+
+  // The stage rests while the window is off screen, however a row came to be explained.
+  new IntersectionObserver((entries) => {
+    const entry = entries[entries.length - 1];
+    visible = entry.isIntersecting;
+    stage.setActive(visible && pane === "devices");
+  }, { threshold: 0 }).observe(win);
 }
