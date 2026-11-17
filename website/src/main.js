@@ -1,6 +1,7 @@
 import "./style.css";
 import { inject } from "@vercel/analytics";
 import { showDownloadCount } from "./download-count.js";
+import { mountSettingsWindow } from "./settings/window.js";
 
 // Vercel Web Analytics: page views only, no cookies. Sends nothing on localhost.
 inject();
@@ -50,6 +51,11 @@ if (installSteps) {
 // The live download count under the hero's small print. It only fills a line
 // index.html already reserves, so nothing moves when the number arrives.
 showDownloadCount();
+
+// The settings window you can try: the same window the app opens, rendered into index.html at
+// build time (vite.config.js) and brought to life here.
+const settingsFrame = document.querySelector("[data-settings-window]");
+if (settingsFrame) mountSettingsWindow(settingsFrame);
 
 // Agentation — click any element in `npm run dev` and leave a note for the
 // coding agent. `import.meta.env.DEV` is inlined at build time, so the whole

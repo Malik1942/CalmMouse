@@ -1,0 +1,250 @@
+// The working settings window: renders it, keeps its settings, and joins pointing at a row to
+// the mouse on the left, as the app's Settings › Devices does.
+
+import { IDLE_CAPTION, change, createSettings, devicesSections, findRow } from "./model.js";
+import { PANES, renderForm, renderWindow } from "./render.js";
+import { createStage } from "./stage.js";
+
+const CHECK_TIME = 900; // ms the update check spins before saying it's up to date
+const POPOVER_DELAY = 550; // the app's delay before a heading's popover
+
+export function mountSettingsWindow(frame) {
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const version = document.querySelector(".changelog__version")?.textContent.trim() ?? "";
+  let state = createSettings();
+  let pane = "devices";
+  let update = "idle";
+  let focusRow = null; // data-row of the row the left column explains
+  let rerendering = false;
+
+  frame.innerHTML = renderWindow({ state, pane, version, update });
+  const win = frame.querySelector(".sw");
+  const caption = win.querySelector("[data-caption-text]");
+  const showcase = win.querySelector(".sw__showcase");
+  const form = (p) => win.querySelector(`[data-form="${p}"]`);
+  const scale = () => Number(frame.style.getPropertyValue("--sw-scale")) || 1;
+
+  const stage = createStage({
+    canvas: win.querySelector(".sw__canvas"),
+    hit: win.querySelector(".sw__stage"),
+    reducedMotion,
+    scale,
+    onReady: () => {
+      win.querySelector(".sw__still").hidden = true; // the canvas draws the mouse from here on
+    },
+  });
+
+  // ---------- The left column ----------
+  function setCaption(text, idle) {
+    caption.replaceChildren(...text.split("\n").flatMap((line, i) => (i ? [document.createElement("br"), line] : [line])));
+    caption.classList.toggle("is-idle", idle);
+  }
+  function explain(row) {
+    if (!row.dataset.caption) return; // a row with nothing to say leaves the last one showing
+    focusRow = row.dataset.row;
+    const preview = row.dataset.preview ? JSON.parse(row.dataset.preview) : null;
+    setCaption(row.dataset.caption, false);
+    showcase.classList.toggle("is-explaining", preview !== null && !reducedMotion);
+    stage.setPreview(preview);
+  }
+  function clearExplanation() {
+    focusRow = null;
+    setCaption(IDLE_CAPTION, true);
+    showcase.classList.remove("is-explaining");
+    stage.setPreview(null);
+  }
+
+  // ---------- Re-rendering a form after a change ----------
+  function keyOf(el) {
+    for (const name of ["set", "toggle", "action"]) {
+      if (el?.dataset?.[name]) return `[data-${name}="${CSS.escape(el.dataset[name])}"]`;
+    }
+    return null;
+  }
+  function rerender(p = pane) {
+    const el = form(p);
+    const scroll = el.scrollTop;
+    const key = el.contains(document.activeElement) ? keyOf(document.activeElement) : null;
+    rerendering = true;
+    el.innerHTML = renderForm(p, state, { version, update });
+    el.scrollTop = scroll;
+    if (key) el.querySelector(key)?.focus({ preventScroll: true });
+    rerendering = false;
+    if (p === "devices" && focusRow) {
+      // A change can change the story (Keep gliding on → off) or remove the row (Tap to click off).
+      const row = el.querySelector(`[data-row="${CSS.escape(focusRow)}"]`);
+      if (row) explain(row);
+      else clearExplanation();
+    }
+  }
+
+  // ---------- Tabs ----------
+  function selectPane(next, { focus = false } = {}) {
+    if (next === pane) return;
+    pane = next;
+    win.className = `sw sw--${pane}`;
+    win.dataset.pane = pane;
+    win.querySelector("[data-title]").textContent = PANES.find((p) => p.id === pane).title;
+    for (const tab of win.querySelectorAll("[data-tab]")) {
+      const on = tab.dataset.tab === pane;
+      tab.classList.toggle("is-selected", on);
+      tab.setAttribute("aria-selected", String(on));
+      tab.tabIndex = on ? 0 : -1;
+      if (on && focus) tab.focus();
+    }
+    for (const body of win.querySelectorAll("[data-body]")) body.hidden = body.dataset.body !== pane;
+    hidePopover();
+    stage.setActive(pane === "devices");
+    if (pane === "devices") {
+      clearExplanation();
+      stage.playRing(); // the app's ring plays each time Devices appears
+    }
+  }
+  win.querySelector(".sw__toolbar").addEventListener("keydown", (e) => {
+    const i = PANES.findIndex((p) => p.id === pane);
+    const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: PANES.length - 1 }[e.key];
+    if (to === undefined) return;
+    e.preventDefault();
+    selectPane(PANES[(to + PANES.length) % PANES.length].id, { focus: true });
+  });
+
+  // ---------- Controls ----------
+  function check() {
+    update = "checking";
+    rerender("general");
+    setTimeout(() => {
+      update = "upToDate";
+      rerender("general");
+    }, CHECK_TIME);
+  }
+
+  win.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-tab], [data-set], [data-toggle], [data-action]");
+    if (!t || !win.contains(t) || t.matches("select, input")) return;
+    if (t.dataset.tab) return selectPane(t.dataset.tab);
+    if (t.dataset.set) {
+      const id = t.dataset.set;
+      if (id.startsWith("preset-")) {
+        state = change(state, id);
+        stage.playRing();
+      } else {
+        state = change(state, id, t.getAttribute("aria-checked") !== "true");
+      }
+      return rerender();
+    }
+    if (t.dataset.toggle) {
+      state = change(state, t.dataset.toggle);
+      return rerender();
+    }
+    switch (t.dataset.action) {
+      case "check":
+        return check();
+      case "tour":
+        return document.getElementById("problem")?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+      case "addApp":
+        state = change(state, "addApp");
+        return rerender();
+      case "remove":
+        state = change(state, "rule.remove");
+        return rerender();
+    }
+  });
+
+  win.addEventListener("change", (e) => {
+    const id = e.target.dataset?.set;
+    if (!id) return;
+    state = change(state, id, e.target.value);
+    rerender();
+  });
+
+  // Sliders update as they move; the form re-renders when they're let go (the change event).
+  win.addEventListener("input", (e) => {
+    const t = e.target;
+    if (t.type !== "range" || !t.dataset.set) return;
+    const id = t.dataset.set;
+    state = change(state, id, t.value);
+    t.style.setProperty("--p", String((t.valueAsNumber - Number(t.min)) / (Number(t.max) - Number(t.min))));
+    const row = findRow(devicesSections({ ...state, showFineTuning: true }), id);
+    const reading = win.querySelector(`[data-reading="${CSS.escape(id)}"]`);
+    if (reading && row?.reading) reading.textContent = row.reading;
+    const el = t.closest("[data-row]");
+    if (row?.preview && el) {
+      el.dataset.preview = JSON.stringify(row.preview);
+      if (focusRow === id) explain(el);
+    }
+  });
+
+  // ---------- Pointing and focus explain a row ----------
+  const devicesForm = form("devices");
+  devicesForm.addEventListener("pointerover", (e) => {
+    if (e.pointerType === "touch") return;
+    const row = e.target.closest("[data-row]");
+    if (row && row.dataset.row !== focusRow) explain(row);
+  });
+  devicesForm.addEventListener("pointerleave", (e) => {
+    if (e.pointerType !== "touch") clearExplanation();
+  });
+  devicesForm.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "touch") return;
+    const row = e.target.closest("[data-row]");
+    if (row) explain(row);
+  });
+  devicesForm.addEventListener("focusin", (e) => {
+    if (rerendering) return;
+    const row = e.target.closest("[data-row]");
+    if (row && e.target.matches(":focus-visible")) explain(row);
+  });
+  devicesForm.addEventListener("focusout", (e) => {
+    if (!rerendering && e.target.matches(":focus-visible") && !devicesForm.contains(e.relatedTarget)) clearExplanation();
+  });
+
+  // ---------- Popovers on Advanced's headings ----------
+  const popover = document.createElement("div");
+  popover.className = "sw__popover";
+  popover.hidden = true;
+  popover.setAttribute("role", "tooltip");
+  win.append(popover);
+  let popoverTimer = 0;
+  function hidePopover() {
+    clearTimeout(popoverTimer);
+    popover.hidden = true;
+  }
+  win.addEventListener("pointerover", (e) => {
+    const heading = e.target.closest(".sw__heading[data-caption]");
+    if (!heading || !popover.hidden) return;
+    clearTimeout(popoverTimer);
+    popoverTimer = setTimeout(() => {
+      const box = win.getBoundingClientRect();
+      const text = heading.querySelector("span").getBoundingClientRect();
+      const k = scale();
+      popover.replaceChildren(...heading.dataset.caption.split("\n").flatMap((l, i) => (i ? [document.createElement("br"), l] : [l])));
+      popover.style.left = `${(text.left - box.left) / k}px`;
+      popover.style.top = `${(text.bottom - box.top) / k + 6}px`;
+      popover.hidden = false;
+    }, POPOVER_DELAY);
+  });
+  win.addEventListener("pointerout", (e) => {
+    const heading = e.target.closest(".sw__heading[data-caption]");
+    if (heading && !heading.contains(e.relatedTarget)) hidePopover();
+  });
+
+  // ---------- Fitting the page ----------
+  const parent = frame.parentElement;
+  const phone = window.matchMedia("(max-width: 640px)");
+  function fit() {
+    const style = getComputedStyle(parent);
+    const room = parent.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    frame.style.setProperty("--sw-scale", phone.matches ? "1" : String(Math.min(1, room / 800)));
+  }
+  new ResizeObserver(fit).observe(parent);
+  fit();
+
+  // The ring plays when the mouse first comes into view, as it does when it connects.
+  const seen = new IntersectionObserver((entries) => {
+    if (entries.some((entry) => entry.isIntersecting)) {
+      seen.disconnect();
+      if (pane === "devices") stage.playRing();
+    }
+  }, { threshold: 0.4 });
+  seen.observe(win);
+}
