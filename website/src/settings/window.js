@@ -16,6 +16,7 @@ export function mountSettingsWindow(frame) {
   let update = "idle";
   let focusRow = null; // data-row of the row the left column explains
   let rerendering = false;
+  let keyboardExplained = false; // the left column is explaining because of keyboard focus
 
   frame.innerHTML = renderWindow({ state, pane, version, update });
   const win = frame.querySelector(".sw");
@@ -49,6 +50,7 @@ export function mountSettingsWindow(frame) {
   }
   function clearExplanation() {
     focusRow = null;
+    keyboardExplained = false;
     setCaption(IDLE_CAPTION, true);
     showcase.classList.remove("is-explaining");
     stage.setPreview(null);
@@ -61,15 +63,42 @@ export function mountSettingsWindow(frame) {
     }
     return null;
   }
+  const FOCUSABLE = 'button, input, select, a[href], [tabindex]:not([tabindex="-1"])';
+  /** Focuses a row (or the form) that isn't normally focusable: tabindex only while it has focus. */
+  function focusPlain(node) {
+    node.tabIndex = -1;
+    node.addEventListener("blur", () => node.removeAttribute("tabindex"), { once: true });
+    node.focus({ preventScroll: true });
+  }
   function rerender(p = pane) {
     const el = form(p);
     const scroll = el.scrollTop;
-    const key = el.contains(document.activeElement) ? keyOf(document.activeElement) : null;
+    const active = document.activeElement;
+    const had = el.contains(active); // never take focus from outside the form
+    const key = had ? keyOf(active) : null;
+    const rowId = had ? active.closest("[data-row]")?.dataset.row ?? null : null;
+    const action = had ? active.dataset?.action : null;
+    const onRow = had && active.matches("[data-row]"); // focus was on a row we focused ourselves
+    // The controls after the focused one, in case it disappears.
+    const all = had ? [...el.querySelectorAll(FOCUSABLE)] : [];
+    const following = had ? all.slice(all.indexOf(active) + 1).map(keyOf).filter(Boolean) : [];
     rerendering = true;
     el.innerHTML = renderForm(p, state, { version, update });
     el.scrollTop = scroll;
-    if (key) el.querySelector(key)?.focus({ preventScroll: true });
+    if (had) {
+      const row = rowId && el.querySelector(`[data-row="${CSS.escape(rowId)}"]`);
+      const same = key && el.querySelector(key);
+      if (same) same.focus({ preventScroll: true });
+      else if (action === "remove" && el.querySelector('[data-action="addApp"]')) el.querySelector('[data-action="addApp"]').focus({ preventScroll: true });
+      else if (row && (onRow || rowId.startsWith("preset-") || action === "check")) focusPlain(row);
+      else {
+        const next = following.map((k) => el.querySelector(k)).find(Boolean);
+        if (next) next.focus({ preventScroll: true });
+        else focusPlain(el);
+      }
+    }
     rerendering = false;
+    decorateHeadings(el);
     if (p === "devices" && focusRow) {
       // A change can change the story (Keep gliding on → off) or remove the row (Tap to click off).
       const row = el.querySelector(`[data-row="${CSS.escape(focusRow)}"]`);
@@ -113,8 +142,12 @@ export function mountSettingsWindow(frame) {
     update = "checking";
     rerender("general");
     setTimeout(() => {
+      // While the spinner shows, focus waits on its row; when Check Now returns, it goes back to it.
+      const row = form("general").querySelector(".sw__spinner")?.closest("[data-row]");
+      const stay = row && row === document.activeElement.closest?.("[data-row]");
       update = "upToDate";
       rerender("general");
+      if (stay) form("general").querySelector('[data-action="check"]')?.focus({ preventScroll: true });
     }, CHECK_TIME);
   }
 
@@ -179,7 +212,10 @@ export function mountSettingsWindow(frame) {
   devicesForm.addEventListener("pointerover", (e) => {
     if (e.pointerType === "touch") return;
     const row = e.target.closest("[data-row]");
-    if (row && row.dataset.row !== focusRow) explain(row);
+    if (row && row.dataset.row !== focusRow) {
+      explain(row);
+      keyboardExplained = false;
+    }
   });
   devicesForm.addEventListener("pointerleave", (e) => {
     if (e.pointerType !== "touch") clearExplanation();
@@ -187,15 +223,21 @@ export function mountSettingsWindow(frame) {
   devicesForm.addEventListener("pointerdown", (e) => {
     if (e.pointerType !== "touch") return;
     const row = e.target.closest("[data-row]");
-    if (row) explain(row);
+    if (row) {
+      explain(row);
+      keyboardExplained = false;
+    }
   });
   devicesForm.addEventListener("focusin", (e) => {
     if (rerendering) return;
     const row = e.target.closest("[data-row]");
-    if (row && e.target.matches(":focus-visible")) explain(row);
+    if (row && e.target.matches(":focus-visible")) {
+      explain(row);
+      keyboardExplained = true;
+    }
   });
   devicesForm.addEventListener("focusout", (e) => {
-    if (!rerendering && e.target.matches(":focus-visible") && !devicesForm.contains(e.relatedTarget)) clearExplanation();
+    if (!rerendering && keyboardExplained && !devicesForm.contains(e.relatedTarget)) clearExplanation();
   });
 
   // ---------- Popovers on Advanced's headings ----------
@@ -204,28 +246,51 @@ export function mountSettingsWindow(frame) {
   popover.hidden = true;
   popover.setAttribute("role", "tooltip");
   win.append(popover);
+  popover.id = "sw-popover";
   let popoverTimer = 0;
+  let popoverFor = null;
   function hidePopover() {
     clearTimeout(popoverTimer);
     popover.hidden = true;
+    popoverFor?.removeAttribute("aria-describedby");
+    popoverFor = null;
   }
+  function showPopover(heading) {
+    const box = win.getBoundingClientRect();
+    const text = heading.querySelector("span").getBoundingClientRect();
+    const k = scale();
+    popover.replaceChildren(...heading.dataset.caption.split("\n").flatMap((l, i) => (i ? [document.createElement("br"), l] : [l])));
+    popover.style.left = `${(text.left - box.left) / k}px`;
+    popover.style.top = `${(text.bottom - box.top) / k + 6}px`;
+    popover.hidden = false;
+    popoverFor = heading;
+    heading.setAttribute("aria-describedby", popover.id);
+  }
+  // Headings with a caption can be reached from the keyboard, so their popover isn't pointer-only.
+  function decorateHeadings(root = win) {
+    for (const h of root.querySelectorAll(".sw__heading[data-caption]")) h.tabIndex = 0;
+  }
+  decorateHeadings();
   win.addEventListener("pointerover", (e) => {
+    if (e.pointerType === "touch") return;
     const heading = e.target.closest(".sw__heading[data-caption]");
     if (!heading || !popover.hidden) return;
     clearTimeout(popoverTimer);
-    popoverTimer = setTimeout(() => {
-      const box = win.getBoundingClientRect();
-      const text = heading.querySelector("span").getBoundingClientRect();
-      const k = scale();
-      popover.replaceChildren(...heading.dataset.caption.split("\n").flatMap((l, i) => (i ? [document.createElement("br"), l] : [l])));
-      popover.style.left = `${(text.left - box.left) / k}px`;
-      popover.style.top = `${(text.bottom - box.top) / k + 6}px`;
-      popover.hidden = false;
-    }, POPOVER_DELAY);
+    popoverTimer = setTimeout(() => showPopover(heading), POPOVER_DELAY);
   });
   win.addEventListener("pointerout", (e) => {
+    if (e.pointerType === "touch") return;
     const heading = e.target.closest(".sw__heading[data-caption]");
     if (heading && !heading.contains(e.relatedTarget)) hidePopover();
+  });
+  win.addEventListener("focusin", (e) => {
+    const heading = e.target.closest?.(".sw__heading[data-caption]");
+    if (!heading || !heading.matches(":focus-visible")) return;
+    hidePopover();
+    showPopover(heading);
+  });
+  win.addEventListener("focusout", (e) => {
+    if (e.target.closest?.(".sw__heading[data-caption]")) hidePopover();
   });
 
   // ---------- Fitting the page ----------
@@ -246,5 +311,5 @@ export function mountSettingsWindow(frame) {
       if (pane === "devices") stage.playRing();
     }
   }, { threshold: 0.4 });
-  seen.observe(win);
+  seen.observe(win.querySelector(".sw__stage"));
 }
