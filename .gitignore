@@ -14,3 +14,8 @@ node_modules/
 # Local env files, such as the website's GitHub token. Only the example is tracked.
 .env*
 !.env.example
+
+# .NET (windows/)
+bin/
+obj/
+windows/**/out/

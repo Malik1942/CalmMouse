@@ -287,7 +287,7 @@ CalmMouse/
 
 ### 5.2 分阶段
 
-**Phase 0：实测验证（2–3 天，需要真 Windows 电脑）。** 写一次性的小程序，回答下面这些问题，结论补进本文：
+**Phase 0：实测验证（需要真 Windows 电脑）。** 测试程序在 `windows/probe/`（在 Mac 上写和编译，GitHub Actions 出 `.exe`，Malik 在 Windows 上跑一次，报告发回来），回答下面这些问题，结论补进本文：
 
 | 编号 | 问题 | 通过标准 |
 |---|---|---|

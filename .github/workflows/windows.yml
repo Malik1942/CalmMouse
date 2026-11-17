@@ -1,0 +1,43 @@
+name: Windows
+
+on:
+  push:
+    paths:
+      - "windows/**"
+      - ".github/workflows/windows.yml"
+  pull_request:
+    paths:
+      - "windows/**"
+      - ".github/workflows/windows.yml"
+  workflow_dispatch:
+
+jobs:
+  probe:
+    name: Build the Windows test program
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Publish (win-x64, one .exe)
+        run: dotnet publish windows/probe -c Release -r win-x64 -o out
+
+      # Runs the whole probe with no input: no mouse, no controller, so it only proves the
+      # hook, Raw Input and SDL3 set up and tear down without errors on real Windows.
+      - name: Smoke run
+        shell: pwsh
+        run: |
+          $null | ./out/CalmMouseProbe.exe | Out-Null
+          $report = Get-ChildItem "$env:USERPROFILE\Desktop", "." -Filter "CalmMouseProbe-report-*.txt" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $report) { throw "no report written" }
+          Get-Content $report.FullName -Encoding utf8
+          if (Select-String -Path $report.FullName -Pattern "出错|失败" -Quiet) { throw "the probe reported an error" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CalmMouseProbe-win-x64
+          path: out/CalmMouseProbe.exe
+          if-no-files-found: error
