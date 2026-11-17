@@ -47,6 +47,119 @@
   --color-shell-occlusion: rgba(0, 0, 0, 0.2);
   --color-ripple: rgba(0, 113, 227, 0.6);
 
+  /* ---------- Settings window --------------------------------------
+     The CalmMouse Settings window as measured from the real 1.2.2
+     window on macOS 26 (1 CSS px = 1 pt; sRGB). Its own scale, like
+     the mouse's: these are the app's values, not the site's. */
+  --sw-window: #ffffff;
+  --sw-group: #f7f7f7;
+  --sw-separator: #ebebeb;
+  --sw-toolbar-rule: #e6e6e6;
+  --sw-column-rule: #e6e6e6;
+  --sw-label: rgba(0, 0, 0, 0.85);
+  --sw-secondary: rgba(0, 0, 0, 0.5);
+  --sw-title: #585858;
+  --sw-tab: #707070;
+  --sw-tab-selected: #0072f6;
+  --sw-pill: #ffffff;
+  --sw-pill-shadow: 0 3px 14px rgba(0, 0, 0, 0.07);
+  --sw-button: #e4e4e4;
+  --sw-button-text: rgba(0, 0, 0, 0.86);
+  --sw-button-pressed: #d4d4d4;
+  --sw-accent: #007aff;
+  --sw-control-accent: #0576f6;
+  --sw-track: #dedede;
+  --sw-slider-track: #dfdfdf;
+  --sw-knob: #ffffff;
+  --sw-knob-edge: rgba(0, 0, 0, 0.14);
+  --sw-green: #34c759;
+  --sw-on-green: #ffffff;
+  --sw-on-accent: #ffffff;
+  --sw-paper: #ffffff;
+  --sw-destructive: #ff3b30;
+  --sw-light-red: #ff5c60;
+  --sw-light-yellow: #fac800;
+  --sw-light-off: #dcdcdc;
+  --sw-menu: rgba(246, 246, 246, 0.97);
+  --sw-menu-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 10px 30px rgba(0, 0, 0, 0.2);
+  --sw-focus: rgba(0, 122, 255, 0.5);
+  --sw-window-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 22px 70px rgba(0, 0, 0, 0.16);
+
+  --sw-width: 800px;            /* Devices: 320 column + 480 settings */
+  --sw-height: 600px;
+  --sw-pane-width: 480px;       /* General and Advanced */
+  --sw-radius: 26px;
+  --sw-radius-phone: 20px;
+  --sw-titlebar: 32px;
+  --sw-chrome: 88px;            /* title bar + toolbar, to the rule under it */
+  --sw-light: 13px;
+  --sw-light-gap: 10px;
+  --sw-light-inset: 9px;
+  --sw-tab-height: 48px;
+  --sw-tab-pad: 8px;
+  --sw-tab-top: 5.5px;
+  --sw-tab-gap: 2px;
+  --sw-tab-radius: 12px;
+  --sw-tab-icon: 20px;
+  --sw-tab-label-gap: 3.5px;
+  --sw-tab-text: 11px;
+  --sw-tab-line: 13px;
+  --sw-text: 13px;
+  --sw-line: 16px;
+  --sw-small: 11px;
+  --sw-small-line: 14px;
+  --sw-gutter: 20px;            /* form margin */
+  --sw-inset: 10px;             /* group padding; separators start here */
+  --sw-group-radius: 10px;
+  --sw-heading-gap: 10px;
+  --sw-section-gap: 30px;
+  --sw-row: 36.8px;
+  --sw-row-control: 40px;       /* rows with a push button */
+  --sw-row-preset: 41px;
+  --sw-row-gap: 8px;
+  --sw-label-gap: 11px;
+  --sw-preset-icon: 20px;
+  --sw-preset-glyph: 15px;
+  --sw-check: 16px;
+  --sw-control-height: 24px;
+  --sw-control-pad: 13px;
+  --sw-control-radius: 7px;
+  --sw-button-icon: 15px;
+  --sw-switch-width: 36px;
+  --sw-switch-height: 16px;
+  --sw-knob-width: 20px;
+  --sw-knob-height: 11px;
+  --sw-knob-inset: 2px;
+  --sw-slider: 150px;
+  --sw-slider-height: 6px;
+  --sw-slider-knob-width: 20px;
+  --sw-slider-knob-height: 14px;
+  --sw-reading: 44px;
+  --sw-chevrons: 20px;
+  --sw-chevrons-glyph: 12px;
+  --sw-popup-gap: 13px;
+  --sw-popup-trail: 3.5px;
+  --sw-chevron: 11px;
+  --sw-column: 320px;
+  --sw-column-pad: 24px;
+  --sw-explainer: 250px;
+  --sw-stage-width: 290px;
+  --sw-stage-height: 226px;
+  --sw-card-gap: 8px;
+  --sw-card-height: 104px;
+  --sw-explain-gap: 12px;
+  --sw-detail-gap: 4px;
+  --sw-caption-height: 56px;    /* three 16 px lines, 4 px apart */
+  --sw-caption-line: 20px;
+  --sw-frame-side: 325.44px;    /* 720 × 0.452: MouseStage.frameSide */
+  --sw-frame-x: -17.72px;       /* 145 − 360 × 0.452 */
+  --sw-frame-y: -64.0088px;     /* 112 − 389.4 × 0.452 */
+  --sw-menu-pad: 5px;
+  --sw-menu-radius: 8px;
+  --sw-menu-item: 22px;
+  --sw-popover-width: 260px;
+  --sw-spinner: 14px;
+
   /* ---------- Typography --------------------------------------- */
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
     "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -179,6 +292,36 @@
     --color-shell-reflection: rgba(255, 255, 255, 0.32);
     --color-shell-occlusion: rgba(0, 0, 0, 0.55);
     --color-ripple: rgba(41, 151, 255, 0.65);
+
+    --sw-window: #24292c;
+    --sw-group: #2b2f32;
+    --sw-separator: #36393c;
+    --sw-toolbar-rule: #232323;
+    --sw-column-rule: #3a3e41;
+    --sw-label: rgba(255, 255, 255, 0.85);
+    --sw-secondary: rgba(255, 255, 255, 0.55);
+    --sw-title: #a0a5a8;
+    --sw-tab: #929496;
+    --sw-tab-selected: #0e87ff;
+    --sw-pill: #262c30;
+    --sw-pill-shadow: 0 3px 14px rgba(0, 0, 0, 0.35);
+    --sw-button: #3c3f42;
+    --sw-button-text: rgba(255, 255, 255, 0.86);
+    --sw-button-pressed: #4a4d50;
+    --sw-accent: #0a84ff;
+    --sw-control-accent: #117dfd;
+    --sw-track: #404245;
+    --sw-slider-track: #414346;
+    --sw-knob: #e3e3e3;
+    --sw-knob-edge: rgba(0, 0, 0, 0.35);
+    --sw-green: #30d158;
+    --sw-paper: #1e1e1e;
+    --sw-destructive: #ff453a;
+    --sw-light-off: #4a4d50;
+    --sw-menu: rgba(40, 42, 45, 0.97);
+    --sw-menu-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 10px 30px rgba(0, 0, 0, 0.5);
+    --sw-focus: rgba(10, 132, 255, 0.55);
+    --sw-window-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 22px 70px rgba(0, 0, 0, 0.7);
 
     --shadow-floating: 0 20px 60px rgba(0, 0, 0, 0.7);
   }
