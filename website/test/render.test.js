@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createSettings, change } from "../src/settings/model.js";
 import { esc, renderWindow, renderForm, renderStaticWindow } from "../src/settings/render.js";
+import { ICONS } from "../src/settings/icons.js";
 
 const ctx = { version: "1.2.2", update: "idle" };
 
@@ -56,4 +57,22 @@ test("a popup shows the chosen option and lists the rest", () => {
   const html = renderForm("devices", change(createSettings(), "direction", "1"), ctx);
   assert.match(html, /<span class="sw__popup-value">Straight lines<\/span>/);
   assert.match(html, /<option value="1" selected>Straight lines<\/option>/);
+});
+
+test("no icon has a duplicated attribute", () => {
+  for (const [name, markup] of Object.entries(ICONS)) {
+    const opening = markup.match(/<svg\b[^>]*>/)[0];
+    const count = (opening.match(/stroke-width=/g) ?? []).length;
+    assert.ok(count <= 1, `${name} repeats stroke-width`);
+  }
+  assert.match(ICONS.chevronRight, /stroke-width="2\.4"/);
+  assert.match(ICONS.gears, /stroke-width="1\.3"/);
+});
+
+test("a slider with a reading says it to screen readers", () => {
+  const html = renderForm("devices", { ...createSettings(), showFineTuning: true }, ctx);
+  const release = html.match(/<input type="range"[^>]*data-set="releaseGraceMs"[^>]*>/)[0];
+  assert.match(release, /aria-valuetext="0\.2 s"/);
+  const speed = html.match(/<input type="range"[^>]*data-set="trackingSpeed"[^>]*>/)[0];
+  assert.doesNotMatch(speed, /aria-valuetext/);
 });
