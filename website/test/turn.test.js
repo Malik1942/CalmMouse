@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createTurn, AUTO_HOME_AFTER } from "../src/settings/turn.js";
+import { createTurn, AUTO_HOME_AFTER, FRAME_COUNT } from "../src/settings/turn.js";
 
 const P = { kind: "tapToClick" };
 const Q = { kind: "momentum", on: true };
@@ -39,10 +39,17 @@ test("a flick keeps it turning, slowing to a stop, and it goes home 7 s later", 
   turn.drag(50, 1.1);
   turn.release(1.12);
   turn.advance(1.12, null);
-  const { now } = run(turn, 1.12, 4);
+  let now = 1.12;
+  let settledAt = null;
+  for (let i = 1; i <= 4 * 60; i++) {
+    now = 1.12 + i / 60;
+    turn.advance(now, null);
+    if (settledAt === null && !turn.animating) settledAt = now;
+  }
   assert.ok(turn.yaw > 40 && turn.yaw < 40 + 160 / 3.6 + 1, `yaw ${turn.yaw}`);
   assert.equal(turn.animating, false);
-  assert.ok(Math.abs(turn.homeAt - now) <= AUTO_HOME_AFTER + 0.01);
+  assert.notEqual(turn.homeAt, null, "a settled mouse is due home");
+  assert.ok(Math.abs(turn.homeAt - (settledAt + AUTO_HOME_AFTER)) < 1e-9);
   turn.goHome();
   run(turn, now, 2);
   assert.equal(turn.yaw, 0);
@@ -94,10 +101,20 @@ test("the ring plays once, for 3 s", () => {
   assert.equal(turn.animating, false);
 });
 
+test("turning left wraps to the frames before 0", () => {
+  assert.equal(FRAME_COUNT, 72);
+  const turn = createTurn();
+  turn.drag(-30, 0);
+  assert.equal(turn.yaw, -24);
+  assert.equal(turn.advance(0, null).turnFrame, 67);
+});
+
 test("home is the nearest whole turn", () => {
   const turn = createTurn();
   turn.turnBy(400);
   turn.goHome();
-  run(turn, 0, 3);
+  run(turn, 0, 0.1);
+  assert.ok(turn.yaw > 360 && turn.yaw < 400, `yaw ${turn.yaw}`);
+  run(turn, 0.1, 3);
   assert.equal(turn.yaw, 0);
 });
