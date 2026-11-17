@@ -517,7 +517,8 @@ function drawIgnoredBadge(g, alpha, win, pen) {
 // ---------- The frames ----------
 function createFrames() {
   const sets = {};
-  const of = (finish) => (sets[finish] ??= { rest: null, turns: new Array(FRAME_COUNT).fill(null), requested: false });
+  const of = (finish) =>
+    (sets[finish] ??= { rest: null, restPromise: null, turns: new Array(FRAME_COUNT).fill(null), requested: false, settled: 0 });
   const load = (src) =>
     new Promise((resolve) => {
       const img = new Image();
@@ -526,10 +527,15 @@ function createFrames() {
       img.src = src;
     });
   return {
-    async rest(finish) {
+    /** The home frame; one request per finish, however many callers ask. */
+    rest(finish) {
       const s = of(finish);
-      s.rest ??= await load(`${FRAMES}/${finish}/home.webp`);
-      return s.rest;
+      s.restPromise ??= load(`${FRAMES}/${finish}/home.webp`).then((img) => {
+        s.rest = img;
+        if (!img) s.restPromise = null; // a failed load may be tried again
+        return img;
+      });
+      return s.restPromise;
     },
     restNow: (finish) => of(finish).rest,
     /** The 72 turn frames load the first time someone turns the mouse. */
@@ -540,9 +546,15 @@ function createFrames() {
       for (let i = 0; i < FRAME_COUNT; i++) {
         load(`${FRAMES}/${finish}/turn-${String(i).padStart(2, "0")}.webp`).then((img) => {
           s.turns[i] = img;
+          s.settled++;
           onFrame();
         });
       }
+    },
+    /** Whether turn frames of this finish can be drawn: one has arrived, or all have given up. */
+    turnsReady(finish) {
+      const s = of(finish);
+      return s.settled === FRAME_COUNT || s.turns.some(Boolean);
     },
     /** Frame `index`, or the nearest one loaded so far. */
     turn(finish, index) {
@@ -569,6 +581,7 @@ export function createStage({ canvas, hit, reducedMotion = false, scale = () => 
   let active = true;
   let raf = 0;
   let homeTimer = 0;
+  let pendingFinish = null;
   let dpr = 0;
 
   function draw(state) {
@@ -622,18 +635,28 @@ export function createStage({ canvas, hit, reducedMotion = false, scale = () => 
     }, Math.max(0, (turn.homeAt - now) * 1000));
   }
 
+  /** Turn frames for what is shown, and for the finish about to be shown. */
+  function loadTurns() {
+    frames.loadTurns(finish, onTurnFrame);
+    if (pendingFinish) frames.loadTurns(pendingFinish, onTurnFrame);
+  }
+  function onTurnFrame() {
+    commitFinish();
+    start();
+  }
+
   // Dragging turns it, double-clicking puts it back, arrows turn it from the keyboard.
   let dragFrom = null;
   hit.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || e.ctrlKey) return; // ctrl-click is macOS's secondary click
     dragFrom = e.clientX;
     hit.setPointerCapture(e.pointerId);
-    frames.loadTurns(finish, start);
   });
   hit.addEventListener("pointermove", (e) => {
     if (dragFrom === null) return;
     const translation = (e.clientX - dragFrom) / scale();
     if (!turn.dragging && Math.abs(translation) < 1) return;
+    if (!turn.dragging) loadTurns(); // the 72 frames come with the first real drag, not a click
     hit.classList.add("is-dragging");
     turn.drag(translation, e.timeStamp / 1000);
     start();
@@ -656,7 +679,7 @@ export function createStage({ canvas, hit, reducedMotion = false, scale = () => 
   hit.addEventListener("keydown", (e) => {
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
       e.preventDefault();
-      frames.loadTurns(finish, start);
+      loadTurns();
       turn.turnBy(e.key === "ArrowRight" ? 15 : -15);
       start();
     } else if (e.key === "Home" || e.key === "Escape") {
@@ -666,14 +689,14 @@ export function createStage({ canvas, hit, reducedMotion = false, scale = () => 
   });
 
   // Right-click: White or Black, as in the app.
-  const win = hit.closest(".sw");
+  const win = hit.closest(".sw") ?? hit.parentElement;
   const menu = document.createElement("div");
   menu.className = "sw__menu";
   menu.hidden = true;
   menu.setAttribute("role", "menu");
   menu.setAttribute("aria-label", "Mouse color");
   menu.innerHTML =
-    `<p class="sw__menu-title">Mouse color</p>` +
+    `<p class="sw__menu-title" role="presentation">Mouse color</p>` +
     `<button type="button" role="menuitemradio" data-finish="white">White</button>` +
     `<button type="button" role="menuitemradio" data-finish="black">Black</button>`;
   win.append(menu);
@@ -684,8 +707,13 @@ export function createStage({ canvas, hit, reducedMotion = false, scale = () => 
     e.preventDefault();
     const box = win.getBoundingClientRect();
     const k = scale();
-    menu.style.left = `${(e.clientX - box.left) / k}px`;
-    menu.style.top = `${(e.clientY - box.top) / k}px`;
+    // From the keyboard (Shift+F10, the context-menu key) there is no pointer: use the stage's centre.
+    const fromKeyboard = e.clientX === 0 && e.clientY === 0;
+    const at = fromKeyboard
+      ? (({ left, top, width, height }) => ({ x: left + width / 2, y: top + height / 2 }))(hit.getBoundingClientRect())
+      : { x: e.clientX, y: e.clientY };
+    menu.style.left = `${(at.x - box.left) / k}px`;
+    menu.style.top = `${(at.y - box.top) / k}px`;
     for (const item of menu.querySelectorAll("[data-finish]")) item.setAttribute("aria-checked", String(item.dataset.finish === finish));
     menu.hidden = false;
     menu.querySelector(`[data-finish="${finish}"]`).focus();
@@ -702,16 +730,43 @@ export function createStage({ canvas, hit, reducedMotion = false, scale = () => 
     if (e.key === "Escape") {
       closeMenu();
       hit.focus();
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const items = [...menu.querySelectorAll("[data-finish]")];
+      const i = items.indexOf(document.activeElement);
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      items[(i + step + items.length) % items.length].focus();
     }
+  });
+  // Focus leaving for another element closes it (a click elsewhere is handled by pointerdown below).
+  menu.addEventListener("focusout", (e) => {
+    if (e.relatedTarget && !menu.contains(e.relatedTarget)) closeMenu();
   });
   document.addEventListener("pointerdown", (e) => {
     if (!menu.hidden && !menu.contains(e.target)) closeMenu();
   });
 
-  function setFinish(next) {
+  /** Shows `next` once its home frame (and, when turned, a turn frame) is in: until then the old
+   * finish keeps being drawn, so the mouse is never blank. */
+  function commitFinish() {
+    const next = pendingFinish;
+    if (!next || !frames.restNow(next)) return;
+    if ((turn.yaw !== 0 || turn.dragging) && !frames.turnsReady(next)) return;
+    pendingFinish = null;
     finish = next;
-    frames.rest(finish).then(() => start());
-    if (turn.yaw !== 0 || turn.dragging) frames.loadTurns(finish, start);
+    start();
+  }
+  function setFinish(next) {
+    if (next === finish) {
+      pendingFinish = null;
+      return;
+    }
+    pendingFinish = next;
+    frames.rest(next).then(() => {
+      if (pendingFinish !== next) return;
+      if (turn.yaw !== 0 || turn.dragging) frames.loadTurns(next, onTurnFrame);
+      commitFinish();
+    });
   }
   dark.addEventListener("change", () => {
     colors = readColors(canvas);
