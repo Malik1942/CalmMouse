@@ -1,3 +1,4 @@
+import AVFoundation
 import XCTest
 @testable import CalmMouse
 import CalmMouseCore
@@ -47,5 +48,40 @@ final class DeviceAssetTests: XCTestCase {
                 XCTAssertTrue(FileManager.default.fileExists(atPath: dir.appendingPathComponent(name).path), "\(folder)/\(name)")
             }
         }
+    }
+
+    func testTheMagicMouseIntroIsHEVCWithAlphaAndThreeSeconds() async throws {
+        for finish in ["white", "black"] {
+            let url = resources.appendingPathComponent("MagicMouse/\(finish)/intro.mov")
+            let asset = AVURLAsset(url: url)
+            let tracks = try await asset.loadTracks(withMediaType: .video)
+            let track = try XCTUnwrap(tracks.first, finish)
+            let descriptions = try await track.load(.formatDescriptions)
+            let format = try XCTUnwrap(descriptions.first)
+            // HEVC with alpha is stored as HEVC whose description says it carries an alpha channel
+            // (kCMVideoCodecType_HEVCWithAlpha is only what you ask the encoder for).
+            XCTAssertEqual(CMFormatDescriptionGetMediaSubType(format), kCMVideoCodecType_HEVC, finish)
+            let alpha = CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_ContainsAlphaChannel)
+            XCTAssertEqual(alpha as? Bool, true, "\(finish) intro has no alpha channel")
+            // And it decodes as transparent around the mouse: the first frame is empty desk.
+            let generator = AVAssetImageGenerator(asset: asset)
+            generator.requestedTimeToleranceBefore = .zero
+            generator.requestedTimeToleranceAfter = .zero
+            let (corner, _) = try await generator.image(at: .zero)
+            XCTAssertEqual(alphaAt(corner, x: 4, y: 4), 0, "\(finish) intro's corner isn't transparent")
+            let seconds = try await asset.load(.duration).seconds
+            XCTAssertEqual(seconds, 3.0, accuracy: 0.05, finish)
+            let size = try FileManager.default.attributesOfItem(atPath: url.path)[.size] as! Int
+            XCTAssertLessThanOrEqual(size, 4_000_000, "\(finish) intro is over the 4 MB budget")
+        }
+    }
+
+    private func alphaAt(_ image: CGImage, x: Int, y: Int) -> UInt8 {
+        var pixel = [UInt8](repeating: 0, count: 4)
+        let ctx = CGContext(data: &pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        ctx.draw(image, in: CGRect(x: -x, y: -(image.height - 1 - y), width: image.width, height: image.height))
+        return pixel[3]
     }
 }
