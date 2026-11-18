@@ -155,11 +155,11 @@
 
 | 文件 | 移植 | 说明 |
 |---|---|---|
-| `ScrollBlocker` | Phase 1 | 整个搬。Windows 适配层把滚轮事件按时间间隔合成 `began / changed / ended` 再喂进去，状态机本身不改 |
+| `ScrollBlocker` | Phase 1（先移植、先锁轨迹；Magic Mouse 功能 Phase 2 才接上） | 整个搬。Windows 适配层把滚轮事件按时间间隔合成 `began / changed / ended` 再喂进去，状态机本身不改 |
 | `Config`（`BlockerConfig`、`AppRule`、`RuleSet`、`ModifierCombo`） | Phase 1 | `bundleID` 字段在 Windows 上存 exe 名 |
 | `MouseKind`、`Presets`、`AppVersion`、`SupportInvite` | Phase 1 | 原样 |
 | `MouseUtilityConflicts` | Phase 1 | 逻辑原样，名单换成 Windows 的 |
-| `WheelSmoother`、`WheelSettings` | Phase 2 | 原样 |
+| `WheelSmoother`、`WheelSettings` | Phase 1 | 原样（Phase 0 之后滚轮鼠标提前到 Phase 1） |
 | `TrackingSpeed` | Phase 2 | 映射目标从 macOS 的分辨率换成 Windows 的 1–20 档 |
 | `ControllerPointer` | Phase 3 | 原样 |
 | `MouseFigure` | 做设备页时 | 纯几何，原样 |
@@ -299,16 +299,34 @@ CalmMouse/
 
 **决策点**：S1 + S2 通过 → Phase 1 先做 Magic Mouse。S2 不通过（毛病不存在，或者认不出设备）→ Phase 1 改成「滚轮平滑 + 手柄当鼠标」，Magic Mouse 部分降级为「每个 App 的规则 + 方向」或者不做。
 
+#### Phase 0 实测结果（2026-11-17，Malik 的 x64 笔记本）
+
+环境：Windows 11（10.0.26200）x64，普通权限运行。鼠标：笔记本触控板（HIDI2C，VID 04F3）、一只 2.4G 无线滚轮鼠标（VID 3554）、MCHOSE A7 Ultra（VID 5253）。**没有 Magic Mouse**；装着的 Apple 组件（`AppleKmdfFilter`、`AppleLowerFilter`、Apple Mobile Device Service）是 iPhone 用的，不是 Magic Mouse 的滚动驱动；没装 Magic Utilities。
+
+| 编号 | 结果 | 结论 |
+|---|---|---|
+| S1 | 钩子吞掉 72 次硬件滚动，Raw Input **72 次全部照样收到**（100%）；重发后钩子看到 72 次（靠 `dwExtraInfo` 标记认出，没有循环）；从硬件滚动到重发到达：**中位数 0.1 ms，95% 0.1 ms，最大 1.0 ms**；Malik 实际滚动的感受：正常 | ✅ 通过，远低于 8 ms。方案 A 成立（滚轮鼠标） |
+| S1 补充 | 重发的滚动在 Raw Input 里又出现一次，`hDevice` 为 0（72 次） | 引擎必须忽略「没有设备」的 Raw Input 滚轮（同时核对 `ulExtraInformation` 里的标记），否则会把自己发的再处理一遍 |
+| S1 未测 | 第 2 步（只看不动、钩子和 Raw Input 的先后）这次跳过了；触控板滚动没测 | **触控板滚动在钩子里算不算「物理滚轮」、Raw Input 里有没有对应事件，还不知道。** 如果钩子吞了、Raw Input 却不来，笔记本用户的触控板滚动会失灵。引擎要加保险（见下面 Phase 1），并在这台笔记本上补测 |
+| S2 / S3 | 没有 Magic Mouse，第 4 步跳过 | ❓ 没答案。要一台装了 Apple 驱动或 Magic Utilities、连着 Magic Mouse 的 Windows 电脑再测 |
+| S4 | DualSense **USB**：认出（VID 054C PID 0CE6），触控板 1005 帧有手指，**其中 667 帧窗口在后台**，同时最多 2 指，坐标 0–1 满量程；摇杆满量程；肩键、摇杆按下、触控板按下都读到。电量返回 `UNKNOWN`（刚打开就读，可能要等第一份报告）。**蓝牙**：Windows 里配对过，但这次连不上（按 PS 键灯不稳定、系统没显示已连接），SDL 自然也看不到 | USB ✅；蓝牙 ❓，像是配对 / 连接问题而不是 SDL 的问题（DualSense 只记一个主机，和 PS5 配过之后 PC 这边的配对会失效），重新配对后再测 |
+| S5 | 这次没测（没有 ARM 虚拟机） | ❓ |
+
+另：Malik 提到「手柄控制不了」鼠标，这是预期的，测试工具只读手柄，不发指针。
+
+**据此调整（Malik 2026-11-17 拍板）：Phase 1 改为「滚轮鼠标 + 每个 App 的规则」**，在这台电脑上能完整测；Magic Mouse 等 S2 有答案再排。原 Phase 1 里和设备无关的部分（托盘、设置窗口、开机自启、冲突提示、签名和发布）不变。
+
 **Phase 1：最小可发布版本（约 3–4 周）。**
-- 托盘图标（暂停 / 设置 / 退出）、开机自启、首次启动引导（检测到 Magic Mouse 但没有滚动驱动时，用一句话说明并给出 Apple 驱动和 Magic Utilities 的链接，**不代装**）；
-- Magic Mouse：点按时不滚动、直线滚动、防误触、反转方向；
-- 每个 App 的规则（在 Figma 里不滚动等）；
+- 托盘图标（暂停 / 设置 / 退出）、开机自启；
+- 引擎：钩子 + Raw Input（方案 A），管理员窗口在前台时整体放行；钩子吞掉的滚动如果在很短时间内（几十毫秒）等不到对应的 Raw Input，就原样补发，保证触控板等「Raw Input 里看不到」的设备永远能滚；
+- 滚轮鼠标：平滑滚动、反转方向（只反这一只）、按下滚轮时不滚；
+- 每个 App 的规则（在某个 App 里关掉平滑等）；
 - 设置窗口：「通用」「设备」「App 规则」三页，左侧悬停说明，英 / 简 / 繁；
 - 冲突提示；
 - 签名 + Velopack + GitHub Release（`win-v0.1.0`）+ winget；
 - 网站下载区加 Windows 入口。
 
-**Phase 2：滚轮鼠标（约 2 周）。** 平滑滚动、反转方向、按下滚轮时不滚、每只鼠标的指针速度、修饰键 + 滚动。
+**Phase 2：Magic Mouse（S2 有答案之后，约 2 周）。** 首次启动引导（检测到 Magic Mouse 但没有滚动驱动时，一句话说明并给出 Apple 驱动和 Magic Utilities 的链接，**不代装**）；点按时不滚动、直线滚动、防误触、反转方向。另外补上滚轮鼠标剩下的：每只鼠标的指针速度、修饰键 + 滚动。
 
 **Phase 3：手柄当鼠标（约 2 周）。** SDL3，映射和 Mac 版一致；游戏在前台时停用；手柄电量。
 
