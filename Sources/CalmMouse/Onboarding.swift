@@ -17,7 +17,7 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
         let window = NSWindow(contentViewController: hosting)
         window.title = L("Welcome to CalmMouse")
         window.styleMask = [.titled, .closable]
-        window.setContentSize(NSSize(width: 560, height: 500))
+        window.setContentSize(NSSize(width: 680, height: 520))
         window.center()
         window.isReleasedWhenClosed = false
         super.init(window: window)
@@ -38,26 +38,33 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
 
 // MARK: - Steps
 
-private enum OnboardingStep: Int, CaseIterable {
-    case welcome, permission, preset, tryIt, done
-}
-
 private struct OnboardingView: View {
     @ObservedObject var settings: Settings
     let blockedCount: () -> Int
     var finish: () -> Void = {}
 
-    @State private var step: OnboardingStep = .welcome
+    @StateObject private var detector = DeviceDetector()
+    @ObservedObject private var gamepad = GamepadController.shared
+    /// The steps for what is connected, fixed when the person leaves the detection page.
+    @State private var route = OnboardingRoute.steps(for: [])
+    @State private var index = 0
+    @State private var introPlayed = false
+
+    private var step: OnboardingStep { route[index] }
 
     var body: some View {
         VStack(spacing: 0) {
             Group {
                 switch step {
-                case .welcome:    WelcomeStep()
+                case .devices:    SupportedDevicesStep()
+                case .detect:     DetectStep(detector: detector, introPlayed: $introPlayed)
                 case .permission: PermissionStep()
                 case .preset:     PresetStep(settings: settings)
                 case .tryIt:      TryItStep(settings: settings, blockedCount: blockedCount)
-                case .done:       DoneStep()
+                case .wheel:      WheelStep(settings: settings)
+                case .controller: ControllerStep(settings: settings,
+                                                 hasTouchpad: gamepad.controllers.contains(where: \.hasTouchpad))
+                case .done:       DoneStep(hasMagicMouse: route.contains(.preset))
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -66,19 +73,20 @@ private struct OnboardingView: View {
 
             footer
         }
-        .frame(width: 560, height: 500)
+        .frame(width: 680, height: 520)
     }
 
     private var footer: some View {
         HStack {
             Button("Back") { move(-1) }
-                .opacity(step == .welcome ? 0 : 1)
+                .opacity(index == 0 ? 0 : 1)
+                .disabled(index == 0)
 
             Spacer()
             HStack(spacing: 7) {
-                ForEach(OnboardingStep.allCases, id: \.rawValue) { s in
+                ForEach(route.indices, id: \.self) { i in
                     Circle()
-                        .fill(s == step ? Color.accentColor : Color.primary.opacity(0.18))
+                        .fill(i == index ? Color.accentColor : Color.primary.opacity(0.18))
                         .frame(width: 7, height: 7)
                 }
             }
@@ -97,9 +105,12 @@ private struct OnboardingView: View {
     }
 
     private func move(_ delta: Int) {
-        if let next = OnboardingStep(rawValue: step.rawValue + delta) {
-            step = next
+        // Leaving the detection page forwards fixes the route for what was found.
+        if step == .detect && delta > 0 {
+            route = OnboardingRoute.steps(for: detector.kinds)
         }
+        let next = index + delta
+        if route.indices.contains(next) { index = next }
     }
 }
 
@@ -121,25 +132,7 @@ private struct StepTitle: View {
     }
 }
 
-// MARK: Step 1 — Welcome
-
-private struct WelcomeStep: View {
-    var body: some View {
-        VStack(spacing: 18) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable().frame(width: 76, height: 76)
-            StepTitle(title: L("Welcome to CalmMouse"),
-                      subtitle: L("Your Magic Mouse's whole top is a touch surface — and it stays live while you click, so pages jump around. CalmMouse fixes that."))
-            PreviewCanvas(preview: .blockWhileClick)
-                .frame(width: 280, height: 168)
-            Text("The page holds still while you click. That's the main fix — the next steps set it up.")
-                .font(.caption).foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-    }
-}
-
-// MARK: Step 2 — Permission
+// MARK: Permission
 
 private struct PermissionStep: View {
     @State private var trusted = AXIsProcessTrusted()
@@ -178,7 +171,7 @@ private struct PermissionStep: View {
     }
 }
 
-// MARK: Step 3 — Pick a preset
+// MARK: Pick a preset
 
 private struct PresetStep: View {
     @ObservedObject var settings: Settings
@@ -239,7 +232,7 @@ private struct ChoiceCard: View {
     }
 }
 
-// MARK: Step 4 — Try it
+// MARK: Try it
 
 private struct TryItStep: View {
     @ObservedObject var settings: Settings
@@ -312,9 +305,11 @@ private struct TryItStep: View {
     }
 }
 
-// MARK: Step 5 — Done
+// MARK: Done
 
 private struct DoneStep: View {
+    let hasMagicMouse: Bool
+
     var body: some View {
         VStack(spacing: 18) {
             Image(systemName: "checkmark.seal.fill")
@@ -327,8 +322,13 @@ private struct DoneStep: View {
                     text: L("Look for the mouse icon in the menu bar — the everyday switches live there. Orange means it needs attention, dimmed means paused."))
                 tip(symbol: "info.circle",
                     text: L("In Settings, hover any option for a little animated preview of what it does."))
-                tip(symbol: "slider.horizontal.3",
-                    text: L("Changed your mind about the feel? Settings → Magic Mouse switches the whole setup in one click, or saves your own."))
+                if hasMagicMouse {
+                    tip(symbol: "slider.horizontal.3",
+                        text: L("Changed your mind about the feel? Settings → Magic Mouse switches the whole setup in one click, or saves your own."))
+                } else {
+                    tip(symbol: "slider.horizontal.3",
+                        text: L("Every device has its own settings in Settings → Devices."))
+                }
             }
             .padding(.horizontal, 8)
         }

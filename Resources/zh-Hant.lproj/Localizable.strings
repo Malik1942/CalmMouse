@@ -253,3 +253,30 @@
 "Click with the sticks" = "按下搖桿來點按";
 "Press the left stick to click,\nthe right stick to right-click.\nHold it down and move to drag." = "按下左搖桿來點按，\n按下右搖桿來右鍵點按。\n按住再推動可以拖移。";
 "Scroll-wheel mouse" = "滾輪滑鼠";
+
+/* Onboarding: the supported devices, your devices, the wheel and controller pages */
+"CalmMouse makes these work better" = "CalmMouse 讓這些裝置更好用";
+"Clicks no longer make the page jump" = "點按時頁面不再亂跳";
+"Flip the direction, scroll smoothly" = "反轉方向、平滑捲動";
+"The PS5 touchpad, or any controller's sticks" = "PS5 觸控板，或任何控制器的搖桿";
+"Trackpads aren't affected." = "觸控板不受影響。";
+"Your devices" = "你的裝置";
+"Connect your mouse or controller" = "連接你的滑鼠或控制器";
+"Plug one in or turn it on. It shows up here as soon as your Mac sees it." = "插上或打開裝置，Mac 一辨識到就會出現在這裡。";
+"Connected" = "已連接";
+"Recognised" = "已辨識";
+"Set up your scroll-wheel mouse" = "調一下你的滾輪滑鼠";
+"Each mouse can be set up on its own in Settings → Devices." = "每隻滑鼠都可以在設定 → 裝置裡單獨調整。";
+"Use your Mac with a controller" = "用控制器操作 Mac";
+"Touchpad" = "觸控板";
+"Move and tap to click" = "移動、輕點來點按";
+"Left stick" = "左搖桿";
+"Right stick" = "右搖桿";
+"Move the pointer" = "移動指標";
+"Scroll" = "捲動";
+"Bottom button or press the left stick" = "下方鍵，或按下左搖桿";
+"Right button or press the right stick" = "右側鍵，或按下右搖桿";
+"Click" = "點按";
+"Right-click" = "右鍵點按";
+"Holding Options and Create for half a second turns it on or off too (Xbox: ≡ and ⧉). It steps aside while a game is in front." = "同時按住 Options 和 Create 半秒也能開關（Xbox：≡ 和 ⧉）。遊戲在前景時會自動停用。";
+"Every device has its own settings in Settings → Devices." = "每個裝置的設定都在設定 → 裝置裡。";
