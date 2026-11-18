@@ -7,13 +7,14 @@ import SwiftUI
 /// 5° apart, to turn it. Pointing at a setting turns it back to face you and plays that setting's
 /// story on the lid; the page underneath shows what it does on screen.
 struct MouseShowcase<Idle: View>: View {
+    var model: DeviceModel = .magicMouse
     let preview: SettingPreview?
     /// The ring around the mouse plays when it connects and when it takes a preset.
     var connected = true
     var presetID: UUID?
     @ViewBuilder let idle: () -> Idle
 
-    @StateObject private var model = MouseStageModel()
+    @StateObject private var stage = MouseStageModel()
     @State private var pointerInside = false
     @AppStorage("magicMouseFinish") private var finishRaw = MouseFinish.white.rawValue
 
@@ -26,9 +27,9 @@ struct MouseShowcase<Idle: View>: View {
                 .frame(width: MouseStage.size.width, height: MouseStage.size.height)
                 .contentShape(Rectangle())
                 .gesture(DragGesture(minimumDistance: 1)
-                    .onChanged { model.drag(to: $0.translation.width, at: $0.time) }
-                    .onEnded { _ in model.release() })
-                .simultaneousGesture(TapGesture(count: 2).onEnded { model.goHome() })
+                    .onChanged { stage.drag(to: $0.translation.width, at: $0.time) }
+                    .onEnded { _ in stage.release() })
+                .simultaneousGesture(TapGesture(count: 2).onEnded { stage.goHome() })
                 .onHover { inside in
                     guard inside != pointerInside else { return }
                     pointerInside = inside
@@ -36,14 +37,9 @@ struct MouseShowcase<Idle: View>: View {
                 }
                 // Switching device or pane takes the mouse away under the pointer: give the cursor back.
                 .onDisappear { if pointerInside { pointerInside = false; NSCursor.pop() } }
-                .contextMenu {
-                    Picker(L("Mouse color"), selection: $finishRaw) {
-                        Text(L("White")).tag(MouseFinish.white.rawValue)
-                        Text(L("Black")).tag(MouseFinish.black.rawValue)
-                    }
-                }
+                .modifier(FinishMenu(enabled: model.isMagicMouse, finishRaw: $finishRaw))
                 .accessibilityElement()
-                .accessibilityLabel(L("Magic Mouse"))
+                .accessibilityLabel(model.accessibilityName)
                 .accessibilityHint(L("Drag to turn it. Double-click to put it back."))
                 // The column is padded to 250; the mouse may use all 290 to turn.
                 .padding(.horizontal, (250 - MouseStage.size.width) / 2)
@@ -54,14 +50,34 @@ struct MouseShowcase<Idle: View>: View {
         }
         .background {
             // As wide as the column, so the render's shadow fades out on its own beside the stage.
-            MouseStageCanvas(model: model, preview: preview, finish: finish, running: preview != nil || model.animating)
+            MouseStageCanvas(stage: stage, model: model, preview: model.isMagicMouse ? preview : nil, finish: finish,
+                             running: (model.isMagicMouse && preview != nil) || stage.animating)
                 .frame(width: Theme.Size.deviceColumn, height: MouseStage.cardTop + MouseStage.cardSize.height)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
-        .onAppear { model.playRing() }
-        .onChange(of: connected) { if $0 { model.playRing() } }
-        .onChange(of: presetID) { if $0 != nil { model.playRing() } }
+        .onAppear { if model.isMagicMouse { stage.playRing() } }
+        .onChange(of: connected) { if $0, model.isMagicMouse { stage.playRing() } }
+        .onChange(of: presetID) { if $0 != nil, model.isMagicMouse { stage.playRing() } }
+    }
+}
+
+/// The White/Black menu belongs to the Magic Mouse; the other renders come in one colour.
+private struct FinishMenu: ViewModifier {
+    let enabled: Bool
+    @Binding var finishRaw: String
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if enabled {
+            content.contextMenu {
+                Picker(L("Mouse color"), selection: $finishRaw) {
+                    Text(L("White")).tag(MouseFinish.white.rawValue)
+                    Text(L("Black")).tag(MouseFinish.black.rawValue)
+                }
+            }
+        } else {
+            content
+        }
     }
 }
 
@@ -70,16 +86,17 @@ struct MouseShowcase<Idle: View>: View {
 /// through SwiftUI's update, layout and commit, about a quarter of a core at 30fps on the main
 /// thread the event tap's run loop waits behind; redrawing one view costs well under half that.
 private struct MouseStageCanvas: NSViewRepresentable {
-    let model: MouseStageModel
+    let stage: MouseStageModel
+    let model: DeviceModel
     let preview: SettingPreview?
     let finish: MouseFinish
     let running: Bool
 
-    func makeNSView(context: Context) -> MouseStageView { MouseStageView(model: model) }
+    func makeNSView(context: Context) -> MouseStageView { MouseStageView(model: stage) }
 
     func updateNSView(_ view: MouseStageView, context: Context) {
         view.preview = preview
-        view.frames = MouseFrames.shared(for: finish)
+        view.frames = MouseFrames.shared(for: model, finish: finish)
         view.running = running
         view.tick()
     }
@@ -223,6 +240,40 @@ private struct Pen {
 
 enum MouseFinish: String {
     case white, black
+}
+
+/// The rendered devices the stage can show. Each is framed the same way in its 720 px still
+/// (the camera backs off for bigger devices), so the stage geometry is shared.
+enum DeviceModel: String, CaseIterable {
+    case magicMouse, wheelMouse, controller
+
+    init?(_ kind: DeviceKind) {
+        switch kind {
+        case .magicMouse: self = .magicMouse
+        case .wheelMouse: self = .wheelMouse
+        case .controller: self = .controller
+        }
+    }
+
+    /// The Resources subfolder holding home.webp and turn-00…71.webp.
+    func folder(_ finish: MouseFinish) -> String {
+        switch self {
+        case .magicMouse: return "MagicMouse/" + finish.rawValue
+        case .wheelMouse: return "Devices/wheel"
+        case .controller: return "Devices/controller"
+        }
+    }
+
+    /// Stories on the lid, the presence ring and the White/Black menu: Magic Mouse only.
+    var isMagicMouse: Bool { self == .magicMouse }
+
+    var accessibilityName: String {
+        switch self {
+        case .magicMouse: return L("Magic Mouse")
+        case .wheelMouse: return L("Scroll-wheel mouse")
+        case .controller: return L("Game controller")
+        }
+    }
 }
 
 /// Where the square render frame sits in the 290 × 226 stage. Chosen so that the mouse fits at
@@ -402,12 +453,13 @@ final class MouseStageModel: ObservableObject {
 /// The rendered frames for one finish, decoded on demand. 72 frames at 600 px would be ~100 MB
 /// decoded, so only the last few are kept.
 final class MouseFrames {
-    private static var byFinish: [MouseFinish: MouseFrames] = [:]
+    private static var byFolder: [String: MouseFrames] = [:]
 
-    static func shared(for finish: MouseFinish) -> MouseFrames {
-        if let frames = byFinish[finish] { return frames }
-        let frames = MouseFrames(finish: finish)
-        byFinish[finish] = frames
+    static func shared(for model: DeviceModel = .magicMouse, finish: MouseFinish) -> MouseFrames {
+        let folder = model.folder(finish)
+        if let frames = byFolder[folder] { return frames }
+        let frames = MouseFrames(folder: folder)
+        byFolder[folder] = frames
         return frames
     }
 
@@ -415,8 +467,8 @@ final class MouseFrames {
     private let cache = NSCache<NSNumber, CGImage>()
     private lazy var still: CGImage? = load("home")
 
-    private init(finish: MouseFinish) {
-        folder = "MagicMouse/" + finish.rawValue
+    private init(folder: String) {
+        self.folder = folder
         cache.countLimit = 12
     }
 
