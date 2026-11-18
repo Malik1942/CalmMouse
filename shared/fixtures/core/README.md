@@ -20,7 +20,9 @@ Who does what:
   the committed traces say.
 - The macOS CI job writes them on every run, uploads them as the `golden-traces` artifact, and
   fails if they differ from what is committed. To update them, put the artifact's files in
-  `traces/` (replacing what is there), look at the diff, and commit.
+  `traces/` (replacing what is there), look at the diff, and commit. Take them from that
+  artifact (CI runs on arm64 macOS), not from your own Mac: the CI check compares the files
+  byte for byte, and an Intel Mac's `exp()` can differ in the last bit.
 - `windows/tests/CalmMouse.Core.Tests/GoldenTraceTests.cs` replays every trace through the C#
   ports.
 
@@ -72,7 +74,7 @@ must match exactly.
     `changed`, `ended`, `cancelled`; momentum: `none`, `began`, `continued`, `ended`. `wheel` is
     `null` or `{"reverse", "blockWhilePressed", "smooth", "speed"}`.
   - `{"op": "liftBlockingImmediately"}`, `{"op": "forceReleaseAllButtons", "t": 5}`
-- output: `decision` (`null` unless the step is a scroll; else `{"kind": "pass"}`, `"drop"`,
+- output: `decision` (`null` unless the step is a scroll; else `{"kind": "pass"}`, `{"kind": "drop"}`,
   `{"kind": "rewrite", "phase", "momentum", "zeroX", "zeroY", "swapAxes", "invert",
   "addModifiers", "removeModifiers"}` or `{"kind": "smooth", "dx", "dy"}`), `interruptsGlide`
   (scroll steps only), and `isBlocking`, `isBlockingWheel`, `anyButtonDown` right after the step.
@@ -86,7 +88,8 @@ must match exactly.
   The pixels come out of `exp()`, which can differ in the last bit between macOS and Windows. The
   C# side therefore accepts a pixel that comes out one frame earlier or later, and says so in the
   test output, but only when the pixels paid so far plus what is still owed add up to the same
-  distance.
+  distance and the pixels paid on that axis are equal again by its next frame (and by the end of
+  the trace).
 
 ### ControllerPointer
 

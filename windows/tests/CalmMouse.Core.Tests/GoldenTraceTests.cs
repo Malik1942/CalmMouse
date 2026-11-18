@@ -173,6 +173,62 @@ public sealed class GoldenTraceSelfCheck : IDisposable
         Assert.Empty(notes);
     }
 
+    /// <summary>
+    /// Makes the "Swift" side of the one-notch glide pay one pixel less at output
+    /// <paramref name="at"/> (still owing it, so the distance adds up), and pay it back at
+    /// <paramref name="paidBackAt"/>, or never when that is null.
+    /// </summary>
+    private string ShiftOnePixel(Func<List<int>, int> at, Func<List<int>, int?> paidBackAt)
+    {
+        Dictionary<string, JsonObject> traces = WriteTracesFromScenarios();
+        string path = Path.Combine(_folder, "smoother-one-notch-glides-and-settles.json");
+        JsonObject trace = traces[path];
+        JsonArray outputs = trace["outputs"]!.AsArray();
+        List<int> frames = [.. Enumerable.Range(0, outputs.Count).Where(i => outputs[i]!["step"] is JsonObject)];
+        int shifted = at(frames);
+        int? back = paidBackAt(frames);
+
+        // The glide goes up the screen (negative y): paying one pixel less is +1 on y, and owing
+        // one more is -1 on what is owed.
+        outputs[shifted]!["step"]!["y"] = outputs[shifted]!["step"]!["y"]!.GetValue<long>() + 1;
+        for (int i = shifted; i < (back ?? outputs.Count); i++)
+        {
+            outputs[i]!["owedY"] = outputs[i]!["owedY"]!.GetValue<double>() - 1;
+        }
+        if (back is int b)
+        {
+            outputs[b]!["step"]!["y"] = outputs[b]!["step"]!["y"]!.GetValue<long>() - 1;
+        }
+        GoldenTraceFormat.Write(trace, path);
+        return path;
+    }
+
+    [Fact]
+    public void AcceptsAWheelSmootherPixelThatTheNextFrameMakesUp()
+    {
+        string path = ShiftOnePixel(frames => frames[0], frames => frames[1]);
+
+        var notes = new List<string>();
+        string? problem = GoldenTraceFormat.Replay(path, notes);
+        Assert.True(problem is null, problem);
+        Assert.Equal(2, notes.Count);
+    }
+
+    [Fact]
+    public void RejectsAWheelSmootherPixelDriftEvenWhenTheDistanceAddsUp()
+    {
+        // Paid one pixel apart from the first frame on, with the distance kept, as a truncate-versus-
+        // floor slip on negative carries would do: the next frame must even it out, and doesn't.
+        string? problem = GoldenTraceFormat.Replay(ShiftOnePixel(frames => frames[0], _ => null), []);
+        Assert.True(problem is not null && problem.Contains("was not made up", StringComparison.Ordinal),
+            $"A lasting pixel drift was accepted: {problem ?? "no problem reported"}");
+
+        // The same in the last frame, where there is no next frame: the end of the trace catches it.
+        problem = GoldenTraceFormat.Replay(ShiftOnePixel(frames => frames[^1], _ => null), []);
+        Assert.True(problem is not null && problem.Contains("never made up", StringComparison.Ordinal),
+            $"A pixel drift in the last frame was accepted: {problem ?? "no problem reported"}");
+    }
+
     [Fact]
     public void RejectsATraceWithAMissingField()
     {

@@ -237,12 +237,15 @@ internal static class TraceCompare
     /// on Windows or Linux may differ from macOS's in the last bit. Right at a rounding edge that
     /// can move one pixel between this frame and the next: it is then still owed instead of paid
     /// (or the other way round). Such a difference of 1 is accepted, and noted, only when the
-    /// pixels paid so far plus what is still owed come to the same distance on both sides.
+    /// pixels paid so far plus what is still owed come to the same distance on both sides, and
+    /// the pixels paid on that axis are equal again by the axis's next frame (and by the end of the
+    /// trace). A drift that lasts, even one that keeps the distance, is a real difference.
     /// Everything else must match as usual.
     /// </summary>
     public static string? SmootherOutputs(JsonArray expected, JsonArray actual, JsonArray steps, string file, List<string> notes)
     {
-        long paidX = 0, paidY = 0, paidByCSharpX = 0, paidByCSharpY = 0;
+        var x = new PixelAxis("x");
+        var y = new PixelAxis("y");
         for (int i = 0; i < expected.Count; i++)
         {
             string where = $"step {i} {Inline(steps[i])}";
@@ -264,51 +267,87 @@ internal static class TraceCompare
             {
                 var ef = new Fields(es, $"outputs[{i}].step", strict: true, "x", "y");
                 var af = new Fields(@as, $"outputs[{i}].step (C#)", strict: true, "x", "y");
-                string? d = Pixel("x", ef.GetLong("x", null), af.GetLong("x", null), ref paidX, ref paidByCSharpX, owedX, owedByCSharpX)
-                         ?? Pixel("y", ef.GetLong("y", null), af.GetLong("y", null), ref paidY, ref paidByCSharpY, owedY, owedByCSharpY);
-                if (d == "accepted")
-                {
-                    notes.Add($"{file}, {where}: a pixel came out one frame apart in C# and Swift "
-                        + $"(Swift {Inline(es)}, C# {Inline(@as)}); accepted as a last-bit difference in exp(), the distance still adds up.");
-                }
-                else if (d is not null)
+                // Both axes every frame, so neither axis's running totals skip one.
+                string? dx = x.Frame(ef.GetLong("x", null), af.GetLong("x", null), owedX, owedByCSharpX, where, out bool acceptedX);
+                string? dy = y.Frame(ef.GetLong("y", null), af.GetLong("y", null), owedY, owedByCSharpY, where, out bool acceptedY);
+                if ((dx ?? dy) is string d)
                 {
                     return $"{where}: outputs[{i}].{d}";
                 }
+                if (acceptedX || acceptedY)
+                {
+                    notes.Add($"{file}, {where}: a pixel came out one frame apart in C# and Swift "
+                        + $"(Swift {Inline(es)}, C# {Inline(@as)}); accepted as a last-bit difference in exp(): "
+                        + "the distance adds up and the next frame evens it out.");
+                }
             }
-            if (!Owed(paidX, paidByCSharpX, owedX, owedByCSharpX))
+            if (!x.Owed(owedX, owedByCSharpX))
             {
                 return $"{where}: outputs[{i}].owedX: Swift {Show(owedX)}, C# {Show(owedByCSharpX)}";
             }
-            if (!Owed(paidY, paidByCSharpY, owedY, owedByCSharpY))
+            if (!y.Owed(owedY, owedByCSharpY))
             {
                 return $"{where}: outputs[{i}].owedY: Swift {Show(owedY)}, C# {Show(owedByCSharpY)}";
             }
         }
-        return null;
+        return x.Unsettled() ?? y.Unsettled();
     }
 
-    /// <summary>null when equal, "accepted" for an explained difference of one, otherwise the problem.</summary>
-    private static string? Pixel(string axis, long swift, long csharp, ref long paid, ref long paidByCSharp,
-                                 double owed, double owedByCSharp)
+    /// <summary>One axis of the wheel smoother: pixels paid so far on each side, and an accepted off-by-one waiting to even out.</summary>
+    private sealed class PixelAxis(string name)
     {
-        paid += swift;
-        paidByCSharp += csharp;
-        if (swift == csharp)
+        private long _paid;
+        private long _paidByCSharp;
+        private string? _acceptedAt;
+
+        /// <summary>
+        /// One frame on this axis. Null when it matches (or is accepted, then <paramref name="accepted"/>
+        /// is true); otherwise the problem.
+        /// </summary>
+        public string? Frame(long swift, long csharp, double owed, double owedByCSharp, string where, out bool accepted)
         {
+            accepted = false;
+            _paid += swift;
+            _paidByCSharp += csharp;
+            if (_acceptedAt is not null)
+            {
+                // The frame after an accepted difference must even the paid pixels out again.
+                if (_paid != _paidByCSharp)
+                {
+                    return $"step.{name}: Swift {swift}, C# {csharp}. The pixel accepted at {_acceptedAt} "
+                        + $"was not made up by this frame (paid so far: Swift {_paid}, C# {_paidByCSharp}).";
+                }
+                _acceptedAt = null;
+                accepted = swift != csharp;
+                return null;
+            }
+            if (swift == csharp)
+            {
+                return null;
+            }
+            // Before this frame the totals were equal, so they now differ by exactly swift - csharp.
+            bool explained = Math.Abs(swift - csharp) == 1
+                && Math.Abs(_paid + owed - (_paidByCSharp + owedByCSharp)) <= 1e-6;
+            if (!explained)
+            {
+                return $"step.{name}: Swift {swift}, C# {csharp}";
+            }
+            _acceptedAt = where;
+            accepted = true;
             return null;
         }
-        bool explained = Math.Abs(swift - csharp) == 1
-            && Math.Abs(paid - paidByCSharp) <= 1
-            && Math.Abs(paid + owed - (paidByCSharp + owedByCSharp)) <= 1e-6;
-        return explained ? "accepted" : $"step.{axis}: Swift {swift}, C# {csharp}";
-    }
 
-    /// <summary>What is still owed matches, or, after an accepted pixel difference, adds up with what was paid.</summary>
-    private static bool Owed(long paid, long paidByCSharp, double owed, double owedByCSharp) =>
-        paid == paidByCSharp
-            ? CloseEnough(owed, owedByCSharp)
-            : Math.Abs(paid + owed - (paidByCSharp + owedByCSharp)) <= 1e-6;
+        /// <summary>What is still owed matches, or, while an accepted pixel is pending, adds up with what was paid.</summary>
+        public bool Owed(double owed, double owedByCSharp) =>
+            _paid == _paidByCSharp
+                ? CloseEnough(owed, owedByCSharp)
+                : Math.Abs(_paid + owed - (_paidByCSharp + owedByCSharp)) <= 1e-6;
+
+        /// <summary>At the end of the trace: null when no accepted pixel is still waiting to even out.</summary>
+        public string? Unsettled() => _acceptedAt is null
+            ? null
+            : $"the {name} pixel accepted at {_acceptedAt} was never made up (paid in all: Swift {_paid}, C# {_paidByCSharp})";
+    }
 }
 
 /// <summary>

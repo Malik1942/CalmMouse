@@ -108,8 +108,11 @@ tests pass.
 - For each scenario the test writes `shared/fixtures/core/traces/<name>.json`: the inputs
   and every output. With `CALMMOUSE_WRITE_TRACES=1` it writes; without, it compares and
   fails on any difference.
-- `ci.yml` gets a step after `swift test`: run with the variable set, then
-  `git diff --exit-code shared/fixtures/core`, and upload the folder as an artifact.
+- `ci.yml`, macOS job, before `swift test`: write the traces (`CALMMOUSE_WRITE_TRACES=1
+  swift test --filter GoldenTraceTests`), upload `shared/fixtures/core/traces` as the
+  `golden-traces` artifact (always, even if a later step fails), fail if
+  `git status --porcelain shared/fixtures/core` shows any change, then the plain `swift test`.
+  Writing first means even the first run, with no traces committed, hands back the files.
 - The C# side gets a test with the same name, so the parity guard stays exact.
 
 **9. C# trace replayer.** Core.Tests loads every trace, replays the inputs and compares
