@@ -16,9 +16,19 @@ struct MouseShowcase<Idle: View>: View {
 
     @StateObject private var stage = MouseStageModel()
     @State private var pointerInside = false
-    @AppStorage("magicMouseFinish") private var finishRaw = MouseFinish.white.rawValue
+    @AppStorage("magicMouseFinish") private var magicMouseFinish = MouseFinish.white.rawValue
+    @AppStorage("wheelMouseFinish") private var wheelMouseFinish = MouseFinish.white.rawValue
 
-    private var finish: MouseFinish { MouseFinish(rawValue: finishRaw) ?? .white }
+    /// This device's colour setting: each mouse keeps its own; the controller has none.
+    private var finishRaw: Binding<String>? {
+        switch model.finishKey {
+        case "magicMouseFinish": return $magicMouseFinish
+        case "wheelMouseFinish": return $wheelMouseFinish
+        default: return nil
+        }
+    }
+
+    private var finish: MouseFinish { finishRaw.flatMap { MouseFinish(rawValue: $0.wrappedValue) } ?? .white }
 
     var body: some View {
         VStack(spacing: Theme.Space.medium) {
@@ -37,7 +47,7 @@ struct MouseShowcase<Idle: View>: View {
                 }
                 // Switching device or pane takes the mouse away under the pointer: give the cursor back.
                 .onDisappear { if pointerInside { pointerInside = false; NSCursor.pop() } }
-                .modifier(FinishMenu(enabled: model.isMagicMouse, finishRaw: $finishRaw))
+                .modifier(FinishMenu(finishRaw: finishRaw))
                 .accessibilityElement()
                 .accessibilityLabel(model.accessibilityName)
                 .accessibilityHint(L("Drag to turn it. Double-click to put it back."))
@@ -64,13 +74,13 @@ struct MouseShowcase<Idle: View>: View {
 
 /// The White/Black menu belongs to the Magic Mouse; the other renders come in one colour.
 private struct FinishMenu: ViewModifier {
-    let enabled: Bool
-    @Binding var finishRaw: String
+    /// The device's colour setting, or nil when it has only one colour (no menu).
+    let finishRaw: Binding<String>?
 
     @ViewBuilder func body(content: Content) -> some View {
-        if enabled {
+        if let finishRaw {
             content.contextMenu {
-                Picker(L("Mouse color"), selection: $finishRaw) {
+                Picker(L("Mouse color"), selection: finishRaw) {
                     Text(L("White")).tag(MouseFinish.white.rawValue)
                     Text(L("Black")).tag(MouseFinish.black.rawValue)
                 }
@@ -238,7 +248,7 @@ private struct Pen {
     }
 }
 
-enum MouseFinish: String {
+enum MouseFinish: String, CaseIterable {
     case white, black
 }
 
@@ -259,12 +269,22 @@ enum DeviceModel: String, CaseIterable {
     func folder(_ finish: MouseFinish) -> String {
         switch self {
         case .magicMouse: return "MagicMouse/" + finish.rawValue
-        case .wheelMouse: return "Devices/wheel"
+        case .wheelMouse: return "Devices/wheel/" + finish.rawValue
         case .controller: return "Devices/controller"
         }
     }
 
-    /// Stories on the lid, the presence ring and the White/Black menu: Magic Mouse only.
+    /// Where each mouse's colour (right-click › White/Black) is kept: separately, so a white Magic
+    /// Mouse and a graphite wheel mouse both show as they are. The controller has one colour.
+    var finishKey: String? {
+        switch self {
+        case .magicMouse: return "magicMouseFinish"
+        case .wheelMouse: return "wheelMouseFinish"
+        case .controller: return nil
+        }
+    }
+
+    /// Stories on the lid and the presence ring: Magic Mouse only.
     var isMagicMouse: Bool { self == .magicMouse }
 
     var accessibilityName: String {
