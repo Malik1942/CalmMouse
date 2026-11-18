@@ -45,6 +45,8 @@ cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp -R Resources/*.lproj "$APP/Contents/Resources/"
 # The rendered Magic Mouse in Settings › Devices: a still and 72 turn frames per finish.
 cp -R Resources/MagicMouse "$APP/Contents/Resources/"
+# The rendered wheel mouse (pale grey and graphite) and controller: a still and 72 turn frames each.
+cp -R Resources/Devices "$APP/Contents/Resources/"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 # This folder is synced by iCloud, which can tag the bundle with Finder and sync attributes at any
