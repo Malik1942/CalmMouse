@@ -23,15 +23,12 @@ public sealed class ParityGuardTests
     /// </summary>
     private static readonly HashSet<string> NotYetPorted = new(StringComparer.Ordinal)
     {
-        "AppVersionTests",
         "ControllerPointerTests",
-        "DeviceRulesTests",
         "FeatureTests",
         "MagicMouseReverseTests",
         "MouseFigureTests",
         "PresetTests",
         "ScrollBlockerTests",
-        "SupportInviteTests",
         "TapRecognizerTests",
         "TapRightClickTests",
         "WheelMouseTests",
