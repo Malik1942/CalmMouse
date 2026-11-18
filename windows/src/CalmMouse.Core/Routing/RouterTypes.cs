@@ -66,9 +66,9 @@ public sealed record RoutedDevice(long DeviceId, DeviceKind Kind, string StableK
 /// <summary>
 /// A per-app rule for wheel mice. Windows-only: the Swift core keeps wheel mice out of its
 /// <c>AppRule</c>, so these are applied by the router, before the core sees the event.
-/// <c>ExeName</c> is the foreground process's file name (for example <c>figma.exe</c>), matched
-/// ignoring case, against the window the wheel event scrolls. A rule that is added is on; both of
-/// its options start off.
+/// <c>ExeName</c> is a process file name (for example <c>figma.exe</c>), matched ignoring case
+/// against <see cref="WheelTarget.ExeName"/>, the window the wheel event scrolls (the one under
+/// the cursor). A rule that is added is on; both of its options start off.
 /// </summary>
 public sealed record WheelAppRule(string ExeName, string DisplayName)
 {
@@ -89,7 +89,10 @@ public sealed record WheelAppRule(string ExeName, string DisplayName)
 /// Hook events paired with a Raw Input wheel of the same direction but a different delta. Should
 /// stay near 0; if it does on real hardware, the direction-only fallback can go.
 /// </param>
-/// <param name="StuckWheelReleases">Times a wheel press was released because the hook said the middle button was up (a lost button-up).</param>
+/// <param name="StuckWheelReleases">
+/// Lost wheel button-ups: the hook said the middle button was up while a mouse's wheel still
+/// counted as pressed, and Raw Input's button-up didn't follow within <see cref="ScrollRouter.StuckReleaseWindow"/>.
+/// </param>
 /// <param name="Faults">Exceptions caught inside the router. Each one left scrolling working (see <see cref="ScrollRouter.LastFault"/>).</param>
 public readonly record struct RouterStats(
     long HooksPassed,

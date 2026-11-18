@@ -27,10 +27,11 @@
 // Stats.Faults, kept in LastFault, and the event concerned goes on unchanged (a glide that
 // throws is dropped). Scrolling must never die because of a bug here.
 //
-// Allocation: the hook path allocates nothing of its own once the internal lists have grown, but
-// every event that reaches the core costs one small ScrollDecision record (24 to 40 bytes,
-// from the port). For a Raw-Input-first event that happens inside the hook callback. That is
-// gen-0 garbage, accepted.
+// Allocation: the router allocates nothing of its own once its lists have grown. Routing an
+// event through the core allocates its ScrollDecision record (from the port), up to about 72
+// bytes per event (reverse + smooth). In the hook callback that happens only for an event whose
+// Raw Input came first; a hook-first or passed event allocates nothing there. Gen-0 garbage,
+// accepted.
 //
 // Units and axes. The router hands the core the raw Windows delta (120 per notch) as the event's
 // delta: vertical WM_MOUSEWHEEL → DeltaY with the same sign (positive = away from the user),
@@ -44,7 +45,8 @@
 // scales the glide back by |delta| / max(|delta|, 35): a high-resolution wheel's 8 ticks of 15
 // glide the same 120 as one 120 notch. Then CorePixelsPerWheelUnit turns pixels back into wheel
 // units: at the default speed (3) a 120 notch glides 360 pixels, which is 120 units again, the
-// distance the notch would have scrolled unsmoothed.
+// distance the notch would have scrolled unsmoothed. Fractions of a pixel going in and of a unit
+// coming out carry over to the mouse's next glide on that axis (see AxisGlide).
 
 namespace CalmMouse.Core.Routing;
 
@@ -63,7 +65,7 @@ public sealed class ScrollRouter
     /// <summary>
     /// How long a swallowed hook event waits for its device before it is sent on unchanged
     /// (the touchpad safety net), and so how late a Raw Input wheel with exactly its delta may
-    /// still claim it. Seconds.
+    /// still claim it. (Later than that, until <see cref="LateTwinWindow"/>, it is only absorbed.) Seconds.
     /// </summary>
     public const double UnclaimedDeadline = 0.050;
 
@@ -74,6 +76,29 @@ public sealed class ScrollRouter
     /// 1 ms worst. Seconds.
     /// </summary>
     public const double PairWindow = 0.010;
+
+    /// <summary>
+    /// Among several hook events with the right delta inside <see cref="PairWindow"/>, the one
+    /// nearest in time wins, but candidates within this much of the nearest count as equally near
+    /// and the oldest of them wins (a burst after the input thread was held up arrives with
+    /// everything bunched together, and keeps its order). Phase 0's worst lag. Seconds.
+    /// </summary>
+    public const double PairTieBand = 0.001;
+
+    /// <summary>
+    /// How long after a hook event a Raw Input wheel can still turn up as its twin, if it is late
+    /// past <see cref="UnclaimedDeadline"/>: the event has been resent unchanged by then, and its
+    /// record stays this long so the late twin is absorbed rather than kept as "Raw Input first"
+    /// and paired with the next tick. Seconds from the hook event.
+    /// </summary>
+    public const double LateTwinWindow = 0.100;
+
+    /// <summary>
+    /// After the hook reported the middle button up while a mouse's wheel still counted as
+    /// pressed, how long its Raw Input button-up may take before the press counts as a lost
+    /// button-up in <see cref="RouterStats.StuckWheelReleases"/>. Seconds.
+    /// </summary>
+    public const double StuckReleaseWindow = 0.010;
 
     /// <summary>
     /// Core "pixels" of glide per wheel unit. At the default speed (3) one 120 notch glides 360
@@ -87,34 +112,50 @@ public sealed class ScrollRouter
     /// <summary>A hook event waiting for its Raw Input twin.</summary>
     /// <param name="Swallowed">
     /// True: the hook ate it and the twin decides what to send. False: it went through (we were
-    /// passing), and the record is kept only so its twin has something to pair with, instead of
-    /// waiting around and pairing with an unrelated hook event later.
+    /// passing, or it was resent unchanged), and the record is kept only so its twin has
+    /// something to pair with, instead of waiting around and pairing with an unrelated event later.
     /// </param>
+    /// <param name="Until">The record can be paired until then (and a swallowed one is resent then).</param>
     private readonly record struct HookRecord(double T, int Delta, bool Horizontal, WinModifiers Modifiers,
-                                              WheelTarget Target, bool Swallowed);
+                                              WheelTarget Target, bool Swallowed, double Until);
 
     /// <summary>A Raw Input wheel that arrived before its hook event.</summary>
     private readonly record struct RawRecord(double T, long DeviceId, int Delta, bool Horizontal);
 
-    /// <summary>One axis of a glide in wheel units: core pixels paid out so far and units already sent.</summary>
-    private struct AxisUnits
+    /// <summary>
+    /// One axis of a mouse's glides, in whole numbers both ways: what goes into the smoother is
+    /// whole core pixels, what comes out is whole wheel units, and the fractions left over on each
+    /// side carry into the next glide. Nothing is lost to rounding, so a slow, high-resolution
+    /// wheel at the lowest speed still scrolls (three ticks of 1 at speed 1 make one unit). The
+    /// carries are dropped only when the wheel turns the other way or the glide is cancelled.
+    /// </summary>
+    private struct AxisGlide
     {
+        private double _pixelFraction;
         private long _pixels;
         private long _sent;
+        private int _direction;
 
-        /// <summary>
-        /// Adds this frame's pixels and returns the whole units now due. Working from the running
-        /// totals means no fraction is ever lost; when the axis has settled, the total is rounded
-        /// and the axis starts again from zero, so a finished glide sends exactly round(pixels / 3).
-        /// </summary>
-        public int Add(long pixels, bool settled)
+        /// <summary>Takes a tick's distance and returns the whole pixels to give the smoother now.</summary>
+        public double TakeWholePixels(double distance)
+        {
+            if (distance == 0) { return 0; }
+            int direction = distance < 0 ? -1 : 1;
+            if (_direction != 0 && direction != _direction) { this = default; }   // turning round
+            _direction = direction;
+            double total = _pixelFraction + distance;
+            double whole = Math.Truncate(total);
+            _pixelFraction = total - whole;
+            return whole;
+        }
+
+        /// <summary>Adds the pixels the smoother paid out this frame and returns the whole units now due.</summary>
+        public int Add(long pixels)
         {
             _pixels += pixels;
-            double exact = _pixels / CorePixelsPerWheelUnit;
-            long target = (long)(settled ? Math.Round(exact, MidpointRounding.AwayFromZero) : Math.Truncate(exact));
+            long target = (long)Math.Truncate(_pixels / CorePixelsPerWheelUnit);
             long due = target - _sent;
             _sent = target;
-            if (settled) { this = default; }
             return (int)Math.Clamp(due, int.MinValue, int.MaxValue);
         }
     }
@@ -130,10 +171,12 @@ public sealed class ScrollRouter
         /// <summary>A mutable struct: only ever used through this field, never copied.</summary>
         public WheelSmoother Smoother = new();
         public double LastFrame;
-        public AxisUnits X;
-        public AxisUnits Y;
+        public AxisGlide X;
+        public AxisGlide Y;
         /// <summary>The window the glide is playing into: where the last wheel event or pointer move said the cursor is.</summary>
         public WheelTarget GlideTarget;
+        /// <summary>When the hook released a wheel press Raw Input hadn't released yet; NaN if none is in question.</summary>
+        public double SuspectedStuckAt = double.NaN;
 
         public bool IsWheelMouse => Info.Kind == DeviceKind.WheelMouse;
         public bool IsGliding => !Smoother.IsIdle;
@@ -160,6 +203,8 @@ public sealed class ScrollRouter
     // the same window, so the hook rarely compares strings.
     private string? _cachedExe;
     private WheelAppRule? _cachedRule;
+    /// <summary>Where the cursor was last seen (the last hook event's target, or PointerTargetChanged).</summary>
+    private WheelTarget _lastTarget;
     private RouterStats _stats;
 
     // MARK: State the caller reads
@@ -202,7 +247,7 @@ public sealed class ScrollRouter
             double? next = null;
             foreach (HookRecord h in _hooks)
             {
-                if (h.Swallowed && (next == null || h.T + UnclaimedDeadline < next)) { next = h.T + UnclaimedDeadline; }
+                if (h.Swallowed && (next == null || h.Until < next)) { next = h.Until; }
             }
             return next;
         }
@@ -230,12 +275,17 @@ public sealed class ScrollRouter
     /// <param name="middleDown">
     /// Whether the middle button is physically down right now (GetAsyncKeyState(VK_MBUTTON)). If it
     /// isn't, any wheel press the router still believes in was a lost button-up and is released.
+    /// Known limit: GetAsyncKeyState reflects what the hooks let through, so if another program's
+    /// hook eats the middle-button press, the press reads as "up" here on every wheel event and
+    /// "don't scroll while the wheel is pressed" can't hold.
     /// </param>
     /// <param name="target">The window this event will scroll; its app rule and elevation decide.</param>
     public HookAnswer HookWheel(double t, int delta, bool horizontal, WinModifiers modifiers, bool middleDown, WheelTarget target)
     {
         try
         {
+            // A broken clock reading: a record made with it could never time out.
+            if (!double.IsFinite(t)) { return Passed(); }
             Expire(t);
             if (!middleDown) { ReleaseStuckWheels(t); }
             TargetSeen(target);
@@ -253,7 +303,7 @@ public sealed class ScrollRouter
             if (!Swallows(target))
             {
                 // Its twin hasn't come yet: leave a note so it pairs with this event when it does.
-                if (r < 0) { _hooks.Add(new HookRecord(t, delta, horizontal, modifiers, target, Swallowed: false)); }
+                if (r < 0) { _hooks.Add(new HookRecord(t, delta, horizontal, modifiers, target, Swallowed: false, t + UnclaimedDeadline)); }
                 return Passed();
             }
 
@@ -264,7 +314,7 @@ public sealed class ScrollRouter
                 return Swallowed();
             }
 
-            _hooks.Add(new HookRecord(t, delta, horizontal, modifiers, target, Swallowed: true));
+            _hooks.Add(new HookRecord(t, delta, horizontal, modifiers, target, Swallowed: true, t + UnclaimedDeadline));
             return Swallowed();
         }
         catch (Exception ex)
@@ -283,7 +333,7 @@ public sealed class ScrollRouter
     {
         try
         {
-            if (deviceId == 0 || extraInfo == ResendMarker)
+            if (deviceId == 0 || extraInfo == ResendMarker || !double.IsFinite(t))
             {
                 _stats = _stats with { IgnoredRaws = _stats.IgnoredRaws + 1 };
                 return;
@@ -321,6 +371,8 @@ public sealed class ScrollRouter
             if (button != RawMouseButton.Middle) { return; }
             if (!_devices.TryGetValue(deviceId, out Device? d) || !d.IsWheelMouse) { return; }
             d.Blocker.WheelMouseButton(ScrollBlocker.WheelButton, down, t);
+            // The button-up the hook got ahead of: an ordinary release after all, not a lost one.
+            if (!down) { d.SuspectedStuckAt = double.NaN; }
             // Pressing the wheel means "hold still": this mouse's glide stops with it (as on the Mac).
             if (down && d.Info.Wheel.BlockWhilePressed) { d.CancelGlide(); }
         }
@@ -495,6 +547,10 @@ public sealed class ScrollRouter
         // the rest vertical). So a Shift tick goes out as one whole notch, and stops any glide.
         bool shift = (modifiers & WinModifiers.Shift) != 0;
         if (shift) { wheel = wheel with { Smooth = false }; }
+        // The cursor may have moved on since the hook event (hook first, then the window changed,
+        // then Raw Input): a glide must not start into a window where it may not play, so the
+        // notch goes out whole instead.
+        if (wheel.Smooth && !GlideAllowed(d, _lastTarget)) { wheel = wheel with { Smooth = false }; }
         d.Blocker.SetActiveApp(target.ExeName);
 
         var e = new ScrollEvent(
@@ -545,14 +601,12 @@ public sealed class ScrollRouter
         // Undo the core's 35 floor (see the top of the file): multiply first, so 105 × 15 / 35 is exactly 45.
         double magnitude = Math.Abs((double)delta);
         double floored = Math.Max(magnitude, ScrollBlocker.WheelMinimumStep);
-        dx = dx * magnitude / floored;
-        dy = dy * magnitude / floored;
-
-        // Turning the other way: the smoother drops what it still owed on that axis, and the
-        // unit count starts again with it, so the new direction glides its full distance.
-        (double owedX, double owedY) = d.Smoother.Owed;
-        if (dx != 0 && owedX != 0 && (owedX < 0) != (dx < 0)) { d.X = default; }
-        if (dy != 0 && owedY != 0 && (owedY < 0) != (dy < 0)) { d.Y = default; }
+        // Whole pixels only, the fraction carried to the next tick. Turning the other way drops
+        // the carries, as the smoother drops what it still owed, so the new direction glides its
+        // full distance.
+        dx = d.X.TakeWholePixels(dx * magnitude / floored);
+        dy = d.Y.TakeWholePixels(dy * magnitude / floored);
+        if (dx == 0 && dy == 0) { return; }   // under a pixel so far: it waits for the next tick
 
         if (!d.IsGliding) { d.LastFrame = t; }
         d.GlideTarget = target;
@@ -567,9 +621,8 @@ public sealed class ScrollRouter
         WheelSmoother.StepResult? step = d.Smoother.Step(t - d.LastFrame);
         d.LastFrame = t;
         if (step is not { } s) { return; }
-        (double owedX, double owedY) = d.Smoother.Owed;
-        int y = d.Y.Add(s.Y, settled: owedY == 0);
-        int x = d.X.Add(s.X, settled: owedX == 0);
+        int y = d.Y.Add(s.Y);
+        int x = d.X.Add(s.X);
         if (y != 0) { Send(y, horizontal: false); }
         if (x != 0) { Send(x, horizontal: true); }
     }
@@ -607,6 +660,7 @@ public sealed class ScrollRouter
     /// <summary>The cursor is over <paramref name="target"/> now: glides go there, or stop if they mustn't.</summary>
     private void TargetSeen(WheelTarget target)
     {
+        _lastTarget = target;
         foreach (Device d in _devices.Values)
         {
             if (!d.IsGliding) { continue; }
@@ -617,30 +671,42 @@ public sealed class ScrollRouter
     // MARK: Matching
     //
     // A hook event and a Raw Input wheel on the same axis are the same tick, in this order of
-    // preference (oldest first within each):
-    //   1. exactly the same delta, at most PairWindow apart;
-    //   2. exactly the same delta, the hook event at most UnclaimedDeadline older (a Raw Input
-    //      wheel that was held up);
-    //   3. the same direction, at most PairWindow apart.
+    // preference:
+    //   1. exactly the same delta, at most PairWindow apart: the nearest in time, the oldest
+    //      among those within PairTieBand of the nearest;
+    //   2. exactly the same delta, the hook event older than that but still on record (waiting
+    //      for its device until UnclaimedDeadline, or already resent and kept until
+    //      LateTwinWindow): a Raw Input wheel that was held up. Oldest first;
+    //   3. the same direction, at most PairWindow apart. Oldest first.
     // A Raw Input wheel that comes first only waits PairWindow, so only 1 and 3 apply to it.
     // Exact deltas keep a mouse's notch from claiming a touchpad tick waiting next to it.
-    // Preferring what is close in time keeps a late Raw Input wheel, or a waiting event whose
-    // twin is late, from pairing with the wrong event and shifting every pairing after it.
-    // Oldest first among close ones keeps the order when everything arrives in a burst after
-    // the thread was held up.
+    // Nearest in time keeps a record of a passed or resent tick (a touchpad's, which never gets
+    // a twin) from taking the Raw Input wheel of a tick that came just after it, and keeps a late
+    // Raw Input wheel from shifting every pairing after it. The tie band keeps the order of a
+    // burst that arrives bunched together after the input thread was held up.
 
     private static bool SameWay(int a, int b) => (a < 0) == (b < 0);
 
     /// <summary>The Raw Input wheel (all of them are at most PairWindow old) a new hook event pairs with.</summary>
     private int MatchRaw(bool horizontal, int delta, double t)
     {
+        double nearest = double.PositiveInfinity;
         int sameWay = -1;
         for (int i = 0; i < _raws.Count; i++)
         {
             RawRecord r = _raws[i];
             if (r.Horizontal != horizontal || !(t < r.T + PairWindow)) { continue; }
-            if (r.Delta == delta) { return i; }
-            if (sameWay < 0 && SameWay(r.Delta, delta)) { sameWay = i; }
+            if (r.Delta == delta) { nearest = Math.Min(nearest, Math.Abs(t - r.T)); }
+            else if (sameWay < 0 && SameWay(r.Delta, delta)) { sameWay = i; }
+        }
+        if (nearest < double.PositiveInfinity)
+        {
+            for (int i = 0; i < _raws.Count; i++)
+            {
+                RawRecord r = _raws[i];
+                if (r.Horizontal == horizontal && t < r.T + PairWindow && r.Delta == delta
+                    && Math.Abs(t - r.T) <= nearest + PairTieBand) { return i; }
+            }
         }
         if (sameWay >= 0) { _stats = _stats with { InexactPairs = _stats.InexactPairs + 1 }; }
         return sameWay;
@@ -649,20 +715,31 @@ public sealed class ScrollRouter
     /// <summary>The waiting hook event a new Raw Input wheel pairs with.</summary>
     private int MatchHook(bool horizontal, int delta, double t)
     {
+        double nearest = double.PositiveInfinity;
         int exactLate = -1, sameWay = -1;
         for (int i = 0; i < _hooks.Count; i++)
         {
             HookRecord h = _hooks[i];
-            if (h.Horizontal != horizontal || !(t < h.T + UnclaimedDeadline)) { continue; }
-            bool close = Math.Abs(t - h.T) < PairWindow;
+            if (h.Horizontal != horizontal || !(t < h.Until)) { continue; }
+            double gap = Math.Abs(t - h.T);
+            bool close = gap < PairWindow;
             if (h.Delta == delta)
             {
-                if (close) { return i; }
-                if (exactLate < 0) { exactLate = i; }
+                if (close) { nearest = Math.Min(nearest, gap); }
+                else if (exactLate < 0) { exactLate = i; }
             }
             else if (close && sameWay < 0 && SameWay(h.Delta, delta))
             {
                 sameWay = i;
+            }
+        }
+        if (nearest < double.PositiveInfinity)
+        {
+            for (int i = 0; i < _hooks.Count; i++)
+            {
+                HookRecord h = _hooks[i];
+                if (h.Horizontal == horizontal && t < h.Until && h.Delta == delta
+                    && Math.Abs(t - h.T) <= nearest + PairTieBand) { return i; }
             }
         }
         if (exactLate >= 0) { return exactLate; }
@@ -672,26 +749,41 @@ public sealed class ScrollRouter
 
     /// <summary>
     /// Forgets what is too old to pair. A swallowed event whose device never showed up is sent on
-    /// unchanged, so a device Raw Input doesn't report still scrolls.
+    /// unchanged, so a device Raw Input doesn't report still scrolls; its record stays a little
+    /// longer (to <see cref="LateTwinWindow"/>) for a twin that is only late. Also settles whether
+    /// a wheel press the hook released was really a lost button-up.
     /// </summary>
     private void Expire(double t)
     {
         for (int i = 0; i < _hooks.Count;)
         {
             HookRecord h = _hooks[i];
-            if (t < h.T + UnclaimedDeadline) { i++; continue; }
-            _hooks.RemoveAt(i);
+            if (t < h.Until) { i++; continue; }
             if (h.Swallowed)
             {
                 _stats = _stats with { UnclaimedResends = _stats.UnclaimedResends + 1 };
                 Send(h.Delta, h.Horizontal);
+                HookRecord late = h with { Swallowed = false, Until = h.T + LateTwinWindow };
+                if (t < late.Until)
+                {
+                    _hooks[i] = late;
+                    i++;
+                    continue;
+                }
             }
+            _hooks.RemoveAt(i);
         }
         for (int i = 0; i < _raws.Count;)
         {
             if (t < _raws[i].T + PairWindow) { i++; continue; }
             _raws.RemoveAt(i);
             _stats = _stats with { UnmatchedRaws = _stats.UnmatchedRaws + 1 };
+        }
+        foreach (Device d in _devices.Values)
+        {
+            if (!(t >= d.SuspectedStuckAt + StuckReleaseWindow)) { continue; }   // NaN: nothing in question
+            d.SuspectedStuckAt = double.NaN;
+            _stats = _stats with { StuckWheelReleases = _stats.StuckWheelReleases + 1 };
         }
     }
 
@@ -730,7 +822,8 @@ public sealed class ScrollRouter
         {
             if (!d.IsWheelMouse || !d.Blocker.AnyButtonDown) { continue; }
             d.Blocker.ForceReleaseAllButtons(t);
-            _stats = _stats with { StuckWheelReleases = _stats.StuckWheelReleases + 1 };
+            // Often just the hook getting ahead of Raw Input's button-up; counted only if that never comes.
+            d.SuspectedStuckAt = t;
         }
     }
 

@@ -85,11 +85,28 @@ public sealed class ScrollRouterWheelTests
         h.ReleaseWheelUnseen(MouseA);                  // the button-up never reaches Raw Input
         h.Turn(MouseA);
         Assert.Empty(h.Sends());                       // released now, with the usual grace
-        Assert.Equal(1, h.Router.Stats.StuckWheelReleases);
+        h.Wait(20);
+        h.Tick();
+        Assert.Equal(1, h.Router.Stats.StuckWheelReleases);   // no button-up followed: it was lost
 
         h.Wait(200);
         h.Turn(MouseA);
         Assert.Equal([Up()], h.Sends());
+    }
+
+    [Fact]
+    public void AHookAheadOfTheButtonUpIsNotCountedAsLost()
+    {
+        var h = new RouterHarness(a: Block);
+        h.PressWheel(MouseA);
+        h.Wait(500);
+        h.ReleaseWheelUnseen(MouseA);                  // the hook sees the button up first...
+        h.Turn(MouseA);
+        h.Wait(2);
+        h.Router.RawButton(h.Now, MouseA, RawMouseButton.Middle, down: false);   // ...then Raw Input does
+        h.Wait(20);
+        h.Tick();
+        Assert.Equal(0, h.Router.Stats.StuckWheelReleases);
     }
 
     [Fact]
@@ -410,6 +427,56 @@ public sealed class ScrollRouterWheelTests
         }
         sent.AddRange(h.RunToIdle());
         Assert.Equal(Notch, sent.Sum(s => s.Delta));
+    }
+
+    [Theory]
+    [InlineData(1, 30, 10)]     // speed 1: a third of the distance, nothing lost to rounding
+    [InlineData(10, 30, 100)]
+    [InlineData(15, 8, 40)]
+    public void AtTheLowestSpeedSlowTinyTicksStillAddUp(int delta, int ticks, int expected)
+    {
+        var h = new RouterHarness(a: new WheelSettings(smooth: true, speed: 1));
+        int total = 0;
+        for (int i = 0; i < ticks; i++)
+        {
+            h.Turn(MouseA, delta);
+            total += h.RunToIdle().Sum(s => s.Delta);   // each glide finishes before the next tick
+            h.Wait(300);
+        }
+        Assert.Equal(expected, total);
+    }
+
+    [Fact]
+    public void TurningRoundDropsTheCarriedFraction()
+    {
+        var h = new RouterHarness(a: new WheelSettings(smooth: true, speed: 1));
+        int total = 0;
+        foreach (int delta in new[] { 1, 1, -1, -1, -1 })
+        {
+            h.Turn(MouseA, delta);
+            total += h.RunToIdle().Sum(s => s.Delta);
+            h.Wait(300);
+        }
+        Assert.Equal(-1, total);   // two thirds up dropped at the turn; three thirds down make one
+    }
+
+    [Fact]
+    public void AGlideNeverStartsIntoAWindowWhereItMayNotPlay()
+    {
+        var h = new RouterHarness(a: Smooth, b: new WheelSettings(reverse: true, smooth: true));
+        h.Router.SetAppRules([new WheelAppRule("oldapp.exe", "Old App") { NoSmoothing = true }]);
+
+        Assert.Equal(HookAnswer.Swallow, h.Hook());          // over Notepad...
+        h.Router.PointerTargetChanged(TaskManager);          // ...the cursor moves onto Task Manager...
+        h.Raw(MouseA);                                       // ...and then A's Raw Input arrives
+        Assert.Equal([Up()], h.Sends());                     // one whole notch, no glide
+        Assert.False(h.Router.NeedsTicks);
+
+        h.Hook();
+        h.Router.PointerTargetChanged(new WheelTarget("oldapp.exe", Elevated: false));
+        h.Raw(MouseB);
+        Assert.Equal([Up(-Notch)], h.Sends());               // whole and still reversed
+        Assert.False(h.Router.NeedsTicks);
     }
 
     [Fact]

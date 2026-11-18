@@ -248,6 +248,76 @@ public sealed class ScrollRouterMatchingTests
     }
 
     [Fact]
+    public void ATwinLaterThanTheDeadlineIsAbsorbed_NotPairedWithTheNextTick()
+    {
+        var h = new RouterHarness(a: Reverse);
+        double start = h.Now;
+        void At(double ms) => h.At(start + ms / 1000);
+
+        At(0); h.Hook();                                // A's tick
+        At(50); h.Tick();
+        Assert.Equal([Up()], h.Sends());                // unclaimed: resent unchanged
+        At(55); h.Raw(MouseA);                          // its Raw Input, very late
+        At(58); Assert.Equal(HookAnswer.Swallow, h.Hook());   // a touchpad tick (no Raw Input)
+        Assert.Empty(h.Sends());                        // not paired with A's late twin
+        h.Run(60);
+        Assert.Equal([Up()], h.Sends());                // the touchpad's tick, unchanged
+    }
+
+    [Fact]
+    public void TheRecordOfAPassedTouchpadTickDoesNotTakeAMousesTwin()
+    {
+        var h = new RouterHarness(a: Reverse);
+        double start = h.Now;
+        void At(double ms) => h.At(start + ms / 1000);
+
+        h.Router.SetPaused(true);
+        At(0); Assert.Equal(HookAnswer.Pass, h.Hook()); // the touchpad, passed (no twin will come)
+        At(2); h.Router.SetPaused(false);
+        At(4); h.Hook(); At(4.1); h.Raw(MouseA);        // A's tick, a moment later
+        Assert.Equal([Up(-Notch)], h.Sends());          // paired with A's own tick, the nearer one
+        Assert.False(h.Router.NeedsTicks);
+    }
+
+    [Fact]
+    public void ABurstBunchedTogetherPairsInOrder()
+    {
+        var h = new RouterHarness(a: Reverse);
+        double start = h.Now;
+        void At(double ms) => h.At(start + ms / 1000);
+
+        // The input thread was held up: three hook events, then their three twins, all within half a millisecond.
+        At(0); h.Hook();
+        At(0.01); h.Hook();
+        At(0.02); h.Hook();
+        At(0.3); h.Raw(MouseA);
+        At(0.31); h.Raw(MouseB);
+        At(0.32); h.Raw(MouseA);
+        Assert.Equal([Up(-Notch), Up(), Up(-Notch)], h.Sends());
+    }
+
+    [Fact]
+    public void AHookEventWithABrokenClockReadingPassesWithoutWaiting()
+    {
+        var h = new RouterHarness(a: Reverse);
+        Assert.Equal(HookAnswer.Pass, h.Router.HookWheel(double.PositiveInfinity, Notch, false, WinModifiers.None, false, Notepad));
+        Assert.Equal(HookAnswer.Pass, h.Router.HookWheel(double.NaN, Notch, false, WinModifiers.None, false, Notepad));
+        Assert.False(h.Router.NeedsTicks);
+        Assert.Null(h.Router.NextDeadline);
+    }
+
+    [Fact]
+    public void ARawWheelWithABrokenClockReadingIsIgnored()
+    {
+        var h = new RouterHarness(a: Reverse);
+        h.Router.RawWheel(double.PositiveInfinity, MouseA, Notch, false);
+        Assert.Equal(HookAnswer.Swallow, h.Hook());     // waits: not paired with the broken one
+        Assert.Empty(h.Sends());
+        h.Raw(MouseA);
+        Assert.Equal([Up(-Notch)], h.Sends());
+    }
+
+    [Fact]
     public void RemovingAnotherMouseWithAnEventWaitingLeavesItWaiting()
     {
         var h = new RouterHarness(a: Reverse, b: Reverse);
