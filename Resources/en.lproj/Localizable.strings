@@ -254,3 +254,30 @@
 "Click with the sticks" = "Click with the sticks";
 "Press the left stick to click,\nthe right stick to right-click.\nHold it down and move to drag." = "Press the left stick to click,\nthe right stick to right-click.\nHold it down and move to drag.";
 "Scroll-wheel mouse" = "Scroll-wheel mouse";
+
+/* Onboarding: the supported devices, your devices, the wheel and controller pages */
+"CalmMouse makes these work better" = "CalmMouse makes these work better";
+"Clicks no longer make the page jump" = "Clicks no longer make the page jump";
+"Flip the direction, scroll smoothly" = "Flip the direction, scroll smoothly";
+"The PS5 touchpad, or any controller's sticks" = "The PS5 touchpad, or any controller's sticks";
+"Trackpads aren't affected." = "Trackpads aren't affected.";
+"Your devices" = "Your devices";
+"Connect your mouse or controller" = "Connect your mouse or controller";
+"Plug one in or turn it on. It shows up here as soon as your Mac sees it." = "Plug one in or turn it on. It shows up here as soon as your Mac sees it.";
+"Connected" = "Connected";
+"Recognised" = "Recognised";
+"Set up your scroll-wheel mouse" = "Set up your scroll-wheel mouse";
+"Each mouse can be set up on its own in Settings → Devices." = "Each mouse can be set up on its own in Settings → Devices.";
+"Use your Mac with a controller" = "Use your Mac with a controller";
+"Touchpad" = "Touchpad";
+"Move and tap to click" = "Move and tap to click";
+"Left stick" = "Left stick";
+"Right stick" = "Right stick";
+"Move the pointer" = "Move the pointer";
+"Scroll" = "Scroll";
+"Bottom button or press the left stick" = "Bottom button or press the left stick";
+"Right button or press the right stick" = "Right button or press the right stick";
+"Click" = "Click";
+"Right-click" = "Right-click";
+"Holding Options and Create for half a second turns it on or off too (Xbox: ≡ and ⧉). It steps aside while a game is in front." = "Holding Options and Create for half a second turns it on or off too (Xbox: ≡ and ⧉). It steps aside while a game is in front.";
+"Every device has its own settings in Settings → Devices." = "Every device has its own settings in Settings → Devices.";
