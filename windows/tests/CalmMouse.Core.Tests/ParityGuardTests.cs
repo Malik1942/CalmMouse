@@ -23,8 +23,6 @@ public sealed class ParityGuardTests
     /// </summary>
     private static readonly HashSet<string> NotYetPorted = new(StringComparer.Ordinal)
     {
-        "TapRecognizerTests",
-        "TapRightClickTests",
     };
 
     private const string SwiftTestsFolder = "Tests/CalmMouseCoreTests";
