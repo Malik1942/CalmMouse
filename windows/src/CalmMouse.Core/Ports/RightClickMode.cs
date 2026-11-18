@@ -1,6 +1,5 @@
-// From Sources/CalmMouseCore/TapRecognizer.swift: only this enum for now, because Presets
-// needs it. Task 7 ports the rest of TapRecognizer.swift into TapRecognizer.cs and can move
-// this enum there.
+// Declared in Sources/CalmMouseCore/TapRecognizer.swift. Kept in its own file because Presets
+// needed it first; the rest of that Swift file is Ports/TapRecognizer.cs.
 
 using System.Text.Json.Serialization;
 
