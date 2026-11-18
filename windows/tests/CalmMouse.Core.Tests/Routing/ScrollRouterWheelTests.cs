@@ -74,6 +74,39 @@ public sealed class ScrollRouterWheelTests
     }
 
     [Fact]
+    public void ALostWheelReleaseIsRecoveredWhenTheHookSeesTheButtonUp()
+    {
+        var h = new RouterHarness(a: Block);
+        h.PressWheel(MouseA);
+        h.Turn(MouseA);
+        Assert.Empty(h.Sends());                       // pressed: blocked
+
+        h.Wait(500);
+        h.ReleaseWheelUnseen(MouseA);                  // the button-up never reaches Raw Input
+        h.Turn(MouseA);
+        Assert.Empty(h.Sends());                       // released now, with the usual grace
+        Assert.Equal(1, h.Router.Stats.StuckWheelReleases);
+
+        h.Wait(200);
+        h.Turn(MouseA);
+        Assert.Equal([Up()], h.Sends());
+    }
+
+    [Fact]
+    public void AWheelReallyHeldDownStaysBlocked()
+    {
+        var h = new RouterHarness(a: Block);
+        h.PressWheel(MouseA);
+        for (int i = 0; i < 5; i++)
+        {
+            h.Wait(300);
+            h.Turn(MouseA);
+        }
+        Assert.Empty(h.Sends());
+        Assert.Equal(0, h.Router.Stats.StuckWheelReleases);
+    }
+
+    [Fact]
     public void OnlyTheMiddleButtonBlocks()
     {
         var h = new RouterHarness(a: Block);
@@ -235,13 +268,171 @@ public sealed class ScrollRouterWheelTests
     }
 
     [Fact]
-    public void ShiftIsLeftToWindows_TheGlideStaysVertical()
+    public void AShiftTickGoesOutAsOneWholeVerticalNotch_ForWindowsToTurnSideways()
+    {
+        var h = new RouterHarness(a: new WheelSettings(reverse: true, smooth: true));
+        Assert.Equal(HookAnswer.Swallow, h.Turn(MouseA, mods: WinModifiers.Shift));
+        Assert.Equal([Up(-Notch)], h.Sends());           // reversed, not smoothed, not swapped
+        Assert.False(h.Router.NeedsTicks);
+    }
+
+    [Fact]
+    public void AShiftTickStopsARunningGlide()
+    {
+        var h = new RouterHarness(a: Smooth, b: Smooth);
+        h.Turn(MouseA);
+        h.Run(17);
+        h.Sends();
+        h.Turn(MouseB, mods: WinModifiers.Shift);
+        Assert.Equal([Up()], h.Sends());
+        Assert.False(h.Router.NeedsTicks);
+    }
+
+    [Theory]
+    [InlineData(WinModifiers.Ctrl)]
+    [InlineData(WinModifiers.Alt)]
+    [InlineData(WinModifiers.Win)]
+    [InlineData(WinModifiers.Shift)]
+    public void AKeyGoingDownMidGlideStopsEveryGlide(WinModifiers key)
+    {
+        // Ctrl+click right after scrolling: without this, the rest of the glide would go out
+        // as Ctrl+wheel, one zoom step per frame.
+        var h = new RouterHarness(a: Smooth, b: Smooth);
+        h.Turn(MouseA);
+        h.Turn(MouseB, horizontal: true);
+        h.Run(17);
+        int glided = h.Sends().Sum(s => s.Delta);
+        Assert.InRange(glided, 1, 2 * Notch - 1);
+
+        h.Held = key;
+        h.Tick();
+        Assert.Empty(h.Sends());
+        Assert.False(h.Router.NeedsTicks);
+
+        h.Held = WinModifiers.None;
+        h.Run(500);
+        Assert.Empty(h.Sends());
+    }
+
+    // MARK: Smoothing: the window the glide plays into
+
+    [Theory]
+    [InlineData("oldapp.exe", false)]   // "don't smooth here"
+    [InlineData("figma.exe", false)]    // "leave scrolling alone here"
+    [InlineData("Taskmgr.exe", true)]   // elevated
+    public void AGlideStopsWhenTheCursorMovesOverAWindowWhereItMayNotPlay(string exe, bool elevated)
     {
         var h = new RouterHarness(a: Smooth);
-        h.Turn(MouseA, mods: WinModifiers.Shift);
-        List<WheelSend> sent = h.RunToIdle();
-        Assert.All(sent, s => Assert.False(s.Horizontal));
+        h.Router.SetAppRules([
+            new WheelAppRule("oldapp.exe", "Old App") { NoSmoothing = true },
+            new WheelAppRule("figma.exe", "Figma") { LeaveAlone = true },
+        ]);
+        h.Turn(MouseA);
+        h.Run(17);
+        Assert.NotEmpty(h.Sends());
+
+        h.Router.PointerTargetChanged(new WheelTarget(exe, elevated));
+        Assert.False(h.Router.NeedsTicks);
+        h.Run(500);
+        Assert.Empty(h.Sends());
+    }
+
+    [Fact]
+    public void AGlideCarriesOnOverAnotherOrdinaryWindow()
+    {
+        var h = new RouterHarness(a: Smooth);
+        h.Turn(MouseA);
+        h.Run(17);
+        List<WheelSend> early = h.Sends();
+        h.Router.PointerTargetChanged(new WheelTarget("chrome.exe", Elevated: false));
+        Assert.Equal(Notch, early.Concat(h.RunToIdle()).Sum(s => s.Delta));
+    }
+
+    [Fact]
+    public void AnyWheelEventOverAWindowWhereGlidesMayNotPlayStopsThem()
+    {
+        var h = new RouterHarness(a: Smooth);
+        h.Router.SetAppRules([new WheelAppRule("oldapp.exe", "Old App") { NoSmoothing = true }]);
+        h.Turn(MouseA);
+        h.Run(17);
+        h.Sends();
+
+        h.Target = new WheelTarget("oldapp.exe", Elevated: false);
+        Assert.Equal(HookAnswer.Pass, h.Turn(Pad));      // a touchpad scroll there: passed, and tells us where the cursor is
+        Assert.False(h.Router.NeedsTicks);
+        h.Run(500);
+        Assert.Empty(h.Sends());
+    }
+
+    [Fact]
+    public void AddingANoSmoothingRuleForTheGlidesWindowStopsIt()
+    {
+        var h = new RouterHarness(a: Smooth);
+        h.Turn(MouseA);
+        h.Run(17);
+        h.Router.SetAppRules([new WheelAppRule("notepad.exe", "Notepad") { NoSmoothing = true }]);
+        Assert.False(h.Router.NeedsTicks);
+    }
+
+    // MARK: Smoothing: odd speeds, high-resolution wheels, turning round
+
+    [Theory]
+    [InlineData(double.NaN, Notch)]
+    [InlineData(double.PositiveInfinity, Notch)]
+    [InlineData(double.NegativeInfinity, Notch)]
+    [InlineData(1e300, 4 * Notch)]                     // clamped to 12
+    [InlineData(100, 4 * Notch)]
+    [InlineData(0, Notch / 3)]                         // clamped to 1
+    [InlineData(-5, Notch / 3)]
+    [InlineData(6, 2 * Notch)]
+    public void AnySpeedGlidesAFiniteDistance_ClampedToTheMacsRange(double speed, int expected)
+    {
+        var h = new RouterHarness(a: new WheelSettings(smooth: true, speed: speed));
+        h.Turn(MouseA);
+        Assert.Equal(expected, h.RunToIdle().Sum(s => s.Delta));
+        Assert.Equal(0, h.Router.Stats.Faults);
+    }
+
+    [Theory]
+    [InlineData(8, 15)]
+    [InlineData(4, 30)]
+    [InlineData(1, 120)]
+    [InlineData(12, 10)]
+    public void AHighResolutionWheelGlidesWhatItsTicksAddUpTo(int ticks, int delta)
+    {
+        var h = new RouterHarness(a: Smooth);
+        var sent = new List<WheelSend>();
+        for (int i = 0; i < ticks; i++)
+        {
+            h.Turn(MouseA, delta);
+            h.Run(5);
+            sent.AddRange(h.Sends());
+        }
+        sent.AddRange(h.RunToIdle());
         Assert.Equal(Notch, sent.Sum(s => s.Delta));
+    }
+
+    [Fact]
+    public void ASlowHighResolutionTickGlidesItsOwnSize()
+    {
+        var h = new RouterHarness(a: Smooth);
+        h.Turn(MouseA, 15);
+        Assert.Equal(15, h.RunToIdle().Sum(s => s.Delta));
+    }
+
+    [Fact]
+    public void TurningRoundMidGlideGlidesTheNewWayItsFullDistance()
+    {
+        var h = new RouterHarness(a: Smooth);
+        h.Turn(MouseA, Notch);
+        h.Run(25);
+        int before = h.Sends().Sum(s => s.Delta);
+        Assert.InRange(before, 1, Notch - 1);
+
+        h.Turn(MouseA, -Notch);
+        List<WheelSend> after = h.RunToIdle();
+        Assert.All(after, s => Assert.True(s.Delta < 0));
+        Assert.Equal(-Notch, after.Sum(s => s.Delta));
     }
 
     // MARK: "Don't smooth in this app"
@@ -251,13 +442,13 @@ public sealed class ScrollRouterWheelTests
     {
         var h = new RouterHarness(a: new WheelSettings(reverse: true, smooth: true));
         h.Router.SetAppRules([new WheelAppRule("OldApp.exe", "Old App") { NoSmoothing = true }]);
-        h.Router.ForegroundChanged("oldapp.exe", elevated: false);
+        h.Target = new WheelTarget("oldapp.exe", Elevated: false);
 
         Assert.Equal(HookAnswer.Swallow, h.Turn(MouseA));
         Assert.Equal([Up(-Notch)], h.Sends());
         Assert.False(h.Router.NeedsTicks);
 
-        h.Router.ForegroundChanged("notepad.exe", elevated: false);
+        h.Target = Notepad;
         h.Turn(MouseA);
         Assert.Equal(-Notch, h.RunToIdle().Sum(s => s.Delta));   // glides again elsewhere
     }
@@ -267,18 +458,18 @@ public sealed class ScrollRouterWheelTests
     {
         var h = new RouterHarness(a: Smooth);
         h.Router.SetAppRules([new WheelAppRule("oldapp.exe", "Old App") { NoSmoothing = true }]);
-        h.Router.ForegroundChanged("oldapp.exe", elevated: false);
-        Assert.False(h.Router.IsSwallowing);
+        h.Target = new WheelTarget("oldapp.exe", Elevated: false);
+        Assert.False(h.Swallowing);
         Assert.Equal(HookAnswer.Pass, h.Turn(MouseA));
     }
 
     [Fact]
-    public void ANewAppRuleAppliesToTheAppAlreadyInFront()
+    public void ANewAppRuleAppliesToTheWindowAlreadyUnderTheCursor()
     {
         var h = new RouterHarness(a: Smooth);
-        h.Router.ForegroundChanged("oldapp.exe", elevated: false);
-        Assert.True(h.Router.IsSwallowing);
+        h.Target = new WheelTarget("oldapp.exe", Elevated: false);
+        Assert.True(h.Swallowing);
         h.Router.SetAppRules([new WheelAppRule("oldapp.exe", "Old App") { NoSmoothing = true }]);
-        Assert.False(h.Router.IsSwallowing);
+        Assert.False(h.Swallowing);
     }
 }

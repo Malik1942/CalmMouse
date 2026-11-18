@@ -67,7 +67,8 @@ public sealed record RoutedDevice(long DeviceId, DeviceKind Kind, string StableK
 /// A per-app rule for wheel mice. Windows-only: the Swift core keeps wheel mice out of its
 /// <c>AppRule</c>, so these are applied by the router, before the core sees the event.
 /// <c>ExeName</c> is the foreground process's file name (for example <c>figma.exe</c>), matched
-/// ignoring case. A rule that is added is on; both of its options start off.
+/// ignoring case, against the window the wheel event scrolls. A rule that is added is on; both of
+/// its options start off.
 /// </summary>
 public sealed record WheelAppRule(string ExeName, string DisplayName)
 {
@@ -84,9 +85,27 @@ public sealed record WheelAppRule(string ExeName, string DisplayName)
 /// <param name="UnclaimedResends">Swallowed hook events no Raw Input claimed in time, sent on unchanged (the touchpad safety net).</param>
 /// <param name="UnmatchedRaws">Raw Input wheels that waited for a hook event that never came.</param>
 /// <param name="IgnoredRaws">Raw Input wheels ignored as our own resends (no device, or our marker).</param>
+/// <param name="InexactPairs">
+/// Hook events paired with a Raw Input wheel of the same direction but a different delta. Should
+/// stay near 0; if it does on real hardware, the direction-only fallback can go.
+/// </param>
+/// <param name="StuckWheelReleases">Times a wheel press was released because the hook said the middle button was up (a lost button-up).</param>
+/// <param name="Faults">Exceptions caught inside the router. Each one left scrolling working (see <see cref="ScrollRouter.LastFault"/>).</param>
 public readonly record struct RouterStats(
     long HooksPassed,
     long HooksSwallowed,
     long UnclaimedResends,
     long UnmatchedRaws,
-    long IgnoredRaws);
+    long IgnoredRaws,
+    long InexactPairs,
+    long StuckWheelReleases,
+    long Faults);
+
+/// <summary>
+/// The window a wheel event will scroll: by default Windows sends the wheel to the window under
+/// the cursor, not the foreground one, so the caller resolves this from the hook's cursor point.
+/// <c>ExeName</c> is that window's process file name (null if unknown; UWP apps resolved through
+/// ApplicationFrameHost); <c>Elevated</c> is true when it runs as administrator or its token
+/// can't be read (SendInput can't reach it).
+/// </summary>
+public readonly record struct WheelTarget(string? ExeName, bool Elevated);

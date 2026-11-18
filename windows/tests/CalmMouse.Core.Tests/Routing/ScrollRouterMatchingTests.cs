@@ -98,7 +98,7 @@ public sealed class ScrollRouterMatchingTests
     {
         var h = new RouterHarness(a: Reverse);
         Assert.Equal(HookAnswer.Swallow, h.Hook());
-        Assert.Equal(h.Now + ScrollRouter.MatchWindow, h.Router.NextDeadline);
+        Assert.Equal(h.Now + ScrollRouter.UnclaimedDeadline, h.Router.NextDeadline);
 
         h.Wait(49.9);
         h.Tick();
@@ -117,7 +117,7 @@ public sealed class ScrollRouterMatchingTests
     {
         var h = new RouterHarness(a: Reverse);
         h.Raw(MouseA);
-        h.Wait(60);
+        h.Wait(ScrollRouter.PairWindow * 1000 + 1);
 
         Assert.Equal(HookAnswer.Swallow, h.Hook());   // not decided on the spot: the raw has gone
         Assert.Empty(h.Sends());
@@ -127,13 +127,136 @@ public sealed class ScrollRouterMatchingTests
     }
 
     [Fact]
-    public void ARawWheelJustInsideTheWindowStillClaims()
+    public void ALateRawWheelWithTheExactDeltaStillClaimsJustInsideTheDeadline()
     {
         var h = new RouterHarness(a: Reverse);
         h.Hook();
         h.Wait(49);
         h.Raw(MouseA);
         Assert.Equal([Up(-Notch)], h.Sends());
+    }
+
+    [Fact]
+    public void AtExactlyTheDeadlineTheEventIsResentAndCanNoLongerBeClaimed()
+    {
+        var h = new RouterHarness(a: Reverse);
+        h.Hook();
+        double deadline = h.Router.NextDeadline!.Value;
+
+        h.At(Math.BitDecrement(deadline));
+        h.Tick();
+        Assert.Empty(h.Sends());
+
+        h.At(deadline);
+        h.Raw(MouseA);                                  // too late by a hair
+        Assert.Equal([Up()], h.Sends());                // resent unchanged, not reversed
+        Assert.False(h.Router.NeedsTicks);
+    }
+
+    [Fact]
+    public void ARawWheelThatCameFirstWaitsOnlyThePairWindow()
+    {
+        var h = new RouterHarness(a: Reverse);
+        h.Raw(MouseA);
+        h.Wait(9.9);
+        Assert.Equal(HookAnswer.Swallow, h.Hook());
+        Assert.Equal([Up(-Notch)], h.Sends());          // decided on the spot
+        Assert.False(h.Router.NeedsTicks);
+    }
+
+    [Fact]
+    public void ADifferentDeltaOnlyPairsWhenClose()
+    {
+        var h = new RouterHarness(a: Reverse);
+        h.Hook(Notch);
+        h.Wait(5);
+        h.Raw(MouseA, 90);                              // same way, close: the same tick
+        Assert.Equal([Up(-Notch)], h.Sends());          // the hook event's delta is what goes out
+        Assert.Equal(1, h.Router.Stats.InexactPairs);
+
+        h.Wait(100);
+        h.Hook(Notch);
+        h.Wait(15);
+        h.Raw(MouseA, 90);                              // same way, but 15 ms apart: not paired
+        Assert.Empty(h.Sends());
+        Assert.True(h.Router.NeedsTicks);
+    }
+
+    [Fact]
+    public void AMouseNotchDoesNotClaimATouchpadTickWaitingBeforeIt_HookFirst()
+    {
+        var h = new RouterHarness(a: Reverse);
+        h.Hook(40);                                     // the touchpad: no Raw Input will come
+        h.Wait(1);
+        h.Hook(Notch);                                  // mouse A
+        h.Wait(0.1);
+        h.Raw(MouseA);
+        Assert.Equal([Up(-Notch)], h.Sends());          // A's notch, reversed
+
+        h.Run(60);
+        Assert.Equal([Up(40)], h.Sends());              // the touchpad's tick, unchanged
+    }
+
+    [Fact]
+    public void AMouseNotchDoesNotClaimATouchpadTickWaitingBeforeIt_RawFirst()
+    {
+        var h = new RouterHarness(a: Reverse);
+        h.Hook(40);                                     // the touchpad
+        h.Wait(20);
+        h.Raw(MouseA);                                  // A's Raw Input first, then its hook event
+        Assert.Empty(h.Sends());
+        Assert.Equal(HookAnswer.Swallow, h.Hook());
+        Assert.Equal([Up(-Notch)], h.Sends());
+
+        h.Run(60);
+        Assert.Equal([Up(40)], h.Sends());
+    }
+
+    [Fact]
+    public void TwoMiceInterleavedRawFirstEachKeepTheirOwnSettings()
+    {
+        var h = new RouterHarness(a: Reverse);
+        h.Raw(MouseA);
+        h.Raw(MouseB);
+        Assert.Equal(HookAnswer.Swallow, h.Hook());     // A's
+        Assert.Equal([Up(-Notch)], h.Sends());
+        Assert.Equal(HookAnswer.Pass, h.Hook());        // B's: nothing to change
+        Assert.Empty(h.Sends());
+    }
+
+    [Fact]
+    public void ALateRawWheelDoesNotShiftTheRestOfABurstFromTwoMice()
+    {
+        var h = new RouterHarness(a: Reverse);
+        double start = h.Now;
+        void At(double ms) => h.At(start + ms / 1000);
+
+        At(0); h.Hook();                                // A, whose Raw Input will come 55 ms late
+        At(25); h.Hook(); At(25.1); h.Raw(MouseB);      // B
+        Assert.Equal([Up()], h.Sends());
+        At(50.5); h.Tick();
+        Assert.Equal([Up()], h.Sends());                // A's tick, unclaimed, unchanged
+        At(51); h.Hook(); At(51.1); h.Raw(MouseA);      // A
+        Assert.Equal([Up(-Notch)], h.Sends());
+        At(55); h.Raw(MouseA);                          // the late one
+        At(76); h.Hook(); At(76.1); h.Raw(MouseB);      // B
+        Assert.Equal([Up()], h.Sends());
+        At(101); h.Hook(); At(101.1); h.Raw(MouseA);    // A
+        Assert.Equal([Up(-Notch)], h.Sends());
+        At(126); h.Hook(); At(126.1); h.Raw(MouseB);    // B
+        Assert.Equal([Up()], h.Sends());
+    }
+
+    [Fact]
+    public void RemovingAnotherMouseWithAnEventWaitingLeavesItWaiting()
+    {
+        var h = new RouterHarness(a: Reverse, b: Reverse);
+        Assert.Equal(HookAnswer.Swallow, h.Hook());     // B's tick
+        h.Router.RemoveDevice(MouseB);                  // B unplugged; A still reverses
+        Assert.Empty(h.Sends());
+        Assert.True(h.Router.NeedsTicks);
+        h.Raw(MouseB);                                  // now an unknown device
+        Assert.Equal([Up()], h.Sends());
     }
 
     [Fact]

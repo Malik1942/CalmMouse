@@ -19,7 +19,7 @@ public sealed class ScrollRouterPassingTests
     public void WithNothingOnEveryEventPasses()
     {
         var h = new RouterHarness();
-        Assert.False(h.Router.IsSwallowing);
+        Assert.False(h.Swallowing);
         Assert.Equal(HookAnswer.Pass, h.Turn(MouseA));
         Assert.Equal(HookAnswer.Pass, h.TurnRawFirst(MouseB));
         Assert.Equal(HookAnswer.Pass, h.Turn(Pad));
@@ -33,8 +33,8 @@ public sealed class ScrollRouterPassingTests
     {
         var router = new ScrollRouter();
         router.SetDevice(new RoutedDevice(Pad, DeviceKind.Touchpad, "pad") { Wheel = new WheelSettings(reverse: true, smooth: true) });
-        Assert.False(router.IsSwallowing);
-        Assert.Equal(HookAnswer.Pass, router.HookWheel(0, Notch, horizontal: false));
+        Assert.False(router.Swallows(Notepad));
+        Assert.Equal(HookAnswer.Pass, router.HookWheel(0, Notch, horizontal: false, WinModifiers.None, middleDown: false, Notepad));
     }
 
     [Theory]
@@ -44,7 +44,7 @@ public sealed class ScrollRouterPassingTests
     public void AnyOneWheelFeatureStartsSwallowing(bool reverse, bool block, bool smooth)
     {
         var h = new RouterHarness(b: new WheelSettings(reverse: reverse, blockWhilePressed: block, smooth: smooth));
-        Assert.True(h.Router.IsSwallowing);
+        Assert.True(h.Swallowing);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class ScrollRouterPassingTests
     {
         var h = new RouterHarness(a: Reverse);
         h.Router.SetDevice(new RoutedDevice(MouseA, DeviceKind.WheelMouse, "A"));
-        Assert.False(h.Router.IsSwallowing);
+        Assert.False(h.Swallowing);
         Assert.Equal(HookAnswer.Pass, h.Turn(MouseA));
     }
 
@@ -61,7 +61,7 @@ public sealed class ScrollRouterPassingTests
     {
         var h = new RouterHarness(a: Reverse);
         h.Router.RemoveDevice(MouseA);
-        Assert.False(h.Router.IsSwallowing);
+        Assert.False(h.Swallowing);
     }
 
     // MARK: Paused, elevated, leave alone
@@ -83,17 +83,17 @@ public sealed class ScrollRouterPassingTests
     }
 
     [Fact]
-    public void AnElevatedForegroundWindowPassesEverything()
+    public void AnElevatedWindowUnderTheCursorPassesEverything()
     {
         var h = new RouterHarness(a: Reverse);
-        h.Router.ForegroundChanged("Taskmgr.exe", elevated: true);
-        Assert.False(h.Router.IsSwallowing);
+        h.Target = TaskManager;
+        Assert.False(h.Swallowing);
         Assert.Equal(HookAnswer.Pass, h.Turn(MouseA));
         h.Run(100);
         Assert.Empty(h.Sends());
 
-        h.Router.ForegroundChanged("notepad.exe", elevated: false);
-        Assert.True(h.Router.IsSwallowing);
+        h.Target = Notepad;
+        Assert.True(h.Swallowing);
     }
 
     [Fact]
@@ -101,8 +101,8 @@ public sealed class ScrollRouterPassingTests
     {
         var h = new RouterHarness(a: Reverse);
         h.Router.SetAppRules([new WheelAppRule("Figma.exe", "Figma") { LeaveAlone = true }]);
-        h.Router.ForegroundChanged("figma.EXE", elevated: false);
-        Assert.False(h.Router.IsSwallowing);
+        h.Target = new WheelTarget("figma.EXE", Elevated: false);
+        Assert.False(h.Swallowing);
         Assert.Equal(HookAnswer.Pass, h.Turn(MouseA));
         h.Run(100);
         Assert.Empty(h.Sends());
@@ -113,16 +113,58 @@ public sealed class ScrollRouterPassingTests
     {
         var h = new RouterHarness(a: Reverse);
         h.Router.SetAppRules([new WheelAppRule("figma.exe", "Figma") { LeaveAlone = true, Enabled = false }]);
-        h.Router.ForegroundChanged("figma.exe", elevated: false);
-        Assert.True(h.Router.IsSwallowing);
+        h.Target = new WheelTarget("figma.exe", Elevated: false);
+        Assert.True(h.Swallowing);
     }
 
     [Fact]
-    public void SwitchingToPassingSendsWaitingEventsOnUnchanged()
+    public void TheDecisionIsPerEvent_EachForTheWindowItScrolls()
+    {
+        var h = new RouterHarness(a: Reverse);
+        h.Router.SetAppRules([new WheelAppRule("figma.exe", "Figma") { LeaveAlone = true }]);
+
+        h.Target = new WheelTarget("figma.exe", Elevated: false);
+        Assert.Equal(HookAnswer.Pass, h.Turn(MouseA));
+        h.Target = TaskManager;
+        Assert.Equal(HookAnswer.Pass, h.Turn(MouseA));
+        h.Target = Notepad;
+        Assert.Equal(HookAnswer.Swallow, h.Turn(MouseA));
+        Assert.Equal([Up(-Notch)], h.Sends());
+    }
+
+    [Fact]
+    public void ARawFirstEventIsDecidedForTheWindowGivenWithItsHookEvent()
+    {
+        var h = new RouterHarness(a: Reverse);
+        h.Router.PointerTargetChanged(TaskManager);   // no effect on what the hook event says
+        h.Raw(MouseA);
+        Assert.Equal(HookAnswer.Swallow, h.Hook());
+        Assert.Equal([Up(-Notch)], h.Sends());
+
+        h.Target = TaskManager;
+        h.Raw(MouseA);
+        Assert.Equal(HookAnswer.Pass, h.Hook());
+        Assert.Empty(h.Sends());
+    }
+
+    [Fact]
+    public void AWaitingEventKeepsTheWindowItWasAimedAt()
+    {
+        var h = new RouterHarness(a: Reverse);
+        Assert.Equal(HookAnswer.Swallow, h.Hook());   // over Notepad
+        h.Target = TaskManager;
+        Assert.Equal(HookAnswer.Pass, h.Hook(2 * Notch));
+        h.Raw(MouseA, 2 * Notch);                      // the passed one's twin
+        h.Raw(MouseA);                                 // the waiting one's
+        Assert.Equal([Up(-Notch)], h.Sends());
+    }
+
+    [Fact]
+    public void RulingTheWindowLeaveAloneSendsItsWaitingEventsOnUnchanged()
     {
         var h = new RouterHarness(a: Reverse);
         Assert.Equal(HookAnswer.Swallow, h.Hook());
-        h.Router.ForegroundChanged("Taskmgr.exe", elevated: true);
+        h.Router.SetAppRules([new WheelAppRule("notepad.exe", "Notepad") { LeaveAlone = true }]);
         Assert.Equal([Up()], h.Sends());
         Assert.False(h.Router.NeedsTicks);
 
@@ -182,9 +224,9 @@ public sealed class ScrollRouterPassingTests
     public void TheTwinOfAnEventPassedInAnElevatedWindowDoesNotStealTheNextOne()
     {
         var h = new RouterHarness(b: Reverse);
-        h.Router.ForegroundChanged("Taskmgr.exe", elevated: true);
+        h.Target = TaskManager;
         Assert.Equal(HookAnswer.Pass, h.Hook());
-        h.Router.ForegroundChanged("notepad.exe", elevated: false);
+        h.Target = Notepad;
 
         Assert.Equal(HookAnswer.Swallow, h.Hook());
         h.Raw(MouseA);
@@ -197,10 +239,10 @@ public sealed class ScrollRouterPassingTests
     {
         var h = new RouterHarness(b: Reverse);
         h.Router.SetAppRules([new WheelAppRule("figma.exe", "Figma") { LeaveAlone = true }]);
-        h.Router.ForegroundChanged("figma.exe", elevated: false);
+        h.Target = new WheelTarget("figma.exe", Elevated: false);
         h.Raw(MouseA);
         Assert.Equal(HookAnswer.Pass, h.Hook());
-        h.Router.ForegroundChanged("notepad.exe", elevated: false);
+        h.Target = Notepad;
 
         Assert.Equal(HookAnswer.Swallow, h.Hook());
         Assert.Empty(h.Sends());

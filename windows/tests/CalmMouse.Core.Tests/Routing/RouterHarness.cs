@@ -17,7 +17,21 @@ internal sealed class RouterHarness
     /// <summary>Seconds per frame of the glide timer (a 120 Hz display).</summary>
     public const double Frame = 1.0 / 120;
 
+    public static readonly WheelTarget Notepad = new("notepad.exe", Elevated: false);
+    public static readonly WheelTarget TaskManager = new("Taskmgr.exe", Elevated: true);
+
     public ScrollRouter Router { get; } = new();
+
+    /// <summary>The window under the cursor, given with every hook event.</summary>
+    public WheelTarget Target { get; set; } = Notepad;
+
+    /// <summary>The keys held, given with every tick.</summary>
+    public WinModifiers Held { get; set; }
+
+    /// <summary>Mice whose wheel is physically pressed: what GetAsyncKeyState(VK_MBUTTON) would see.</summary>
+    private readonly HashSet<long> _pressed = [];
+
+    public bool Swallowing => Router.Swallows(Target);
 
     /// <summary>Seconds. Starts away from zero, as a real monotonic clock would.</summary>
     public double Now { get; private set; } = 1000;
@@ -34,7 +48,6 @@ internal sealed class RouterHarness
                 Wheel = new WheelSettings(reverse: true, blockWhilePressed: true, smooth: true),
             },
         ]);
-        Router.ForegroundChanged("notepad.exe", elevated: false);
     }
 
     /// <summary>Moves the clock without ticking (nothing runs in between).</summary>
@@ -47,16 +60,19 @@ internal sealed class RouterHarness
         while (Now + Frame <= end + 1e-12)
         {
             Now += Frame;
-            Router.Tick(Now);
+            Router.Tick(Now, Held);
         }
         Now = end;
-        Router.Tick(Now);
+        Router.Tick(Now, Held);
     }
 
-    public void Tick() => Router.Tick(Now);
+    public void Tick() => Router.Tick(Now, Held);
+
+    /// <summary>Puts the clock at an exact time (for boundary tests and scripted timelines).</summary>
+    public void At(double t) => Now = t;
 
     public HookAnswer Hook(int delta = Notch, bool horizontal = false, WinModifiers mods = WinModifiers.None) =>
-        Router.HookWheel(Now, delta, horizontal, mods);
+        Router.HookWheel(Now, delta, horizontal, mods, middleDown: _pressed.Count > 0, Target);
 
     public void Raw(long device, int delta = Notch, bool horizontal = false, ulong extraInfo = 0) =>
         Router.RawWheel(Now, device, delta, horizontal, extraInfo);
@@ -76,9 +92,20 @@ internal sealed class RouterHarness
         return Hook(delta, horizontal, mods);
     }
 
-    public void PressWheel(long device) => Router.RawButton(Now, device, RawMouseButton.Middle, down: true);
+    public void PressWheel(long device)
+    {
+        _pressed.Add(device);
+        Router.RawButton(Now, device, RawMouseButton.Middle, down: true);
+    }
 
-    public void ReleaseWheel(long device) => Router.RawButton(Now, device, RawMouseButton.Middle, down: false);
+    public void ReleaseWheel(long device)
+    {
+        _pressed.Remove(device);
+        Router.RawButton(Now, device, RawMouseButton.Middle, down: false);
+    }
+
+    /// <summary>The wheel comes up, but Raw Input never reports it.</summary>
+    public void ReleaseWheelUnseen(long device) => _pressed.Remove(device);
 
     /// <summary>Everything the router has asked to inject since the last call.</summary>
     public List<WheelSend> Sends()
@@ -96,7 +123,7 @@ internal sealed class RouterHarness
         {
             Assert.True(Now < limit, "The router still wanted ticks after 10 seconds.");
             Now += Frame;
-            Router.Tick(Now);
+            Router.Tick(Now, Held);
         }
         return Sends();
     }
