@@ -129,7 +129,7 @@
 "Open System Settings…" = "Open System Settings…";
 "You can also do this later — CalmMouse waits in the menu bar and starts working within two seconds of being allowed." = "You can also do this later — CalmMouse waits in the menu bar and starts working within two seconds of being allowed.";
 "Pick a starting point" = "Pick a starting point";
-"One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Magic Mouse." = "One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Magic Mouse.";
+"One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Devices." = "One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Devices.";
 "Try it" = "Try it";
 "Grab your Magic Mouse and put the cursor over any page you can scroll — this window's background works too." = "Grab your Magic Mouse and put the cursor over any page you can scroll — this window's background works too.";
 "Click and hold the mouse button." = "Click and hold the mouse button.";
@@ -141,10 +141,9 @@
 "It works! **%ld** accidental scrolls calmed just now." = "It works! **%ld** accidental scrolls calmed just now.";
 "Waiting for a click-and-slide on the Magic Mouse…" = "Waiting for a click-and-slide on the Magic Mouse…";
 "That's it" = "That's it";
-"CalmMouse lives in your menu bar and keeps working in the background." = "CalmMouse lives in your menu bar and keeps working in the background.";
-"Look for the mouse icon in the menu bar — the everyday switches live there. Orange means it needs attention, dimmed means paused." = "Look for the mouse icon in the menu bar — the everyday switches live there. Orange means it needs attention, dimmed means paused.";
-"In Settings, hover any option for a little animated preview of what it does." = "In Settings, hover any option for a little animated preview of what it does.";
-"Changed your mind about the feel? Settings → Magic Mouse switches the whole setup in one click, or saves your own." = "Changed your mind about the feel? Settings → Magic Mouse switches the whole setup in one click, or saves your own.";
+"CalmMouse keeps working from the menu bar." = "CalmMouse keeps working from the menu bar.";
+"Quick switches are in the menu bar." = "Quick switches are in the menu bar.";
+"Presets and each device's settings are in Settings → Devices." = "Presets and each device's settings are in Settings → Devices.";
 "Back" = "Back";
 "Continue" = "Continue";
 "Start Using CalmMouse" = "Start Using CalmMouse";
