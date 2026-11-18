@@ -23,7 +23,6 @@ public sealed class ParityGuardTests
     /// </summary>
     private static readonly HashSet<string> NotYetPorted = new(StringComparer.Ordinal)
     {
-        "ControllerPointerTests",
         "TapRecognizerTests",
         "TapRightClickTests",
     };
