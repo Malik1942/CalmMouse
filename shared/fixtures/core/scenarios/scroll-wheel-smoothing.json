@@ -1,0 +1,30 @@
+{
+  "component": "ScrollBlocker",
+  "description": "Wheel smoothing turns each tick into a distance to glide (at least the minimum step, times the speed), zoom keys bypass it and interrupt a glide, shift glides sideways, a pressed wheel still blocks, and each mouse's own settings apply.",
+  "config": {"base": {"smoothWheelScroll": true, "wheelScrollSpeed": 3, "blockScrollWhileWheelPressed": true}},
+  "steps": [
+    {"op": "scroll", "t": 0, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10},
+    {"op": "scroll", "t": 0.05, "fromWheelMouse": true, "isContinuous": false, "deltaY": -1},
+    {"op": "scroll", "t": 0.1, "fromWheelMouse": true, "isContinuous": false, "deltaY": 60},
+    {"op": "scroll", "t": 0.15, "fromWheelMouse": true, "isContinuous": false, "deltaX": -2.5, "deltaY": 0.5},
+    {"op": "scroll", "t": 0.2, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10, "modifiers": 1},
+    {"op": "scroll", "t": 0.25, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10, "modifiers": 4},
+    {"op": "scroll", "t": 0.3, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10, "modifiers": 2},
+    {"op": "scroll", "t": 0.35, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10, "modifiers": 8},
+    {"op": "scroll", "t": 0.4, "fromWheelMouse": true, "isContinuous": false, "deltaX": 3, "deltaY": -10, "modifiers": 8},
+    {"op": "scroll", "t": 0.45, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10, "modifiers": 9},
+    {"op": "scroll", "t": 0.5, "fromWheelMouse": true, "isContinuous": false},
+    {"op": "scroll", "t": 0.55, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10, "wheel": {"reverse": true, "blockWhilePressed": false, "smooth": true, "speed": 5}},
+    {"op": "scroll", "t": 0.6, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10, "wheel": {"reverse": true, "blockWhilePressed": false, "smooth": false, "speed": 5}},
+    {"op": "scroll", "t": 0.65, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10, "wheel": {"reverse": false, "blockWhilePressed": false, "smooth": true, "speed": 1.5}},
+    {"op": "wheelMouseButton", "button": 2, "isDown": true, "t": 1.0},
+    {"op": "scroll", "t": 1.05, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10},
+    {"op": "scroll", "t": 1.06, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10, "wheel": {"reverse": false, "blockWhilePressed": false, "smooth": true, "speed": 2}},
+    {"op": "wheelMouseButton", "button": 2, "isDown": false, "t": 1.1},
+    {"op": "scroll", "t": 1.2, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10},
+    {"op": "scroll", "t": 1.3, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10},
+    {"op": "scroll", "t": 1.4, "phase": "began", "deltaY": 3},
+    {"op": "scroll", "t": 1.41, "phase": "ended"},
+    {"op": "scroll", "t": 1.5, "fromMagicMouse": false, "isContinuous": false, "deltaY": -10, "modifiers": 1}
+  ]
+}

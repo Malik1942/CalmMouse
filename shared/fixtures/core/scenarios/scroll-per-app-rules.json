@@ -1,0 +1,46 @@
+{
+  "component": "ScrollBlocker",
+  "description": "Per-app rules override the base settings while their app is in front, match bundle IDs ignoring case, skip disabled rules, take the first match, and never touch a wheel mouse.",
+  "config": {
+    "base": {"blockScrollWhileClicked": true},
+    "appRules": [
+      {"bundleID": "com.figma.Desktop", "name": "Figma", "disableScrollEntirely": true},
+      {"bundleID": "com.apple.dt.Xcode", "name": "Xcode", "blockScrollWhileClicked": false},
+      {"bundleID": "com.apple.Safari", "name": "Safari", "momentumEnabled": false, "deadZone": 10},
+      {"bundleID": "com.apple.Notes", "name": "Notes", "enabled": false, "axisLock": true, "blockHorizontalScroll": true},
+      {"bundleID": "COM.FIGMA.DESKTOP", "name": "Figma again", "disableScrollEntirely": false}
+    ]
+  },
+  "steps": [
+    {"op": "setActiveApp", "bundleID": "com.apple.Safari"},
+    {"op": "scroll", "t": 0, "phase": "began", "deltaY": 3},
+    {"op": "scroll", "t": 0.01, "phase": "changed", "deltaY": 9},
+    {"op": "scroll", "t": 0.02, "phase": "ended"},
+    {"op": "scroll", "t": 0.03, "momentum": "began", "deltaY": 9},
+    {"op": "scroll", "t": 0.04, "momentum": "ended"},
+    {"op": "setActiveApp", "bundleID": "com.figma.desktop"},
+    {"op": "scroll", "t": 1.0, "phase": "began", "deltaY": 3},
+    {"op": "scroll", "t": 1.01, "phase": "changed", "deltaY": 3},
+    {"op": "scroll", "t": 1.02, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10},
+    {"op": "scroll", "t": 1.03, "phase": "ended"},
+    {"op": "setActiveApp", "bundleID": "com.apple.dt.Xcode"},
+    {"op": "magicMouseButton", "button": 0, "isDown": true, "t": 2.0},
+    {"op": "scroll", "t": 2.01, "phase": "began", "deltaY": 3},
+    {"op": "scroll", "t": 2.02, "phase": "changed", "deltaY": 3},
+    {"op": "magicMouseButton", "button": 0, "isDown": false, "t": 2.03},
+    {"op": "scroll", "t": 2.04, "phase": "ended"},
+    {"op": "setActiveApp", "bundleID": "com.apple.Notes"},
+    {"op": "magicMouseButton", "button": 0, "isDown": true, "t": 3.0},
+    {"op": "scroll", "t": 3.01, "phase": "began", "deltaX": 4, "deltaY": 3},
+    {"op": "magicMouseButton", "button": 0, "isDown": false, "t": 3.02},
+    {"op": "scroll", "t": 3.5, "phase": "began", "deltaX": 4, "deltaY": 30},
+    {"op": "scroll", "t": 3.51, "phase": "changed", "deltaX": 4, "deltaY": 30},
+    {"op": "scroll", "t": 3.52, "phase": "ended"},
+    {"op": "setActiveApp", "bundleID": "com.apple.Notes"},
+    {"op": "setActiveApp", "bundleID": null},
+    {"op": "scroll", "t": 4.0, "phase": "began", "deltaY": 3},
+    {"op": "scroll", "t": 4.01, "phase": "ended"},
+    {"op": "scroll", "t": 4.02, "momentum": "began", "deltaY": 3},
+    {"op": "scroll", "t": 4.03, "momentum": "ended"}
+  ]
+}

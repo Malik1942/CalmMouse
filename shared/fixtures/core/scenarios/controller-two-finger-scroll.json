@@ -1,0 +1,16 @@
+{
+  "component": "ControllerPointer",
+  "description": "Two fingers on the touchpad scroll instead of moving, following natural scrolling; one finger leaving goes back to moving without a jump.",
+  "config": {},
+  "steps": [
+    {"op": "setActive", "active": true},
+    {"op": "touchpad", "primary": {"x": 0, "y": 0}, "secondary": {"x": 0.3, "y": 0}, "t": 0},
+    {"op": "touchpad", "primary": {"x": 0, "y": 0.1}, "secondary": {"x": 0.3, "y": 0.1}, "t": 0.01},
+    {"op": "touchpad", "primary": {"x": 0.05, "y": 0.2}, "secondary": {"x": 0.35, "y": 0.2}, "t": 0.02},
+    {"op": "touchpad", "primary": {"x": 0.05, "y": 0.2}, "secondary": {"x": 0.35, "y": 0.2}, "t": 0.03},
+    {"op": "touchpad", "primary": {"x": -0.1, "y": 0.15}, "secondary": {"x": 0.2, "y": 0.15}, "t": 0.04},
+    {"op": "touchpad", "primary": {"x": -0.1, "y": 0.15}, "secondary": null, "t": 0.05},
+    {"op": "touchpad", "primary": {"x": -0.2, "y": 0.15}, "secondary": null, "t": 0.06},
+    {"op": "touchpad", "primary": null, "secondary": null, "t": 0.07}
+  ]
+}

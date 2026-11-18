@@ -1,0 +1,14 @@
+{
+  "component": "ControllerPointer",
+  "description": "With stick clicks off, pressing a stick does nothing and its nudge is not ignored.",
+  "config": {"stickClicks": false},
+  "steps": [
+    {"op": "setActive", "active": true},
+    {"op": "button", "button": "leftStick", "pressed": true, "t": 0},
+    {"op": "sticks", "left": {"x": 0.5, "y": 0}, "right": {"x": 0, "y": 0}},
+    {"op": "tick", "dt": 0.016, "t": 0.016},
+    {"op": "button", "button": "leftStick", "pressed": false, "t": 0.05},
+    {"op": "button", "button": "rightStick", "pressed": true, "t": 0.06},
+    {"op": "button", "button": "rightStick", "pressed": false, "t": 0.07}
+  ]
+}

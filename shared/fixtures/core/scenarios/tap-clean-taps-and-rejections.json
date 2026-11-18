@@ -1,0 +1,30 @@
+{
+  "component": "TapRecognizer",
+  "description": "A clean tap clicks and two sequential taps click twice; a resting finger, a swipe, two fingers, a second finger landing mid-touch and a ghost graze never click.",
+  "config": {"enabled": true, "sensitivity": 0.5},
+  "steps": [
+    {"op": "handleFrame", "touches": [{"id": 1, "x": 0.5, "y": 0.5, "size": 0.6}], "t": 0},
+    {"op": "handleFrame", "touches": [{"id": 1, "x": 0.5, "y": 0.5, "size": 0.6}], "t": 0.05},
+    {"op": "handleFrame", "touches": [], "t": 0.09},
+    {"op": "handleFrame", "touches": [{"id": 2, "x": 0.5, "y": 0.5, "size": 0.6}], "t": 0.25},
+    {"op": "handleFrame", "touches": [], "t": 0.33},
+    {"op": "handleFrame", "touches": [{"id": 3, "x": 0.5, "y": 0.5, "size": 0.6}], "t": 1.0},
+    {"op": "handleFrame", "touches": [{"id": 3, "x": 0.5, "y": 0.5, "size": 0.6}], "t": 1.5},
+    {"op": "handleFrame", "touches": [{"id": 3, "x": 0.5, "y": 0.5, "size": 0.6}], "t": 2.0},
+    {"op": "handleFrame", "touches": [], "t": 2.05},
+    {"op": "handleFrame", "touches": [{"id": 4, "x": 0.3, "y": 0.2, "size": 0.6}], "t": 3.0},
+    {"op": "handleFrame", "touches": [{"id": 4, "x": 0.32, "y": 0.45, "size": 0.6}], "t": 3.05},
+    {"op": "handleFrame", "touches": [], "t": 3.09},
+    {"op": "handleFrame", "touches": [{"id": 5, "x": 0.5, "y": 0.5, "size": 0.6}, {"id": 6, "x": 0.7, "y": 0.5, "size": 0.6}], "t": 4.0},
+    {"op": "handleFrame", "touches": [], "t": 4.08},
+    {"op": "handleFrame", "touches": [{"id": 7, "x": 0.5, "y": 0.5, "size": 0.6}], "t": 5.0},
+    {"op": "handleFrame", "touches": [{"id": 7, "x": 0.5, "y": 0.5, "size": 0.6}, {"id": 8, "x": 0.8, "y": 0.5, "size": 0.6}], "t": 5.03},
+    {"op": "handleFrame", "touches": [{"id": 7, "x": 0.5, "y": 0.5, "size": 0.6}], "t": 5.05},
+    {"op": "handleFrame", "touches": [], "t": 5.08},
+    {"op": "handleFrame", "touches": [{"id": 9, "x": 0.5, "y": 0.5, "size": 0.02}], "t": 6.0},
+    {"op": "handleFrame", "touches": [], "t": 6.06},
+    {"op": "handleFrame", "touches": [{"id": 10, "x": 0.5, "y": 0.5, "size": 0.02}], "t": 7.0},
+    {"op": "handleFrame", "touches": [{"id": 10, "x": 0.51, "y": 0.5, "size": 0.3}], "t": 7.03},
+    {"op": "handleFrame", "touches": [], "t": 7.06}
+  ]
+}

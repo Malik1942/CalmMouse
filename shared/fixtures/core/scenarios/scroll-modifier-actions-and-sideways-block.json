@@ -1,0 +1,35 @@
+{
+  "component": "ScrollBlocker",
+  "description": "Every modifier action (sideways, reverse, block, zoom as command-scroll, zoom as control-scroll, normal) on top of the sideways block, on gesture, momentum and phase-less events. Modifiers: command 1, option 2, control 4, shift 8.",
+  "config": {"base": {"blockHorizontalScroll": true, "modifierActions": [
+    {"modifiers": 2, "action": "horizontal"},
+    {"modifiers": 8, "action": "invert"},
+    {"modifiers": 9, "action": "block"},
+    {"modifiers": 4, "action": "zoomCommand"},
+    {"modifiers": 6, "action": "zoomControl"},
+    {"modifiers": 1, "action": "normal"}
+  ]}},
+  "steps": [
+    {"op": "scroll", "t": 0, "phase": "began", "deltaX": 8, "deltaY": 3},
+    {"op": "scroll", "t": 0.01, "phase": "changed", "deltaY": 3},
+    {"op": "scroll", "t": 0.02, "phase": "changed", "deltaY": 5, "modifiers": 2},
+    {"op": "scroll", "t": 0.03, "phase": "changed", "deltaX": 2, "deltaY": 5, "modifiers": 8},
+    {"op": "scroll", "t": 0.04, "phase": "changed", "deltaY": 5, "modifiers": 9},
+    {"op": "scroll", "t": 0.05, "phase": "changed", "deltaY": 5, "modifiers": 4},
+    {"op": "scroll", "t": 0.06, "phase": "changed", "deltaY": 5, "modifiers": 6},
+    {"op": "scroll", "t": 0.07, "phase": "changed", "deltaY": 5, "modifiers": 1},
+    {"op": "scroll", "t": 0.08, "phase": "changed", "deltaY": 5, "modifiers": 12},
+    {"op": "scroll", "t": 0.09, "phase": "ended", "modifiers": 2},
+    {"op": "scroll", "t": 0.10, "momentum": "began", "deltaY": 6, "modifiers": 2},
+    {"op": "scroll", "t": 0.11, "momentum": "continued", "deltaX": 1, "deltaY": 4, "modifiers": 8},
+    {"op": "scroll", "t": 0.12, "momentum": "ended"},
+    {"op": "scroll", "t": 1.0, "deltaY": 4, "modifiers": 8},
+    {"op": "scroll", "t": 1.1, "deltaX": 4, "modifiers": 4},
+    {"op": "scroll", "t": 1.2, "deltaY": 4, "modifiers": 9},
+    {"op": "magicMouseButton", "button": 0, "isDown": true, "t": 2.0},
+    {"op": "scroll", "t": 2.01, "phase": "began", "deltaY": 5, "modifiers": 2},
+    {"op": "magicMouseButton", "button": 0, "isDown": false, "t": 2.02},
+    {"op": "scroll", "t": 2.5, "phase": "changed", "deltaY": 5, "modifiers": 2},
+    {"op": "scroll", "t": 2.51, "phase": "ended"}
+  ]
+}

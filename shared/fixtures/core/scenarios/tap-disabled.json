@@ -1,0 +1,15 @@
+{
+  "component": "TapRecognizer",
+  "description": "With taps off nothing taps or drags, whatever the other settings say.",
+  "config": {"enabled": false, "tapAndDrag": true, "twoFingerDrag": true, "tapRightClick": true},
+  "steps": [
+    {"op": "handleFrame", "touches": [{"id": 1, "x": 0.5, "y": 0.5, "size": 0.6}], "t": 0},
+    {"op": "handleFrame", "touches": [], "t": 0.08},
+    {"op": "handleFrame", "touches": [{"id": 2, "x": 0.5, "y": 0.5, "size": 0.6}], "t": 0.2},
+    {"op": "handleFrame", "touches": [{"id": 3, "x": 0.42, "y": 0.75, "size": 0.6}, {"id": 4, "x": 0.58, "y": 0.75, "size": 0.6}], "t": 1.0},
+    {"op": "handleFrame", "touches": [], "t": 1.5},
+    {"op": "physicalButton", "isDown": true, "t": 2.0},
+    {"op": "physicalButton", "isDown": false, "t": 2.1},
+    {"op": "noteScroll", "deltaMagnitude": 50, "t": 2.2}
+  ]
+}

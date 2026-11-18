@@ -1,0 +1,23 @@
+{
+  "component": "TapRecognizer",
+  "description": "Tap to right-click, double-tap mode with the surface's back as the front: a quick second tap in the same spot right-clicks, a slow or faraway one is just another left click, a third quick tap starts a fresh chain, and placement on the right side is irrelevant.",
+  "config": {"enabled": true, "tapRightClick": true, "rightClickMode": "doubleTap", "doubleTapWindow": 0.35, "frontIsHighY": false},
+  "steps": [
+    {"op": "handleFrame", "touches": [{"id": 1, "x": 0.5, "y": 0.5, "size": 0.6}], "t": 0},
+    {"op": "handleFrame", "touches": [], "t": 0.08},
+    {"op": "handleFrame", "touches": [{"id": 2, "x": 0.52, "y": 0.5, "size": 0.6}], "t": 0.2},
+    {"op": "handleFrame", "touches": [], "t": 0.28},
+    {"op": "handleFrame", "touches": [{"id": 3, "x": 0.5, "y": 0.5, "size": 0.6}], "t": 0.4},
+    {"op": "handleFrame", "touches": [], "t": 0.48},
+    {"op": "handleFrame", "touches": [{"id": 4, "x": 0.5, "y": 0.5, "size": 0.6}], "t": 2.0},
+    {"op": "handleFrame", "touches": [], "t": 2.08},
+    {"op": "handleFrame", "touches": [{"id": 5, "x": 0.5, "y": 0.5, "size": 0.6}], "t": 2.5},
+    {"op": "handleFrame", "touches": [], "t": 2.58},
+    {"op": "handleFrame", "touches": [{"id": 6, "x": 0.1, "y": 0.5, "size": 0.6}], "t": 2.65},
+    {"op": "handleFrame", "touches": [], "t": 2.7},
+    {"op": "handleFrame", "touches": [{"id": 7, "x": 0.9, "y": 0.5, "size": 0.6}], "t": 4.0},
+    {"op": "handleFrame", "touches": [], "t": 4.08},
+    {"op": "handleFrame", "touches": [{"id": 8, "x": 0.9, "y": 0.5, "size": 0.6}], "t": 4.2},
+    {"op": "handleFrame", "touches": [], "t": 4.28}
+  ]
+}

@@ -19,6 +19,34 @@ jobs:
       - name: Build
         run: swift build -v
 
+      # Golden traces (shared/fixtures/core/README.md). The writer runs before the normal test
+      # run, so the job produces fresh traces and uploads them even when the committed ones are
+      # missing (the very first run) or out of date (the core's behaviour changed): download the
+      # golden-traces artifact and commit it. Any difference from what is committed then fails
+      # the job. The plain `swift test` after that compares the traces once more, against files
+      # now known to equal the committed ones, which also checks they read back as written.
+      - name: Write golden traces
+        run: CALMMOUSE_WRITE_TRACES=1 swift test --filter GoldenTraceTests
+
+      - name: Upload golden traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-traces
+          path: shared/fixtures/core/traces
+
+      - name: Check the golden traces are committed
+        run: |
+          changes="$(git status --porcelain -- shared/fixtures/core)"
+          if [ -n "$changes" ]; then
+            echo "::error::The golden traces differ from what the Swift core writes now."
+            echo "$changes"
+            echo "Replace shared/fixtures/core/traces with the golden-traces artifact of this run (or run"
+            echo "CALMMOUSE_WRITE_TRACES=1 swift test --filter GoldenTraceTests on a Mac), check the diff and"
+            echo "commit it. If the core's behaviour changed on purpose, bring the Windows port in line too."
+            exit 1
+          fi
+
       - name: Test
         run: swift test
 

@@ -1,0 +1,33 @@
+{
+  "component": "ScrollBlocker",
+  "description": "Lifting blocking at once (a cancelled tap-and-drag) lets the swipe in flight scroll from its next event; the safety valve releases stuck buttons with a grace; momentum can be turned off for the Magic Mouse only.",
+  "config": {"base": {"momentumEnabled": false, "releaseGrace": 0.25}},
+  "steps": [
+    {"op": "magicMouseButton", "button": 0, "isDown": true, "t": 0},
+    {"op": "scroll", "t": 0.01, "phase": "began", "deltaY": 3},
+    {"op": "scroll", "t": 0.02, "phase": "changed", "deltaY": 3},
+    {"op": "liftBlockingImmediately"},
+    {"op": "scroll", "t": 0.03, "phase": "changed", "deltaY": 3},
+    {"op": "scroll", "t": 0.04, "phase": "ended"},
+    {"op": "scroll", "t": 0.05, "momentum": "began", "deltaY": 20},
+    {"op": "scroll", "t": 0.06, "momentum": "continued", "deltaY": 10},
+    {"op": "scroll", "t": 0.07, "momentum": "ended"},
+    {"op": "scroll", "t": 0.08, "fromMagicMouse": false, "momentum": "continued", "deltaY": 10},
+    {"op": "magicMouseButton", "button": 0, "isDown": true, "t": 1.0},
+    {"op": "magicMouseButton", "button": 1, "isDown": true, "t": 1.1},
+    {"op": "forceReleaseAllButtons", "t": 5},
+    {"op": "scroll", "t": 5.1, "phase": "began", "deltaY": 3},
+    {"op": "scroll", "t": 5.2, "phase": "changed", "deltaY": 3},
+    {"op": "scroll", "t": 5.3, "phase": "changed", "deltaY": 3},
+    {"op": "scroll", "t": 5.31, "phase": "ended"},
+    {"op": "forceReleaseAllButtons", "t": 6},
+    {"op": "scroll", "t": 6.01, "phase": "began", "deltaY": 3},
+    {"op": "magicMouseButton", "button": 0, "isDown": false, "t": 7.0},
+    {"op": "magicMouseButton", "button": 0, "isDown": true, "t": 8.0},
+    {"op": "scroll", "t": 8.01, "phase": "mayBegin"},
+    {"op": "liftBlockingImmediately"},
+    {"op": "scroll", "t": 8.02, "phase": "began", "deltaY": 3},
+    {"op": "scroll", "t": 8.03, "phase": "changed", "deltaY": 3},
+    {"op": "scroll", "t": 8.04, "phase": "ended"}
+  ]
+}

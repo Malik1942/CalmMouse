@@ -1,0 +1,25 @@
+{
+  "component": "TapRecognizer",
+  "description": "Tap to right-click, right-side mode: taps on the right part of the surface right-click, the centre and left stay left clicks, a right tap never arms tap-and-drag while a left tap still does, and the tap zone still gates right taps.",
+  "config": {"enabled": true, "tapRightClick": true, "rightClickMode": "rightSide", "tapAndDrag": true, "tapZoneEnabled": true, "tapZoneDepth": 0.5},
+  "steps": [
+    {"op": "handleFrame", "touches": [{"id": 1, "x": 0.9, "y": 0.8, "size": 0.6}], "t": 0},
+    {"op": "handleFrame", "touches": [], "t": 0.08},
+    {"op": "handleFrame", "touches": [{"id": 2, "x": 0.9, "y": 0.8, "size": 0.6}], "t": 0.2},
+    {"op": "handleFrame", "touches": [{"id": 2, "x": 0.9, "y": 0.8, "size": 0.6}], "t": 0.6},
+    {"op": "handleFrame", "touches": [], "t": 0.7},
+    {"op": "handleFrame", "touches": [{"id": 3, "x": 0.5, "y": 0.8, "size": 0.6}], "t": 1.0},
+    {"op": "handleFrame", "touches": [], "t": 1.08},
+    {"op": "handleFrame", "touches": [{"id": 4, "x": 0.52, "y": 0.8, "size": 0.6}], "t": 1.2},
+    {"op": "handleFrame", "touches": [{"id": 4, "x": 0.52, "y": 0.8, "size": 0.6}], "t": 1.5},
+    {"op": "handleFrame", "touches": [], "t": 1.9},
+    {"op": "handleFrame", "touches": [{"id": 5, "x": 0.2, "y": 0.8, "size": 0.6}], "t": 3.0},
+    {"op": "handleFrame", "touches": [], "t": 3.08},
+    {"op": "handleFrame", "touches": [{"id": 6, "x": 0.9, "y": 0.2, "size": 0.6}], "t": 4.0},
+    {"op": "handleFrame", "touches": [], "t": 4.08},
+    {"op": "handleFrame", "touches": [{"id": 7, "x": 0.99, "y": 0.8, "size": 0.6}], "t": 5.0},
+    {"op": "handleFrame", "touches": [], "t": 5.08},
+    {"op": "handleFrame", "touches": [{"id": 8, "x": 0.6, "y": 0.8, "size": 0.6}], "t": 6.0},
+    {"op": "handleFrame", "touches": [], "t": 6.08}
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "component": "ControllerPointer",
+  "description": "With natural scrolling off, a slower scroll speed and tap to click off: two fingers scroll the other way and quick touches do not click.",
+  "config": {"naturalScrolling": false, "scrollSpeed": -0.5, "tapToClick": false, "pointerSpeed": -1},
+  "steps": [
+    {"op": "setActive", "active": true},
+    {"op": "touchpad", "primary": {"x": 0, "y": 0}, "secondary": {"x": 0.3, "y": 0}, "t": 0},
+    {"op": "touchpad", "primary": {"x": 0, "y": 0.1}, "secondary": {"x": 0.3, "y": 0.1}, "t": 0.01},
+    {"op": "touchpad", "primary": {"x": 0.1, "y": 0.1}, "secondary": {"x": 0.4, "y": 0.1}, "t": 0.02},
+    {"op": "touchpad", "primary": null, "secondary": null, "t": 0.03},
+    {"op": "touchpad", "primary": {"x": 0.1, "y": 0.1}, "secondary": null, "t": 1.0},
+    {"op": "touchpad", "primary": {"x": 0.12, "y": 0.1}, "secondary": null, "t": 1.02},
+    {"op": "touchpad", "primary": null, "secondary": null, "t": 1.05},
+    {"op": "sticks", "left": {"x": 0, "y": 0}, "right": {"x": 0.5, "y": 0.5}},
+    {"op": "tick", "dt": 0.016, "t": 1.1}
+  ]
+}

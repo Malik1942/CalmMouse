@@ -1,0 +1,24 @@
+{
+  "component": "TapRecognizer",
+  "description": "With the tap zone on and the front at low y: front-centre taps click, the back half and the side edges do not, and drags may only start inside the zone.",
+  "config": {"enabled": true, "tapZoneEnabled": true, "tapZoneDepth": 0.5, "frontIsHighY": false, "tapAndDrag": true, "sensitivity": 0.8},
+  "steps": [
+    {"op": "handleFrame", "touches": [{"id": 1, "x": 0.5, "y": 0.2, "size": 0.6}], "t": 0},
+    {"op": "handleFrame", "touches": [], "t": 0.08},
+    {"op": "handleFrame", "touches": [{"id": 2, "x": 0.5, "y": 0.8, "size": 0.6}], "t": 1.0},
+    {"op": "handleFrame", "touches": [], "t": 1.08},
+    {"op": "handleFrame", "touches": [{"id": 3, "x": 0.02, "y": 0.2, "size": 0.6}], "t": 2.0},
+    {"op": "handleFrame", "touches": [], "t": 2.08},
+    {"op": "handleFrame", "touches": [{"id": 4, "x": 0.97, "y": 0.2, "size": 0.6}], "t": 3.0},
+    {"op": "handleFrame", "touches": [], "t": 3.08},
+    {"op": "handleFrame", "touches": [{"id": 5, "x": 0.5, "y": 0.45, "size": 0.6}], "t": 4.0},
+    {"op": "handleFrame", "touches": [], "t": 4.08},
+    {"op": "handleFrame", "touches": [{"id": 6, "x": 0.5, "y": 0.6, "size": 0.6}], "t": 4.2},
+    {"op": "handleFrame", "touches": [], "t": 4.3},
+    {"op": "handleFrame", "touches": [{"id": 7, "x": 0.5, "y": 0.3, "size": 0.6}], "t": 5.0},
+    {"op": "handleFrame", "touches": [], "t": 5.08},
+    {"op": "handleFrame", "touches": [{"id": 8, "x": 0.5, "y": 0.35, "size": 0.6}], "t": 5.2},
+    {"op": "handleFrame", "touches": [{"id": 8, "x": 0.5, "y": 0.35, "size": 0.6}], "t": 5.6},
+    {"op": "handleFrame", "touches": [], "t": 5.7}
+  ]
+}

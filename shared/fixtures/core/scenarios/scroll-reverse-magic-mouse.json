@@ -1,0 +1,28 @@
+{
+  "component": "ScrollBlocker",
+  "description": "Reversing the Magic Mouse on its own flips every passing event, turns a held invert key back to normal, leaves drops dropped, and leaves wheel mice and trackpads alone.",
+  "config": {"base": {"reverseMagicMouseScroll": true, "modifierActions": [{"modifiers": 8, "action": "invert"}]}},
+  "steps": [
+    {"op": "scroll", "t": 0, "phase": "began", "deltaY": 3},
+    {"op": "scroll", "t": 0.01, "phase": "changed", "deltaY": 3},
+    {"op": "scroll", "t": 0.02, "phase": "changed", "deltaY": 3, "modifiers": 8},
+    {"op": "scroll", "t": 0.03, "phase": "ended"},
+    {"op": "scroll", "t": 0.04, "momentum": "began", "deltaY": 5},
+    {"op": "scroll", "t": 0.05, "momentum": "continued", "deltaY": 3},
+    {"op": "magicMouseButton", "button": 0, "isDown": true, "t": 0.06},
+    {"op": "scroll", "t": 0.07, "momentum": "continued", "deltaY": 2},
+    {"op": "scroll", "t": 0.08, "momentum": "ended"},
+    {"op": "magicMouseButton", "button": 0, "isDown": false, "t": 0.09},
+    {"op": "scroll", "t": 1.0, "phase": "began", "deltaY": 3},
+    {"op": "scroll", "t": 1.01, "phase": "changed", "deltaY": 3},
+    {"op": "magicMouseButton", "button": 0, "isDown": true, "t": 1.02},
+    {"op": "scroll", "t": 1.03, "phase": "changed", "deltaY": 3},
+    {"op": "scroll", "t": 1.04, "phase": "changed", "deltaY": 3},
+    {"op": "scroll", "t": 1.05, "phase": "ended"},
+    {"op": "magicMouseButton", "button": 0, "isDown": false, "t": 1.06},
+    {"op": "scroll", "t": 2.0, "deltaY": 3},
+    {"op": "scroll", "t": 2.1, "fromWheelMouse": true, "isContinuous": false, "deltaY": -10},
+    {"op": "scroll", "t": 2.2, "fromMagicMouse": false, "phase": "began", "deltaY": 3},
+    {"op": "scroll", "t": 2.21, "fromMagicMouse": false, "momentum": "continued", "deltaY": 3}
+  ]
+}

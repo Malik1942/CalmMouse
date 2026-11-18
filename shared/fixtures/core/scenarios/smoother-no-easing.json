@@ -1,0 +1,13 @@
+{
+  "component": "WheelSmoother",
+  "description": "With no time constant the whole distance goes out in the next frame.",
+  "config": {"timeConstant": 0, "minimumSpeed": 150},
+  "steps": [
+    {"op": "add", "dx": 0, "dy": 105},
+    {"op": "step", "dt": 0.016},
+    {"op": "step", "dt": 0.016},
+    {"op": "add", "dx": 10.4, "dy": -10.6},
+    {"op": "step", "dt": 0.016},
+    {"op": "step", "dt": 0.016}
+  ]
+}
