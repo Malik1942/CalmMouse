@@ -1,0 +1,2 @@
+// Win32 APIs that CsWin32 generates declarations for, one per line.
+GetForegroundWindow

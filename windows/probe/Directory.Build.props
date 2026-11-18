@@ -1,0 +1,6 @@
+<Project>
+  <!--
+    Stops windows/Directory.Build.props (the app's shared settings) from applying here:
+    the probe is a standalone Phase 0 program and keeps its own settings in its .csproj.
+  -->
+</Project>

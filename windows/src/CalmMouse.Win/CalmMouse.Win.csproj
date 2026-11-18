@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The Windows app: WPF tray app, hook, Raw Input, SendInput, settings window. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CalmMouse.Core\CalmMouse.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Generates the Win32 P/Invoke declarations listed in NativeMethods.txt. -->
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.371" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>
