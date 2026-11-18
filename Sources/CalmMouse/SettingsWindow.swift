@@ -617,6 +617,7 @@ private struct DeviceColumn: View {
     }
 
     private func symbol(_ device: DeviceEntry) -> String {
+        if device.controller != nil { return "gamecontroller" }
         return device.kind == .magicMouse || device.detected == .magicMouse ? "magicmouse" : "computermouse"
     }
 
