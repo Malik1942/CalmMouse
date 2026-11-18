@@ -557,10 +557,26 @@ private struct DeviceColumn: View {
     /// The same height whether the pointer is on a setting or not, so the window never resizes
     /// on hover.
     @ViewBuilder private var showcase: some View {
-        if let selected, selected.kind == .magicMouse {
-            // The rendered mouse plays each setting's story on itself.
-            MouseShowcase(preview: focus.preview, connected: selected.connected,
-                          presetID: settings.activePreset?.id) { details(selected, turnHint: true) }
+        if let selected, let model = deviceModel(selected) {
+            if model.isMagicMouse {
+                // The rendered mouse plays each setting's story on itself.
+                MouseShowcase(preview: focus.preview, connected: selected.connected,
+                              presetID: settings.activePreset?.id) { details(selected, turnHint: true) }
+            } else {
+                // Turns like the Magic Mouse; pointing at a setting shows its sketch instead.
+                ZStack(alignment: .top) {
+                    MouseShowcase(model: model, preview: nil, connected: selected.connected) {
+                        details(selected, turnHint: true)
+                    }
+                    .opacity(focus.preview == nil ? 1 : 0)
+                    .animation(.easeOut(duration: 0.2), value: focus.preview == nil)
+                    if let preview = focus.preview {
+                        PreviewCanvas(preview: preview)
+                            .frame(width: 250, height: 150)
+                            .padding(.top, (MouseStage.size.height - 150) / 2)
+                    }
+                }
+            }
         } else if let selected {
             ZStack(alignment: .top) {
                 hero(selected).opacity(focus.preview == nil ? 1 : 0)
@@ -570,6 +586,17 @@ private struct DeviceColumn: View {
             }
         } else if let preview = focus.preview {
             PreviewCanvas(preview: preview).frame(width: 250, height: 150)
+        }
+    }
+
+    /// The rendered device for an entry: what it is handled as, so a mouse switched with
+    /// "Treat as" shows as what it is treated as. A mouse CalmMouse leaves alone keeps its symbol.
+    private func deviceModel(_ device: DeviceEntry) -> DeviceModel? {
+        if device.controller != nil { return .controller }
+        switch device.kind {
+        case .magicMouse: return .magicMouse
+        case .wheelMouse: return .wheelMouse
+        case nil: return nil
         }
     }
 
@@ -590,7 +617,6 @@ private struct DeviceColumn: View {
     }
 
     private func symbol(_ device: DeviceEntry) -> String {
-        if device.controller != nil { return "gamecontroller" }
         return device.kind == .magicMouse || device.detected == .magicMouse ? "magicmouse" : "computermouse"
     }
 
