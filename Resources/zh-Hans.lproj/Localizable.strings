@@ -128,7 +128,7 @@
 "Open System Settings…" = "打开系统设置…";
 "You can also do this later — CalmMouse waits in the menu bar and starts working within two seconds of being allowed." = "也可以稍后再做——CalmMouse 会在菜单栏等着，授权后两秒内开始工作。";
 "Pick a starting point" = "选择一个起点";
-"One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Magic Mouse." = "一键完成全部设置。之后可以单独调整任何选项——还能在设置 → 妙控鼠标中存储自己的预置。";
+"One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Devices." = "一键完成全部设置。之后可以单独调整任何选项——还能在设置 → 设备中存储自己的预置。";
 "Try it" = "试一试";
 "Grab your Magic Mouse and put the cursor over any page you can scroll — this window's background works too." = "拿起妙控鼠标，把光标放在任何可滚动的页面上——这个窗口的背景也可以。";
 "Click and hold the mouse button." = "按住鼠标按键不放。";
@@ -140,10 +140,9 @@
 "It works! **%ld** accidental scrolls calmed just now." = "起作用了！刚刚安抚了 **%ld** 次误滚动。";
 "Waiting for a click-and-slide on the Magic Mouse…" = "等待在妙控鼠标上按住并滑动…";
 "That's it" = "完成了";
-"CalmMouse lives in your menu bar and keeps working in the background." = "CalmMouse 常驻菜单栏，在后台持续工作。";
-"Look for the mouse icon in the menu bar — the everyday switches live there. Orange means it needs attention, dimmed means paused." = "在菜单栏找到鼠标图标——常用开关都在那里。橙色表示需要处理，变暗表示已暂停。";
-"In Settings, hover any option for a little animated preview of what it does." = "在设置中，将指针悬停在任意选项上，就能看到演示其效果的小动画。";
-"Changed your mind about the feel? Settings → Magic Mouse switches the whole setup in one click, or saves your own." = "想换种手感？设置 → 妙控鼠标可以一键切换整套设置，也能存储你自己的预置。";
+"CalmMouse keeps working from the menu bar." = "CalmMouse 会在菜单栏里安静地工作。";
+"Quick switches are in the menu bar." = "常用开关在菜单栏里。";
+"Presets and each device's settings are in Settings → Devices." = "预置和每个设备的设置都在设置 → 设备里。";
 "Back" = "返回";
 "Continue" = "继续";
 "Start Using CalmMouse" = "开始使用 CalmMouse";

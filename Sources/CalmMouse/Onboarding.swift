@@ -179,7 +179,7 @@ private struct PresetStep: View {
     var body: some View {
         VStack(spacing: 14) {
             StepTitle(title: L("Pick a starting point"),
-                      subtitle: L("One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Magic Mouse."))
+                      subtitle: L("One click sets everything up. You can tweak any single setting afterwards — and save your own presets in Settings → Devices."))
 
             VStack(spacing: 8) {
                 ForEach(Preset.builtIn) { preset in
@@ -314,24 +314,20 @@ private struct DoneStep: View {
         VStack(spacing: 18) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 56)).foregroundStyle(.green)
+            // Malik (2026-11-18): the old page, a long subtitle and three two-line tips, read as a wall
+            // of text. One short line each, two tips.
             StepTitle(title: L("That's it"),
-                      subtitle: L("CalmMouse lives in your menu bar and keeps working in the background."))
+                      subtitle: L("CalmMouse keeps working from the menu bar."))
 
-            VStack(alignment: .leading, spacing: 14) {
-                tip(symbol: "magicmouse.fill",
-                    text: L("Look for the mouse icon in the menu bar — the everyday switches live there. Orange means it needs attention, dimmed means paused."))
-                tip(symbol: "info.circle",
-                    text: L("In Settings, hover any option for a little animated preview of what it does."))
-                if hasMagicMouse {
-                    tip(symbol: "slider.horizontal.3",
-                        text: L("Changed your mind about the feel? Settings → Magic Mouse switches the whole setup in one click, or saves your own."))
-                } else {
-                    tip(symbol: "slider.horizontal.3",
-                        text: L("Every device has its own settings in Settings → Devices."))
-                }
+            VStack(alignment: .leading, spacing: 12) {
+                tip(symbol: "magicmouse.fill", text: L("Quick switches are in the menu bar."))
+                tip(symbol: "slider.horizontal.3",
+                    text: hasMagicMouse ? L("Presets and each device's settings are in Settings → Devices.")
+                                        : L("Every device has its own settings in Settings → Devices."))
             }
-            .padding(.horizontal, 8)
+            .padding(.top, 6)
         }
+        .frame(maxHeight: .infinity)    // centred: with this little text, top-aligned left half the page empty
     }
 
     private func tip(symbol: String, text: String) -> some View {
