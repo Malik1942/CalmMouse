@@ -47,6 +47,9 @@ public sealed class ParityGuardTests
             .OrderBy(path => path, StringComparer.Ordinal)
             .Select(SwiftFile.Read)
             .ToList();
+        Assert.True(swiftFiles.Count > 0, $"No .swift files found in {swiftFolder}.");
+        Assert.True(swiftFiles.Sum(f => f.Classes.Sum(c => c.Tests.Count)) > 0,
+            $"No `func test…` found in any .swift file in {swiftFolder}. The guard's Swift reader needs updating.");
         ILookup<string, Type> csharpClasses = typeof(ParityGuardTests).Assembly.GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract)
             .ToLookup(t => t.Name, StringComparer.Ordinal);
@@ -63,7 +66,7 @@ public sealed class ParityGuardTests
 
         foreach (SwiftFile file in swiftFiles)
         {
-            var lines = new List<string>();
+            var lines = new List<string>(file.ReadProblems.Select(p => "  " + p));
 
             if (file.Classes.Sum(c => c.Tests.Count) == 0)
             {
@@ -164,8 +167,11 @@ public sealed class ParityGuardTests
 
     private sealed record SwiftClass(string Name, List<string> Tests);
 
-    /// <summary>The XCTest classes of one Swift file and their test methods, in file order.</summary>
-    private sealed record SwiftFile(string Name, List<SwiftClass> Classes)
+    /// <summary>
+    /// The XCTest classes of one Swift file and their test methods, in file order, plus anything
+    /// the reader couldn't make sense of (which fails the guard rather than being skipped quietly).
+    /// </summary>
+    private sealed record SwiftFile(string Name, List<SwiftClass> Classes, List<string> ReadProblems)
     {
         // `final class FooTests: XCTestCase {`
         private static readonly Regex ClassLine = new(
@@ -176,23 +182,42 @@ public sealed class ParityGuardTests
             @"^\s*(?:(?:public|internal|private|fileprivate)\s+)*extension\s+(\w+)\b");
 
         // `func testFoo() {`, `func testFoo() throws {`, `@MainActor func testFoo() async throws {`.
-        // XCTest only runs parameterless, non-private instance methods named test…
+        // XCTest only runs parameterless, non-private instance methods named test… that return
+        // nothing, so after `()` only `async`, `throws` and then `{` or the end of the line may follow.
         private static readonly Regex TestLine = new(
-            @"^\s*(?:@\w+(?:\([^)]*\))?\s+)*(?:(?:public|internal|open|final|override|nonisolated)\s+)*func\s+(test\w*)\s*\(\s*\)");
+            @"^\s*(?:@\w+(?:\([^)]*\))?\s+)*(?:(?:public|internal|open|final|override|nonisolated)\s+)*func\s+(test\w*)\s*\(\s*\)\s*(?:async\s*)?(?:throws\s*)?(?:\{|$)");
 
-        private static readonly Regex BlockComment = new(@"/\*.*?\*/", RegexOptions.Singleline);
+        // Anything that looks like a test declaration. Each one must be a TestLine or an IntendedSkip.
+        private static readonly Regex AnyTestFunc = new(@"\bfunc\s+test\w*\s*\(");
+
+        // Not run by XCTest, so not a test: private, fileprivate, static or class func, or with parameters.
+        private static readonly Regex IntendedSkip = new(
+            @"\b(?:private|fileprivate|static|class)\b[^(]*\bfunc\s+test\w*\s*\(|\bfunc\s+test\w*\s*\(\s*[^)\s]");
 
         public static SwiftFile Read(string path)
         {
             string fileName = Path.GetFileNameWithoutExtension(path);
-            string text = BlockComment.Replace(File.ReadAllText(path), " ");
-
+            string text = File.ReadAllText(path);
             var classes = new List<SwiftClass>();
+            var problems = new List<string>();
+
+            // The reader works line by line and doesn't know about block comments or multi-line
+            // strings, so it refuses them instead of guessing.
+            foreach (string construct in new[] { "/*", "\"\"\"" })
+            {
+                if (text.Contains(construct, StringComparison.Ordinal))
+                {
+                    problems.Add($"Unsupported construct: the file contains {construct}, which the guard's Swift reader can't follow. Use // comments and single-line strings, or update the reader.");
+                }
+            }
+
             // Tests before any class line (unusual) are filed under the file's name.
             string current = fileName;
+            string[] rawLines = text.Split('\n');
 
-            foreach (string rawLine in text.Split('\n'))
+            for (int i = 0; i < rawLines.Length; i++)
             {
+                string rawLine = rawLines[i].TrimEnd();
                 int comment = rawLine.IndexOf("//", StringComparison.Ordinal);
                 string line = comment >= 0 ? rawLine[..comment] : rawLine;
 
@@ -218,9 +243,13 @@ public sealed class ParityGuardTests
                     }
                     swiftClass.Tests.Add(match.Groups[1].Value);
                 }
+                else if (AnyTestFunc.IsMatch(line) && !IntendedSkip.IsMatch(line))
+                {
+                    problems.Add($"{fileName}.swift:{i + 1}: can't read this test declaration: {line.Trim()}");
+                }
             }
 
-            return new SwiftFile(fileName, classes);
+            return new SwiftFile(fileName, classes, problems);
         }
     }
 }
