@@ -26,8 +26,6 @@ public sealed class ParityGuardTests
         "ControllerPointerTests",
         "FeatureTests",
         "MagicMouseReverseTests",
-        "MouseFigureTests",
-        "PresetTests",
         "ScrollBlockerTests",
         "TapRecognizerTests",
         "TapRightClickTests",

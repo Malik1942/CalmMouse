@@ -92,6 +92,17 @@ public sealed class JsonShapeTests
     }
 
     [Fact]
+    public void PresetWritesEveryValueAndRequiresItsOwnKeys()
+    {
+        Assert.Equal(
+            """{"id":"6E1B49F2-0001-4000-8000-000000000002","name":"Extra steady","summary":"Ignores nudges and diagonal drift.\nThe page stops when your finger does.","symbolName":"scope","values":{"blockScrollWhileClicked":true,"releaseGraceMs":300,"deadZone":8,"axisLock":true,"axisLockThreshold":10,"momentumEnabled":false,"blockHorizontalScroll":false,"tapToClick":false,"tapSensitivity":0.5,"tapRightClick":false,"tapRightClickMode":"rightSide","tapAndDrag":false,"twoFingerDrag":false,"tapZoneEnabled":false,"tapZoneDepth":0.5}}""",
+            JsonSerializer.Serialize(Preset.ExtraSteady));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<Preset>(
+            """{"id":"6E1B49F2-0001-4000-8000-000000000002","name":"A","symbolName":"scope","values":{}}"""));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<PresetValues>("""{"tapRightClickMode":"left"}"""));
+    }
+
+    [Fact]
     public void StringEnumsUseTheirRawValues()
     {
         Assert.Equal("\"magicMouse\"", JsonSerializer.Serialize(MouseKind.MagicMouse));
