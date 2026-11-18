@@ -17,6 +17,7 @@ let package = Package(
             dependencies: ["CalmMouseCore"],
             linkerSettings: [
                 .linkedFramework("AppKit"),
+                .linkedFramework("AVFoundation"),
                 .linkedFramework("IOKit"),
                 .linkedFramework("GameController"),
                 .linkedFramework("ServiceManagement"),
