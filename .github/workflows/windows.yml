@@ -6,12 +6,14 @@ on:
       - "windows/**"
       - "shared/**"
       - "Sources/CalmMouseCore/**"
+      - "Tests/CalmMouseCoreTests/**"
       - ".github/workflows/windows.yml"
   pull_request:
     paths:
       - "windows/**"
       - "shared/**"
       - "Sources/CalmMouseCore/**"
+      - "Tests/CalmMouseCoreTests/**"
       - ".github/workflows/windows.yml"
   workflow_dispatch:
 
