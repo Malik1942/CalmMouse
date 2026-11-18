@@ -39,7 +39,10 @@ final class IntroVideoNSView: NSView {
         layer?.addSublayer(playerLayer)
         setAccessibilityElement(false)
 
-        guard let player, let item = player.currentItem else { ended(); return }
+        guard let player, let item = player.currentItem else {
+            DispatchQueue.main.async { [weak self] in self?.ended() }
+            return
+        }
         player.isMuted = true
         player.actionAtItemEnd = .pause
         endObserver = NotificationCenter.default.addObserver(
