@@ -93,10 +93,7 @@ Most of this is for the **Magic Mouse**. Wheel mice and game controllers get opt
 - **Presets** to start from, a **low-battery warning** for every mouse, **in-app updates**, and English / 简体中文 / 繁體中文.
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-devices-dark.png">
-    <img src="docs/images/settings-devices-light.png" width="720" alt="CalmMouse Settings, Devices: a rendered Magic Mouse on the left; presets, tracking speed and scrolling options on the right">
-  </picture>
+  <img src="docs/images/settings-devices.png" width="720" alt="CalmMouse Settings, Devices: a rendered Magic Mouse on the left; presets, tracking speed and scrolling options on the right">
 </p>
 
 Pause CalmMouse from the menu bar; everything else is in Settings (⌘,). Devices lists each mouse and
@@ -139,10 +136,7 @@ The menu-bar icon carries state: orange when it needs attention, dimmed when pau
 mouse battery is low.
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-advanced-dark.png">
-    <img src="docs/images/settings-advanced-light.png" width="480" alt="Settings, Advanced: per-app rules for Figma and Rhino, and modifier shortcuts (⌘ zooms, ⌥ scrolls sideways)">
-  </picture>
+  <img src="docs/images/settings-advanced.png" width="480" alt="Settings, Advanced: per-app rules for Figma and Rhino, and modifier shortcuts (⌘ zooms, ⌥ scrolls sideways)">
   <br><sub>Advanced: per-app rules and modifier shortcuts.</sub>
 </p>
 
