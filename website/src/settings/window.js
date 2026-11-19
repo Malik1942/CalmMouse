@@ -4,11 +4,13 @@
 import { IDLE_CAPTION, activePreset, change, createSettings, devicesSections, findRow } from "./model.js";
 import { PANES, renderForm, renderWindow } from "./render.js";
 import { createStage } from "./stage.js";
+import { setLanguage, t } from "./i18n.js";
 
 const CHECK_TIME = 900; // ms the update check spins before saying it's up to date
 const POPOVER_DELAY = 550; // the app's delay before a heading's popover
 
 export function mountSettingsWindow(frame) {
+  setLanguage(document.documentElement.lang);
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const version = document.querySelector(".changelog__version")?.textContent.trim() ?? "";
   let state = createSettings();
@@ -56,7 +58,7 @@ export function mountSettingsWindow(frame) {
   function clearExplanation() {
     focusRow = null;
     keyboardExplained = false;
-    setCaption(IDLE_CAPTION, true);
+    setCaption(t(IDLE_CAPTION), true);
     showcase.classList.remove("is-explaining");
     stage.setPreview(null);
   }
@@ -119,7 +121,7 @@ export function mountSettingsWindow(frame) {
     pane = next;
     win.className = `sw sw--${pane}`;
     win.dataset.pane = pane;
-    win.querySelector("[data-title]").textContent = PANES.find((p) => p.id === pane).title;
+    win.querySelector("[data-title]").textContent = t(PANES.find((p) => p.id === pane).title);
     for (const tab of win.querySelectorAll("[data-tab]")) {
       const on = tab.dataset.tab === pane;
       tab.classList.toggle("is-selected", on);
@@ -208,7 +210,7 @@ export function mountSettingsWindow(frame) {
     t.style.setProperty("--p", String((t.valueAsNumber - Number(t.min)) / (Number(t.max) - Number(t.min))));
     const row = findRow(devicesSections({ ...state, showFineTuning: true }), id);
     const reading = win.querySelector(`[data-reading="${CSS.escape(id)}"]`);
-    if (reading && row?.reading) reading.textContent = row.reading;
+    if (reading && row?.reading) reading.textContent = t(row.reading);
     const el = t.closest("[data-row]");
     if (row?.preview && el) {
       el.dataset.preview = JSON.stringify(row.preview);
