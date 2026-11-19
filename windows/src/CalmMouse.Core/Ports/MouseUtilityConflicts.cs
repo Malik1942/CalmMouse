@@ -2,7 +2,8 @@
 // are. (The Windows list lives in the app, which is why MouseUtility's initializer is public
 // here; Swift's memberwise one is internal.)
 //
-// `known` is `Known`, `conflicts(running:active:)` is `Conflicts`. Bundle IDs are compared
+// `known` is `Known`, `conflicts(running:active:)` is `Conflicts` (plus an overload taking the
+// list, for the Windows app). Bundle IDs are compared
 // ordinally; names are lower-cased with the invariant culture and searched ordinally.
 
 namespace CalmMouse.Core;
@@ -112,7 +113,15 @@ public static class MouseUtilityConflicts
     /// (`active`), each once, in the order of `Known`.
     /// </summary>
     public static IReadOnlyList<MouseUtility> Conflicts(IEnumerable<RunningApp> running, IReadOnlySet<MouseUtilityArea> active) =>
-        Known.Where(utility =>
+        Conflicts(Known, running, active);
+
+    /// <summary>
+    /// The same, against another list of utilities (the Windows app's). Not in the Swift source,
+    /// whose list is fixed. Keep every name fragment non-empty: .NET finds "" in every name.
+    /// </summary>
+    public static IReadOnlyList<MouseUtility> Conflicts(IReadOnlyList<MouseUtility> known, IEnumerable<RunningApp> running,
+                                                        IReadOnlySet<MouseUtilityArea> active) =>
+        known.Where(utility =>
             utility.Areas.Overlaps(active) && running.Any(app =>
             {
                 if (app.BundleID is string id && utility.BundleIDs.Contains(id)) { return true; }

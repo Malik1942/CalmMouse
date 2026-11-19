@@ -4,14 +4,20 @@ using CalmMouse.Core.Routing;
 namespace CalmMouse.Win.Input;
 
 /// <summary>
-/// Where the input thread gets each mouse's settings and the app rules from. The settings file
-/// (plan task 13) will implement this; until then <see cref="InMemoryWheelSettingsProvider"/>.
+/// Where the input thread gets each mouse's settings and the app rules from: the settings file
+/// (<see cref="Settings.SettingsStore"/>), or <see cref="InMemoryWheelSettingsProvider"/> (tests, --engine-test).
 /// Called from the input thread, so implementations must be thread-safe and quick.
 /// </summary>
 public interface IWheelSettingsProvider
 {
     /// <summary>The settings for the mouse with this <see cref="MouseDeviceInfo.StableKey"/>.</summary>
     WheelSettings SettingsFor(string stableKey);
+
+    /// <summary>
+    /// The settings for this mouse, also given its <see cref="MouseDeviceInfo.DisplayName"/>, so a
+    /// mouse without settings of its own can start from a same-named one's (as on the Mac).
+    /// </summary>
+    WheelSettings SettingsFor(string stableKey, string displayName) => SettingsFor(stableKey);
 
     IReadOnlyList<WheelAppRule> AppRules { get; }
 

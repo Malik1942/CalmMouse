@@ -1,0 +1,23 @@
+/* CalmMouse for Windows：只有 Windows 版用到的文字，简体中文。
+   格式和 Mac 版 Resources/zh-Hans.lproj/Localizable.strings 相同（键是英文原文），
+   叠加在 Mac 版的表上，同一个键以这里为准。用词跟随 Windows：鼠标、设置、滚动。 */
+
+/* 通知区域图标：菜单 */
+"Pause CalmMouse" = "暂停 CalmMouse";
+"Resume CalmMouse" = "恢复 CalmMouse";
+"Try again" = "重试";
+
+/* 通知区域图标：出了什么问题（提示文字和菜单顶部） */
+"CalmMouse stopped because of a problem. Your mouse scrolls as usual." = "CalmMouse 出了问题，已经停止。鼠标照常滚动。";
+"CalmMouse couldn't start. Your mouse scrolls as usual." = "CalmMouse 无法启动。鼠标照常滚动。";
+"Something on this PC is blocking CalmMouse, so your mouse scrolls as usual for now. It will try again soon." = "这台电脑上有程序拦住了 CalmMouse，鼠标暂时照常滚动，稍后会再试。";
+
+/* 设置窗口 */
+"CalmMouse Settings" = "CalmMouse 设置";
+"Language" = "语言";
+"Same as Windows" = "跟随 Windows";
+
+/* 其他鼠标软件。%@ 是一个名字，或者像“SmoothScroll 和 AutoHotkey”这样的列表。 */
+"%@ can also change how your mouse scrolls. If scrolling feels odd, turn off one of them." = "%@ 也可能改变鼠标的滚动方式。如果滚动感觉不对劲，请关掉其中一个。";
+/* 连接列表的最后两个名字。 */
+"%@ and %@" = "%@ 和 %@";

@@ -4,3 +4,5 @@
 GetForegroundWindow
 DwmGetCompositionTimingInfo
 EnumDisplaySettings
+GetSystemMetrics
+AllowSetForegroundWindow

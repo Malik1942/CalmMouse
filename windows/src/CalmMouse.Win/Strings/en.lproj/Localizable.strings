@@ -1,0 +1,24 @@
+/* CalmMouse for Windows: strings only the Windows app uses, English.
+   Same format as the Mac's Resources/en.lproj/Localizable.strings (keys are the English text).
+   Loaded on top of the Mac table, so an entry here wins over the Mac's.
+   Every key here must be in all three tables (CalmMouse.Win.Tests checks). */
+
+/* Notification-area icon: menu */
+"Pause CalmMouse" = "Pause CalmMouse";
+"Resume CalmMouse" = "Resume CalmMouse";
+"Try again" = "Try again";
+
+/* Notification-area icon: what's wrong, in the tooltip and at the top of the menu */
+"CalmMouse stopped because of a problem. Your mouse scrolls as usual." = "CalmMouse stopped because of a problem. Your mouse scrolls as usual.";
+"CalmMouse couldn't start. Your mouse scrolls as usual." = "CalmMouse couldn't start. Your mouse scrolls as usual.";
+"Something on this PC is blocking CalmMouse, so your mouse scrolls as usual for now. It will try again soon." = "Something on this PC is blocking CalmMouse, so your mouse scrolls as usual for now. It will try again soon.";
+
+/* Settings window */
+"CalmMouse Settings" = "CalmMouse Settings";
+"Language" = "Language";
+"Same as Windows" = "Same as Windows";
+
+/* Other mouse software. %@ is one name, or a list such as "SmoothScroll and AutoHotkey". */
+"%@ can also change how your mouse scrolls. If scrolling feels odd, turn off one of them." = "%@ can also change how your mouse scrolls. If scrolling feels odd, turn off one of them.";
+/* Joins the last two names of a list. */
+"%@ and %@" = "%@ and %@";

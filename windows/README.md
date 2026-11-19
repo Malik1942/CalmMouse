@@ -1,6 +1,24 @@
 # CalmMouse for Windows
 
-Not an app yet. The plan is in [docs/specs/windows.md](../docs/specs/windows.md).
+Work in progress. The plan is in [docs/specs/windows.md](../docs/specs/windows.md) and
+[docs/plans/2026-11-18-windows-phase1.md](../docs/plans/2026-11-18-windows-phase1.md).
+
+## The app so far
+
+`CalmMouse.Win.exe` starts with no window: a mouse icon in the notification area (left click:
+Settings; right click: Pause / Resume, Settings…, Quit). The icon is dimmed when paused and orange
+when something is wrong, with a one-line tooltip saying what. The Settings window is still empty
+(plan task 15). Every scroll feature is off until it's turned on there.
+
+- Settings: `%AppData%\CalmMouse\settings.json` (written atomically; a corrupt file is kept as
+  `settings.json.bak`). The first launch, with no file, opens Settings once.
+- Log: `%LocalAppData%\CalmMouse\CalmMouse.log` (engine events, pauses, faults; plain English).
+- One copy per user: starting it again opens the running copy's Settings. `CalmMouse.Win.exe --quit`
+  asks the running copy to quit (for installers and updaters).
+- Launch at login: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value `CalmMouse`, off by default.
+- Strings: the Mac's `Resources/*.lproj/Localizable.strings` plus the Windows-only tables in
+  `src/CalmMouse.Win/Strings/`, embedded in the exe. The tray icons are drawn by
+  `src/CalmMouse.Win/Assets/Tray/make-icons.ps1` (the `.ico` files are checked in).
 
 ## The engine test switch (temporary)
 
@@ -8,7 +26,7 @@ Not an app yet. The plan is in [docs/specs/windows.md](../docs/specs/windows.md)
 every feature off, so scrolling is unchanged, and logs each wheel event, the mice found and the
 counters every 5 seconds to `%TEMP%\CalmMouse-engine-test-<time>.log`, including hook
 reinstalls (the watchdog judges from Raw Input and injects nothing) and the resend breaker. Close its window (or let
-`--seconds` run out) to stop it. It goes away once the tray app (plan task 13) is in.
+`--seconds` run out) to stop it. It goes away after the hands-on check (plan task 16).
 
 ## `probe/`: the Phase 0 test program
 

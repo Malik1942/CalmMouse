@@ -843,7 +843,7 @@ public sealed unsafe class InputThread : IDisposable
     private RoutedDevice Routed(MouseDeviceInfo info) =>
         new(info.DeviceId, info.Kind, info.StableKey)
         {
-            Wheel = info.Kind == DeviceKind.WheelMouse ? _settings.SettingsFor(info.StableKey) : new WheelSettings(),
+            Wheel = info.Kind == DeviceKind.WheelMouse ? _settings.SettingsFor(info.StableKey, info.DisplayName) : new WheelSettings(),
         };
 
     private void ApplySettingsNow()
