@@ -126,12 +126,13 @@ on them.
 
 **10. Scroll router (pure, in `CalmMouse.Core/Routing`).** The decisions of spec 1.1 design
 A, with no Windows calls, so every rule is a unit test:
-- Inputs: `HookWheel(t, delta, horizontal)`, `RawWheel(t, device, delta, horizontal)`,
-  `RawButton(t, device, button, down)`, `Tick(t)`, `ForegroundChanged(exe, elevated)`,
-  `Paused(bool)`.
+- Inputs: `HookWheel(t, delta, horizontal, modifiers, middleDown, target)`, `RawWheel(t, device,
+  delta, horizontal)`, `RawButton(t, device, button, down)`, `Tick(t)`,
+  `PointerTargetChanged(target)`, `Paused(bool)`. `target` is the window the event scrolls (see
+  task 12), not the foreground window.
 - Outputs: the hook's answer (`Swallow` / `Pass`) and a list of `Send(delta, horizontal)`.
 - Rules: physical wheel events are swallowed only while running, not paused, and the
-  foreground window isn't elevated. Each swallowed event waits in a queue; the next Raw
+  window they scroll isn't elevated. Each swallowed event waits in a queue; the next Raw
   Input wheel from a real device takes it and goes through `ScrollBlocker` with that
   device's `WheelSettings` (pass → send as is, reverse → send negated, drop → nothing,
   smooth → into that device's `WheelSmoother`). Raw Input wheels with no device, or with our
@@ -152,16 +153,24 @@ A, with no Windows calls, so every rule is a unit test:
 `SendInput` calls (marker in `dwExtraInfo`). The hook callback only asks the router and
 returns: no allocation, no locks held across calls. Smoothing frames come from a
 high-resolution waitable timer at the main display's refresh rate, running only while a
-glide is in progress. A watchdog sends a marked zero-delta wheel every few seconds and
-reinstalls the hook if it doesn't come through (Windows silently removes slow hooks). An
+glide is in progress. A watchdog reinstalls the hook if Windows silently removed it: when the
+user is active but the hook has heard nothing for a few seconds, it injects a marked move to
+where the cursor already is and checks the hook got it. (Not a zero-delta wheel: Windows drops
+zero-delta wheels and zero moves before any hook sees them. Markers are 32 bits: LL hooks only
+get the low half of `dwExtraInfo`.) An
 unhandled exception on this thread removes the hook first, then reports, so a crash never
 leaves the mouse unable to scroll.
 
-**12. Devices and the foreground app.** Raw Input device list with change notifications
+**12. Devices and the target window.** Raw Input device list with change notifications
 (`RIDEV_DEVNOTIFY`); each mouse gets a stable key (VID, PID, product name) and a display
-name, and precision touchpads are recognised and marked "left alone". Foreground tracking
-with `SetWinEventHook(EVENT_SYSTEM_FOREGROUND)`: exe name, UWP apps resolved through
-`ApplicationFrameHost`, and "elevated" when the process token can't be read or says so.
+name, and precision touchpads are recognised and marked "left alone". App rules and the
+elevated check apply to the window the wheel event will scroll, resolved per event in the
+hook: Windows scrolls the window **under the cursor** by default ("Scroll inactive windows"),
+so `WindowFromPoint` on the hook's point → top-level window → process (cached per process for
+a couple of seconds). If `SPI_GETMOUSEWHEELROUTING` says "focus", the foreground window is used
+instead ("hybrid": desktop apps by focus, Store apps by hover). Exe name, UWP apps resolved
+through `ApplicationFrameHost`'s child window, and "elevated" when the process's integrity
+level is above ours or its token can't be read.
 *Done when:* integration tests in Win.Tests (hook installs, a marked wheel passes, the
 router's swallow/pass reaches the hook) pass on `windows-latest`.
 
