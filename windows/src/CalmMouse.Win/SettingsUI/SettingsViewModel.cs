@@ -306,7 +306,12 @@ public sealed class SettingsViewModel : Observable, IDisposable
         LoadRules(s.AppRules);
     }
 
-    private void OnSettingsChanged(object? sender, EventArgs e) => _post(() => { if (!_disposed) { LoadSettings(); } });
+    private void OnSettingsChanged(object? sender, EventArgs e) => _post(() =>
+    {
+        if (_disposed) { return; }
+        LoadSettings();
+        RefreshStatus();   // "Couldn't set CalmMouse to start…" shows at once, not a second later
+    });
 
     private void OnDevicesChanged(object? sender, EventArgs e) => _post(() => { if (!_disposed) { RefreshDevices(); } });
 
@@ -319,6 +324,7 @@ public sealed class SettingsViewModel : Observable, IDisposable
         Raise(nameof(AppRulesSubtitle));
         foreach (LanguageOption option in LanguageOptions) { option.Refresh(); }
         foreach (DeviceCardViewModel card in Devices) { card.Refresh(); }
+        foreach (AppRuleViewModel rule in Rules) { rule.Refresh(); }
         // The engine's line and the conflict notice are built from L(), so build them again.
         _health = EngineHealth.Fine;
         _conflictMessage = null;
@@ -377,6 +383,9 @@ public sealed class DeviceCardViewModel : Observable
     public string Name => Device.DisplayName.Length > 0 ? Device.DisplayName : KindLabel;
 
     public bool HasKindLabel => Device.Kind != DeviceKind.Unknown;
+
+    /// <summary>Segoe Fluent Icons: a touchpad for a touchpad, a mouse for the rest.</summary>
+    public string Glyph => Device.Kind == DeviceKind.Touchpad ? "\uEFA5" : "\uE962";
 
     /// <summary>"Wheel mouse", "Touchpad", or nothing for a device CalmMouse doesn't know.</summary>
     public string KindLabel => Device.Kind switch
@@ -470,6 +479,9 @@ public sealed class AppRuleViewModel : Observable
 
     public Command RemoveCommand { get; }
 
+    /// <summary>What a screen reader calls the Remove button: "Remove Figma".</summary>
+    public string RemoveName => L("Remove %@", DisplayName);
+
     public bool Enabled
     {
         get => _rule.Enabled;
@@ -505,12 +517,19 @@ public sealed class AppRuleViewModel : Observable
         _owner.SaveRules();
     }
 
+    /// <summary>The language changed.</summary>
+    internal void Refresh() => Raise(nameof(RemoveName));
+
     internal void Load(WheelAppRule rule)
     {
         WheelAppRule was = _rule;
         _rule = rule;
         if (was.Enabled != rule.Enabled) { Raise(nameof(Enabled)); }
-        if (was.DisplayName != rule.DisplayName) { Raise(nameof(DisplayName)); }
+        if (was.DisplayName != rule.DisplayName)
+        {
+            Raise(nameof(DisplayName));
+            Raise(nameof(RemoveName));
+        }
         Raise(nameof(NoSmoothing));
         Raise(nameof(LeaveAlone));
     }

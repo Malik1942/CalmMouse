@@ -147,6 +147,24 @@ public sealed partial class SettingsWindowTests
         WpfThread.DoEvents();
         Assert.Contains(Descendants<Slider>(window), s => s.IsVisible);   // the speed shows once smoothing is on
 
+        // A screen reader gets the explanation as the switch's help text, and calls it a toggle switch.
+        string explained = OneLine.Join(Strings.L("The page glides instead of jumping.\nZooming stays one step per notch."), Localizer.Shared.Language);
+        Assert.Equal(explained, System.Windows.Automation.AutomationProperties.GetHelpText(smooth));
+        Assert.Equal(Strings.L("toggle switch"), System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(smooth).GetLocalizedControlType());
+        Assert.Contains(Descendants<TextBlock>(window), t => t.IsVisible && t.Text == Strings.L("Devices")
+            && System.Windows.Automation.AutomationProperties.GetHeadingLevel(t) == System.Windows.Automation.AutomationHeadingLevel.Level1);
+
+        // The explanation is a row's tooltip only while the panel is hidden (a narrow window).
+        Assert.False(ToolTipService.GetIsEnabled(row));
+        window.Width = 820;
+        WpfThread.DoEvents();
+        Assert.True(model.Explanation.ShowToolTips);
+        Assert.True(ToolTipService.GetIsEnabled(row));
+        Assert.Equal(explained, row.ToolTip);
+        window.Width = 940;
+        WpfThread.DoEvents();
+        Assert.False(ToolTipService.GetIsEnabled(row));
+
         // Every control a person can reach has a name a screen reader can read: the pages, three switches and the speed.
         List<Control> reachable = Descendants<Control>(window)
             .Where(c => c.Focusable && c.IsVisible && c is System.Windows.Controls.Primitives.ButtonBase or Slider or ComboBox or ListBoxItem)
@@ -154,8 +172,37 @@ public sealed partial class SettingsWindowTests
         Assert.True(reachable.Count >= 7, $"only {reachable.Count} controls found");
         Assert.All(reachable, control => Assert.False(string.IsNullOrWhiteSpace(AutomationName(control)), $"{control.GetType().Name} has no name"));
 
+        // App rules: Remove is named after its app; after removing the last rule the focus goes to "Add an app…".
+        model.Page = SettingsPage.AppRules;
+        AppRuleViewModel rule = model.AddRule(new AppCandidate("figma.exe", "Figma", null));
+        WpfThread.DoEvents();
+        Button remove = Descendants<Button>(window).First(b => b.DataContext == rule);
+        Assert.Equal(Strings.L("Remove %@", "Figma"), AutomationName(remove));
+        window.Activate();
+
+        // A new rule gets the focus on its switch; Tab goes through the two choices, and Remove comes last.
+        AppRulesPage rulesPage = Descendants<AppRulesPage>(window).First();
+        rulesPage.FocusRule(rule);
+        WpfThread.DoEvents();
+        ToggleSwitch enabled = Descendants<ToggleSwitch>(window).First(t => t.DataContext == rule);
+        Assert.True(enabled.IsKeyboardFocused);
+        var next = new TraversalRequest(FocusNavigationDirection.Next);
+        ((UIElement)Keyboard.FocusedElement).MoveFocus(next);
+        Assert.True(Keyboard.FocusedElement is RadioButton { IsChecked: true });
+        ((UIElement)Keyboard.FocusedElement).MoveFocus(next);
+        Assert.True(Keyboard.FocusedElement is RadioButton { IsChecked: false });
+        ((UIElement)Keyboard.FocusedElement).MoveFocus(next);
+        Assert.Same(remove, Keyboard.FocusedElement);
+
+        remove.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        WpfThread.DoEvents();
+        Assert.Empty(model.Rules);
+        Button add = Descendants<Button>(window).First(b => AutomationName(b) == Strings.L("Add an app…"));
+        Assert.True(add.IsKeyboardFocused);
+
         window.Close();
         Assert.Equal(0, host.DevicesChangedHandlers);
+        Assert.Equal(0, host.EngineHandlers);
     });
 
     private static string AutomationName(DependencyObject element) => System.Windows.Automation.AutomationProperties.GetName(element);

@@ -37,8 +37,8 @@
 "No app rules yet." = "No app rules yet.";
 "Turn a rule off to keep it\nwithout using it for now." = "Turn a rule off to keep it\nwithout using it for now.";
 "Every mouse scrolls a notch at a time here.\nFor older apps that miss small steps." = "Every mouse scrolls a notch at a time here.\nFor older apps that miss small steps.";
-"Don't smooth scrolling in this app" = "Don't smooth scrolling in this app";
-"CalmMouse doesn't touch scrolling here:\nno smoothing, no reversing, nothing held back." = "CalmMouse doesn't touch scrolling here:\nno smoothing, no reversing, nothing held back.";
+"No smooth scrolling in this app" = "No smooth scrolling in this app";
+"CalmMouse doesn't touch scrolling here:\nno smoothing, no reversing, nothing blocked." = "CalmMouse doesn't touch scrolling here:\nno smoothing, no reversing, nothing blocked.";
 "Leave scrolling alone in this app" = "Leave scrolling alone in this app";
 "No other apps are open." = "No other apps are open.";
 "Choose a program…" = "Choose a program…";
@@ -49,3 +49,11 @@
 /* Under that switch, when Windows won't do it. */
 "Turned off in Task Manager" = "Turned off in Task Manager";
 "Couldn't set CalmMouse to start when you sign in." = "Couldn't set CalmMouse to start when you sign in.";
+
+/* Settings window, review fixes: the page list's name, what a screen reader calls a switch, the Remove button, a rule that is off. %@ is the app's name. */
+"Pages" = "Pages";
+"toggle switch" = "toggle switch";
+"Remove %@" = "Remove %@";
+"The rule is off, so this doesn't apply for now." = "The rule is off, so this doesn't apply for now.";
+"On" = "On";
+"Off" = "Off";

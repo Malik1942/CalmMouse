@@ -2,6 +2,8 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using static CalmMouse.Win.Localization.Strings;
 
@@ -18,14 +20,15 @@ public partial class AppRulesPage : UserControl
     private void OnAddClicked(object sender, RoutedEventArgs e)
     {
         if (Model is not { } model) { return; }
-        var menu = new ContextMenu { PlacementTarget = AddButton, Placement = PlacementMode.Bottom };
+        // A menu is a window of its own: it takes the window's language, so Chinese is drawn with the right forms.
+        var menu = new ContextMenu { PlacementTarget = AddButton, Placement = PlacementMode.Bottom, Language = Language };
         IReadOnlyList<AppCandidate> apps = model.AppsToAdd();
         foreach (AppCandidate app in apps)
         {
             var item = new MenuItem { Header = app.DisplayName, ToolTip = app.ExeName };
             if (model.IconFor(app) is { } icon) { item.Icon = new Image { Source = icon, Width = 16, Height = 16 }; }
             AutomationProperties.SetName(item, app.DisplayName);
-            item.Click += (_, _) => Added(model.AddRule(app));
+            item.Click += (_, _) => FocusRule(model.AddRule(app));
             menu.Items.Add(item);
         }
         if (apps.Count == 0)
@@ -50,20 +53,41 @@ public partial class AppRulesPage : UserControl
         };
         if (dialog.ShowDialog(Window.GetWindow(this)) == true)
         {
-            Added(model.AddRule(model.DescribeProgram(dialog.FileName)));
+            FocusRule(model.AddRule(model.DescribeProgram(dialog.FileName)));
         }
     }
 
-    /// <summary>Shows the rule just added (or the one the app already had) and puts the focus on it.</summary>
-    private void Added(AppRuleViewModel rule)
+    /// <summary>Removes the rule, then puts the focus on the next one's switch, or on "Add an app…" if it was the last.</summary>
+    private void OnRemoveClicked(object sender, RoutedEventArgs e)
+    {
+        if (Model is not { } model || (sender as FrameworkElement)?.DataContext is not AppRuleViewModel rule) { return; }
+        int index = model.Rules.IndexOf(rule);
+        model.RemoveRule(rule);
+        if (index >= 0 && index < model.Rules.Count) { FocusRule(model.Rules[index]); }
+        else if (model.Rules.Count > 0) { FocusRule(model.Rules[^1]); }
+        else { AddButton.Focus(); }
+    }
+
+    /// <summary>Shows a rule's card and puts the keyboard focus on its "Rule enabled" switch.</summary>
+    internal void FocusRule(AppRuleViewModel rule)
     {
         Dispatcher.BeginInvoke(() =>
         {
-            if (RuleList.ItemContainerGenerator.ContainerFromItem(rule) is FrameworkElement card)
-            {
-                card.BringIntoView();
-                card.MoveFocus(new System.Windows.Input.TraversalRequest(System.Windows.Input.FocusNavigationDirection.First));
-            }
-        }, System.Windows.Threading.DispatcherPriority.Loaded);
+            if (RuleList.ItemContainerGenerator.ContainerFromItem(rule) is not FrameworkElement card) { return; }
+            card.BringIntoView();
+            if (FindSwitch(card) is { } toggle) { Keyboard.Focus(toggle); }
+        }, DispatcherPriority.Loaded);
+    }
+
+    private static ToggleSwitch? FindSwitch(DependencyObject root)
+    {
+        int count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(root);
+        for (int i = 0; i < count; i++)
+        {
+            DependencyObject child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is ToggleSwitch toggle) { return toggle; }
+            if (FindSwitch(child) is { } inner) { return inner; }
+        }
+        return null;
     }
 }

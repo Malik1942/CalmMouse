@@ -11,12 +11,18 @@ public partial class App
 {
     private sealed class SettingsHost(App app) : ISettingsHost
     {
+        // The engine's event carries the list; the window reads it again itself. The relay
+        // subscribes to the engine once, while a window listens, and lets go when it closes.
+        private readonly EventRelay<IReadOnlyList<MouseDeviceInfo>> _devices = new(
+            h => { if (app._engine is { } engine) { engine.DevicesChanged += h; } },
+            h => { if (app._engine is { } engine) { engine.DevicesChanged -= h; } });
+
         public IReadOnlyList<MouseDeviceInfo> Devices => app._engine?.Devices ?? [];
 
         public event EventHandler? DevicesChanged
         {
-            add { if (app._engine is { } engine) { engine.DevicesChanged += Forward(value); } }
-            remove { if (app._engine is { } engine) { engine.DevicesChanged -= Forward(value); } }
+            add => _devices.Add(value);
+            remove => _devices.Remove(value);
         }
 
         public EngineHealth Health
@@ -45,12 +51,5 @@ public partial class App
         }
 
         public void RetryEngine() => app.RetryEngine();
-
-        // The engine's event carries the list; the window reads it again itself. One adapter per
-        // handler, so removing finds the same one.
-        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<EventHandler, EventHandler<IReadOnlyList<MouseDeviceInfo>>> s_adapters = new();
-
-        private static EventHandler<IReadOnlyList<MouseDeviceInfo>> Forward(EventHandler? handler) =>
-            handler == null ? (_, _) => { } : s_adapters.GetValue(handler, h => (sender, _) => h(sender, EventArgs.Empty));
     }
 }

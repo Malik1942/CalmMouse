@@ -33,7 +33,7 @@
                  SelectedValue="{Binding Page, Mode=TwoWay}"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                  KeyboardNavigation.TabNavigation="Once"
-                 AutomationProperties.Name="{loc:L 'CalmMouse Settings'}">
+                 AutomationProperties.Name="{loc:L Pages}">
             <ListBoxItem Tag="{x:Static ui:SettingsPage.General}" AutomationProperties.Name="{loc:L General}">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFont}" FontSize="16" VerticalAlignment="Center" Margin="0,0,12,0" />
@@ -65,16 +65,16 @@
         </ScrollViewer>
 
         <!-- What the setting under the pointer does -->
-        <Border x:Name="ExplanationPanel" Grid.Column="2" Margin="0,24,16,24" Padding="16"
+        <!-- Its top lines up with the first card under the page title (16 + 8 + 36 + 16). -->
+        <Border x:Name="ExplanationPanel" Grid.Column="2" Margin="0,76,16,24" Padding="16"
                 Background="{DynamicResource LayerFillColorDefaultBrush}"
                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6"
                 VerticalAlignment="Top">
             <StackPanel>
                 <TextBlock Text="&#xE946;" FontFamily="{StaticResource IconFont}" FontSize="20" Margin="0,0,0,10"
                            Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
-                <!-- Read out when it changes (keyboard focus moved to another setting). -->
-                <TextBlock x:Name="ExplanationText" Text="{Binding Explanation.Text, Converter={StaticResource OneLine}}" TextWrapping="Wrap" LineHeight="22"
-                           AutomationProperties.LiveSetting="Polite">
+                <!-- Screen readers get the same words as each control's help text, so this isn't announced. -->
+                <TextBlock x:Name="ExplanationText" Text="{Binding Explanation.Text, Converter={StaticResource OneLine}}" TextWrapping="Wrap" LineHeight="22">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
                             <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />

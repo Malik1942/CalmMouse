@@ -8,7 +8,7 @@
         <ResourceDictionary Source="SettingsStyles.xaml" />
     </UserControl.Resources>
     <StackPanel>
-        <TextBlock Text="{loc:L General}" Style="{StaticResource PageTitle}" />
+        <TextBlock Text="{loc:L General}" Style="{StaticResource PageTitle}" AutomationProperties.HeadingLevel="Level1" />
 
         <!-- The engine stopped, couldn't start, or is being blocked. -->
         <Border Style="{StaticResource Notice}" Visibility="{Binding HasProblem, Converter={StaticResource BoolToVisibility}}">
@@ -45,13 +45,13 @@
             <StackPanel>
                 <Border Style="{StaticResource Row}"
                         ui:Explain.Text="{loc:L 'Every mouse scrolls as usual&#10;until you turn this off.'}">
-                    <CheckBox Style="{StaticResource Switch}" Content="{loc:L 'Pause CalmMouse'}" IsChecked="{Binding Paused}"
+                    <ui:ToggleSwitch Style="{StaticResource Switch}" Content="{loc:L 'Pause CalmMouse'}" IsChecked="{Binding Paused}"
                               AutomationProperties.Name="{loc:L 'Pause CalmMouse'}" />
                 </Border>
                 <Border Style="{StaticResource NextRow}"
                         ui:Explain.Text="{loc:L 'CalmMouse starts by itself&#10;when you sign in to Windows.'}">
-                    <StackPanel>
-                        <CheckBox Style="{StaticResource Switch}" Content="{loc:L 'Launch at login'}" IsChecked="{Binding LaunchAtLogin}"
+                    <StackPanel VerticalAlignment="Center">
+                        <ui:ToggleSwitch Style="{StaticResource Switch}" Content="{loc:L 'Launch at login'}" IsChecked="{Binding LaunchAtLogin}"
                                   AutomationProperties.Name="{loc:L 'Launch at login'}" />
                         <!-- Only when Windows won't start it: turned off in Task Manager, or the entry couldn't be written. -->
                         <TextBlock Text="{Binding LaunchAtLoginNote}" Style="{StaticResource Secondary}" Margin="0,4,0,0"

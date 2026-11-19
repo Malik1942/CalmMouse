@@ -8,7 +8,7 @@
         <ResourceDictionary Source="SettingsStyles.xaml" />
     </UserControl.Resources>
     <StackPanel>
-        <TextBlock Text="{loc:L Devices}" Style="{StaticResource PageTitle}" />
+        <TextBlock Text="{loc:L Devices}" Style="{StaticResource PageTitle}" AutomationProperties.HeadingLevel="Level1" />
 
         <TextBlock Text="{loc:L 'No mouse found yet.'}" Style="{StaticResource Secondary}"
                    Visibility="{Binding HasNoDevices, Converter={StaticResource BoolToVisibility}}" />
@@ -24,10 +24,11 @@
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="&#xE962;" FontFamily="{StaticResource IconFont}" FontSize="20" Margin="0,0,14,0"
+                                <!-- A mouse, or a touchpad -->
+                                <TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="20" Margin="0,0,14,0"
                                            VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Name}" Style="{StaticResource BodyStrongTextBlockStyle}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource CardTitle}"
                                                ToolTip="{Binding Name}" />
                                     <TextBlock Text="{Binding KindLabel}" Style="{StaticResource CaptionTextBlockStyle}"
                                                Visibility="{Binding HasKindLabel, Converter={StaticResource BoolToVisibility}}"
@@ -39,8 +40,8 @@
                             <StackPanel Visibility="{Binding IsWheelMouse, Converter={StaticResource BoolToVisibility}}">
                                 <Border Style="{StaticResource NextRow}"
                                         ui:Explain.Text="{loc:L 'The page glides instead of jumping.&#10;Zooming stays one step per notch.'}">
-                                    <CheckBox Style="{StaticResource Switch}" Content="{loc:L 'Smooth scrolling'}" IsChecked="{Binding Smooth}"
-                                              AutomationProperties.Name="{loc:L 'Smooth scrolling'}" AutomationProperties.HelpText="{Binding Name}" />
+                                    <ui:ToggleSwitch Style="{StaticResource Switch}" Content="{loc:L 'Smooth scrolling'}" IsChecked="{Binding Smooth}"
+                                              AutomationProperties.Name="{loc:L 'Smooth scrolling'}" />
                                 </Border>
                                 <Border Style="{StaticResource NextRow}"
                                         Visibility="{Binding Smooth, Converter={StaticResource BoolToVisibility}}"
@@ -58,19 +59,19 @@
                                                 Minimum="{x:Static ui:DeviceCardViewModel.MinimumSpeed}" Maximum="{x:Static ui:DeviceCardViewModel.MaximumSpeed}"
                                                 SmallChange="0.5" LargeChange="1"
                                                 Value="{Binding Speed}"
-                                                AutomationProperties.Name="{loc:L 'Scrolling speed'}" AutomationProperties.HelpText="{Binding Name}" />
+                                                AutomationProperties.Name="{loc:L 'Scrolling speed'}" />
                                         <TextBlock Grid.Column="3" Text="{loc:L Fast}" Style="{StaticResource Secondary}" VerticalAlignment="Center" Margin="8,0,0,0" />
                                     </Grid>
                                 </Border>
                                 <Border Style="{StaticResource NextRow}"
                                         ui:Explain.Text="{loc:L 'Flips only the wheel\'s direction.&#10;Other devices stay as they are.'}">
-                                    <CheckBox Style="{StaticResource Switch}" Content="{loc:L 'Reverse direction'}" IsChecked="{Binding Reverse}"
-                                              AutomationProperties.Name="{loc:L 'Reverse direction'}" AutomationProperties.HelpText="{Binding Name}" />
+                                    <ui:ToggleSwitch Style="{StaticResource Switch}" Content="{loc:L 'Reverse direction'}" IsChecked="{Binding Reverse}"
+                                              AutomationProperties.Name="{loc:L 'Reverse direction'}" />
                                 </Border>
                                 <Border Style="{StaticResource NextRow}"
                                         ui:Explain.Text="{loc:L 'Pressing a wheel often turns it too.&#10;That won\'t scroll the page.'}">
-                                    <CheckBox Style="{StaticResource Switch}" Content="{loc:L 'Don\'t scroll while pressed'}" IsChecked="{Binding BlockWhilePressed}"
-                                              AutomationProperties.Name="{loc:L 'Don\'t scroll while pressed'}" AutomationProperties.HelpText="{Binding Name}" />
+                                    <ui:ToggleSwitch Style="{StaticResource Switch}" Content="{loc:L 'Don\'t scroll while pressed'}" IsChecked="{Binding BlockWhilePressed}"
+                                              AutomationProperties.Name="{loc:L 'Don\'t scroll while pressed'}" />
                                 </Border>
                             </StackPanel>
 

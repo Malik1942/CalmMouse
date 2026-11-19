@@ -24,20 +24,20 @@
 
 /* 设置窗口：页面、右侧面板里的说明（\n 在那里换行）、设备和应用规则 */
 "App rules" = "应用规则";
-"Rules follow the window under the pointer,\nthe one the wheel scrolls,\neven when another app is in front." = "规则看的是指针下方的窗口，\n也就是滚轮正在滚动的那个，\n即使前台是别的应用。";
+"Rules follow the window under the pointer,\nthe one the wheel scrolls,\neven when another app is in front." = "规则按指针下方的窗口来判断，\n也就是滚轮正在滚动的窗口，\n即使它不在前台。";
 "Every mouse scrolls as usual\nuntil you turn this off." = "所有鼠标照常滚动，\n直到你关掉这一项。";
 "CalmMouse starts by itself\nwhen you sign in to Windows." = "登录 Windows 时\nCalmMouse 自动启动。";
 "“Same as Windows” follows\nthe Windows display language." = "“跟随 Windows”会使用\nWindows 的显示语言。";
 "No mouse found yet." = "还没有找到鼠标。";
 "Touchpad" = "触摸板";
 "CalmMouse leaves the touchpad alone." = "CalmMouse 不会改动触摸板。";
-"Pick an app that's open now,\nor choose a program file." = "从现在打开的应用里挑一个，\n或者选择一个程序文件。";
+"Pick an app that's open now,\nor choose a program file." = "从当前打开的应用中选择一个，\n或选择程序文件。";
 "Add an app…" = "添加应用…";
 "No app rules yet." = "还没有应用规则。";
 "Turn a rule off to keep it\nwithout using it for now." = "暂时用不上的规则可以关掉，\n不必删除。";
-"Every mouse scrolls a notch at a time here.\nFor older apps that miss small steps." = "在这里，每只鼠标都一格一格地滚动。\n适合跟不上小步滚动的旧程序。";
-"Don't smooth scrolling in this app" = "在这个应用里不平滑滚动";
-"CalmMouse doesn't touch scrolling here:\nno smoothing, no reversing, nothing held back." = "CalmMouse 不碰这里的滚动：\n不平滑、不反转，也不拦下任何滚动。";
+"Every mouse scrolls a notch at a time here.\nFor older apps that miss small steps." = "在这里，每只鼠标都一格一格地滚动。\n适合识别不了细微滚动的旧程序。";
+"No smooth scrolling in this app" = "在这个应用里关闭平滑滚动";
+"CalmMouse doesn't touch scrolling here:\nno smoothing, no reversing, nothing blocked." = "CalmMouse 不处理这里的滚动：\n不平滑、不反转，也不拦截。";
 "Leave scrolling alone in this app" = "不改动这个应用里的滚动";
 "No other apps are open." = "没有其他打开的应用。";
 "Choose a program…" = "选择程序…";
@@ -47,3 +47,11 @@
 "Launch at login" = "登录时启动";
 "Turned off in Task Manager" = "已在任务管理器中关闭";
 "Couldn't set CalmMouse to start when you sign in." = "无法让 CalmMouse 在登录时启动。";
+
+/* 设置窗口（审阅修改）：页面列表的名称、屏幕阅读器对开关的称呼、移除按钮、已关闭的规则。%@ 是应用的名称。 */
+"Pages" = "页面";
+"toggle switch" = "切换开关";
+"Remove %@" = "移除 %@";
+"The rule is off, so this doesn't apply for now." = "规则已关闭，暂不生效。";
+"On" = "开";
+"Off" = "关";

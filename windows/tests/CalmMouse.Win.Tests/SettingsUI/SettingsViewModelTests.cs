@@ -215,8 +215,10 @@ public sealed class SettingsViewModelTests : IDisposable
     {
         SettingsViewModel model = Model();
         Assert.Equal(1, _host.DevicesChangedHandlers);
+        Assert.Equal(1, _host.EngineHandlers);
         model.Dispose();
         Assert.Equal(0, _host.DevicesChangedHandlers);
+        Assert.Equal(0, _host.EngineHandlers);
         Store.SetPaused(true);   // no longer followed
         Assert.False(model.Paused);
     }

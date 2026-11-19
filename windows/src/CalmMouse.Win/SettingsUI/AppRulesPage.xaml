@@ -8,7 +8,7 @@
         <ResourceDictionary Source="SettingsStyles.xaml" />
     </UserControl.Resources>
     <StackPanel>
-        <TextBlock Text="{loc:L 'App rules'}" Style="{StaticResource PageTitle}" Margin="0,0,0,8" />
+        <TextBlock Text="{loc:L 'App rules'}" Style="{StaticResource PageTitle}" AutomationProperties.HeadingLevel="Level1" Margin="0,0,0,8" />
         <TextBlock Text="{Binding AppRulesSubtitle}" Style="{StaticResource Secondary}" Margin="0,0,0,16" />
 
         <Border Background="Transparent" HorizontalAlignment="Left" Margin="0,0,0,16"
@@ -28,7 +28,8 @@
         <ItemsControl x:Name="RuleList" ItemsSource="{Binding Rules}" Focusable="False">
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type ui:AppRuleViewModel}">
-                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                    <!-- Tab order inside a card: the switch, the two choices, then Remove (last, so it's never the first thing a key lands on). -->
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12" KeyboardNavigation.TabNavigation="Local">
                         <StackPanel>
                             <!-- Which app -->
                             <Grid Margin="16,12">
@@ -45,13 +46,12 @@
                                                Visibility="{Binding HasIcon, Converter={StaticResource BoolToVisibility}, ConverterParameter=not}" />
                                 </Grid>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding DisplayName}" Style="{StaticResource BodyStrongTextBlockStyle}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
-                                               ToolTip="{Binding DisplayName}" />
+                                    <TextBlock Text="{Binding DisplayName}" Style="{StaticResource CardTitle}" ToolTip="{Binding DisplayName}" />
                                     <TextBlock Text="{Binding ExeName}" Style="{StaticResource CaptionTextBlockStyle}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
                                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                 </StackPanel>
-                                <Button Grid.Column="2" Command="{Binding RemoveCommand}" Margin="12,0,0,0" VerticalAlignment="Center"
-                                        AutomationProperties.Name="{loc:L Remove}" AutomationProperties.HelpText="{Binding DisplayName}">
+                                <Button Grid.Column="2" Click="OnRemoveClicked" Margin="12,0,0,0" VerticalAlignment="Center" KeyboardNavigation.TabIndex="4"
+                                        AutomationProperties.Name="{Binding RemoveName}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE74D;" FontFamily="{StaticResource IconFont}" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" />
                                         <TextBlock Text="{loc:L Remove}" VerticalAlignment="Center" />
@@ -61,36 +61,29 @@
 
                             <Border Style="{StaticResource NextRow}"
                                     ui:Explain.Text="{loc:L 'Turn a rule off to keep it&#10;without using it for now.'}">
-                                <CheckBox Style="{StaticResource Switch}" Content="{loc:L 'Rule enabled'}" IsChecked="{Binding Enabled}"
-                                          AutomationProperties.Name="{loc:L 'Rule enabled'}" AutomationProperties.HelpText="{Binding DisplayName}" />
+                                <ui:ToggleSwitch x:Name="EnabledSwitch" Style="{StaticResource Switch}" Content="{loc:L 'Rule enabled'}" IsChecked="{Binding Enabled}"
+                                                 KeyboardNavigation.TabIndex="1" AutomationProperties.Name="{loc:L 'Rule enabled'}" />
                             </Border>
 
-                            <!-- One choice or the other; dimmed (but still open to change) while the rule is off. -->
+                            <!-- One choice or the other. They stay at full strength while the rule is off; a line says so. -->
                             <Border Style="{StaticResource NextRow}" Padding="16,4">
                                 <StackPanel>
-                                    <StackPanel.Style>
-                                        <Style TargetType="StackPanel">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Enabled}" Value="False">
-                                                    <Setter Property="Opacity" Value="0.6" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </StackPanel.Style>
                                     <Border Background="Transparent" Padding="0,8"
                                             ui:Explain.Text="{loc:L 'Every mouse scrolls a notch at a time here.&#10;For older apps that miss small steps.'}">
-                                        <RadioButton IsChecked="{Binding NoSmoothing}" GroupName="{Binding ExeName}"
-                                                     AutomationProperties.Name="{loc:L 'Don\'t smooth scrolling in this app'}" AutomationProperties.HelpText="{Binding DisplayName}">
-                                            <TextBlock Text="{loc:L 'Don\'t smooth scrolling in this app'}" TextWrapping="Wrap" />
+                                        <RadioButton IsChecked="{Binding NoSmoothing}" GroupName="{Binding ExeName}" KeyboardNavigation.TabIndex="2"
+                                                     AutomationProperties.Name="{loc:L 'No smooth scrolling in this app'}">
+                                            <TextBlock Text="{loc:L 'No smooth scrolling in this app'}" TextWrapping="Wrap" />
                                         </RadioButton>
                                     </Border>
                                     <Border Background="Transparent" Padding="0,8"
-                                            ui:Explain.Text="{loc:L 'CalmMouse doesn\'t touch scrolling here:&#10;no smoothing, no reversing, nothing held back.'}">
-                                        <RadioButton IsChecked="{Binding LeaveAlone}" GroupName="{Binding ExeName}"
-                                                     AutomationProperties.Name="{loc:L 'Leave scrolling alone in this app'}" AutomationProperties.HelpText="{Binding DisplayName}">
+                                            ui:Explain.Text="{loc:L 'CalmMouse doesn\'t touch scrolling here:&#10;no smoothing, no reversing, nothing blocked.'}">
+                                        <RadioButton IsChecked="{Binding LeaveAlone}" GroupName="{Binding ExeName}" KeyboardNavigation.TabIndex="3"
+                                                     AutomationProperties.Name="{loc:L 'Leave scrolling alone in this app'}">
                                             <TextBlock Text="{loc:L 'Leave scrolling alone in this app'}" TextWrapping="Wrap" />
                                         </RadioButton>
                                     </Border>
+                                    <TextBlock Text="{loc:L 'The rule is off, so this doesn\'t apply for now.'}" Style="{StaticResource Secondary}" Margin="0,0,0,8"
+                                               Visibility="{Binding Enabled, Converter={StaticResource BoolToVisibility}, ConverterParameter=not}" />
                                 </StackPanel>
                             </Border>
                         </StackPanel>

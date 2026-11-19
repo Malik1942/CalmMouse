@@ -6,10 +6,18 @@
 // Any element can carry an explanation. The window sets Explain.Panel (an ExplainState) once on
 // its root; it is inherited down the tree, so every row finds it. The panel shows the row under
 // the pointer, else the row holding the keyboard focus, else the page's intro.
+//
+// The explanation is also each control's AutomationProperties.HelpText, so a screen reader reads
+// it with the control (nothing is announced on its own), and the row's tooltip while the window
+// is too narrow for the panel.
 
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
+using CalmMouse.Win.Localization;
 
 namespace CalmMouse.Win.SettingsUI;
 
@@ -22,8 +30,21 @@ public sealed class ExplainState : INotifyPropertyChanged
     private readonly List<(object Source, string? Text)> _hovered = [];
     private readonly List<(object Source, string? Text)> _focused = [];
     private string _intro = "";
+    private bool _showToolTips;
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>The panel isn't on show (a narrow window): rows show their explanation as a tooltip instead.</summary>
+    public bool ShowToolTips
+    {
+        get => _showToolTips;
+        set
+        {
+            if (_showToolTips == value) { return; }
+            _showToolTips = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowToolTips)));
+        }
+    }
 
     /// <summary>What the panel says when no row is pointed at or focused.</summary>
     public string Intro
@@ -138,8 +159,36 @@ public static class Explain
             element.IsKeyboardFocusWithinChanged += OnFocusWithinChanged;
             element.IsVisibleChanged += OnVisibleChanged;
             element.Unloaded += OnUnloaded;
+            element.Loaded += (_, _) => DescribeControls(element);
+            // The tooltip: this row's explanation, only while the panel is hidden.
+            element.SetBinding(FrameworkElement.ToolTipProperty, new Binding { Path = new PropertyPath(TextProperty), RelativeSource = RelativeSource.Self, Converter = s_oneLine });
+            element.SetBinding(ToolTipService.IsEnabledProperty, new Binding { Path = new PropertyPath("(0).(1)", PanelProperty, s_showToolTipsPath), RelativeSource = RelativeSource.Self, FallbackValue = false });
         }
+        DescribeControls(element);
         (GetPanel(element) ?? (ExplainState?)element.GetValue(ReportedToProperty))?.TextChanged(element, (string?)e.NewValue);
+    }
+
+    private static readonly OneLine s_oneLine = new();
+    private static readonly System.Reflection.PropertyInfo s_showToolTipsPath = typeof(ExplainState).GetProperty(nameof(ExplainState.ShowToolTips))!;
+
+    /// <summary>
+    /// Every control in the row (but not in a row of its own inside it) gets the explanation as its
+    /// help text, as running text.
+    /// </summary>
+    private static void DescribeControls(FrameworkElement row)
+    {
+        string text = OneLine.Join(GetText(row) ?? "", Localizer.Shared.Language);
+        Describe(row, text, isRow: true);
+    }
+
+    private static void Describe(DependencyObject node, string text, bool isRow)
+    {
+        if (!isRow && node.ReadLocalValue(TextProperty) != DependencyProperty.UnsetValue) { return; }   // a row of its own
+        if (node is Control { Focusable: true } control) { AutomationProperties.SetHelpText(control, text); }
+        foreach (object child in LogicalTreeHelper.GetChildren(node))
+        {
+            if (child is DependencyObject inner) { Describe(inner, text, isRow: false); }
+        }
     }
 
     /// <summary>The panel a row last reported to, so it can still be told once the row has left the tree.</summary>

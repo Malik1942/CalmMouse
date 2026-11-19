@@ -1,7 +1,4 @@
-using System.ComponentModel;
 using System.Windows;
-using System.Windows.Automation;
-using System.Windows.Automation.Peers;
 using System.Windows.Markup;
 using System.Windows.Threading;
 using CalmMouse.Win.Localization;
@@ -23,7 +20,6 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         DataContext = model;
         SettingsUI.Explain.SetPanel(this, model.Explanation);
-        model.Explanation.PropertyChanged += OnExplanationChanged;
 
         ApplyLanguage();
         Localizer.Shared.LanguageChanged += OnLanguageChanged;
@@ -42,7 +38,6 @@ public partial class SettingsWindow : Window
         {
             _statusTimer.Stop();
             Localizer.Shared.LanguageChanged -= OnLanguageChanged;
-            model.Explanation.PropertyChanged -= OnExplanationChanged;
             model.Dispose();
         };
     }
@@ -76,24 +71,17 @@ public partial class SettingsWindow : Window
     }
 
     /// <summary>
-    /// Narrower than the three columns need (high scaling on a small screen): the page keeps the
-    /// room and the explanation panel steps aside.
+    /// A narrow window (the minimum, or high scaling on a small screen): the page keeps the room,
+    /// the explanation panel steps aside, and each row shows its explanation as a tooltip instead.
     /// </summary>
     private void FitPanel()
     {
         bool narrow = ActualWidth < NarrowWidth;
         PanelColumn.Width = new GridLength(narrow ? 0 : 260);
         ExplanationPanel.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
+        Model.Explanation.ShowToolTips = narrow;
     }
 
-    /// <summary>The window's width (frame included) below which the three columns don't fit: their minimum is 770.</summary>
-    private const double NarrowWidth = 790;
-
-    /// <summary>A screen reader hears the new explanation when the keyboard focus moves to another setting.</summary>
-    private void OnExplanationChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName != nameof(ExplainState.Text) || !AutomationPeer.ListenerExists(AutomationEvents.LiveRegionChanged)) { return; }
-        AutomationPeer peer = UIElementAutomationPeer.FromElement(ExplanationText) ?? UIElementAutomationPeer.CreatePeerForElement(ExplanationText);
-        peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
-    }
+    /// <summary>The window's width (frame included) below which the page gets the room and the panel steps aside.</summary>
+    private const double NarrowWidth = 900;
 }

@@ -2,6 +2,7 @@
   The settings window's few styles, all on top of WPF's Fluent theme and its brushes (so light,
   dark and high contrast follow Windows). Windows 11 Settings is the model: cards of rows, a
   switch with "On"/"Off" beside it, a navigation list with a small accent bar on the chosen page.
+  No state is shown with opacity alone: high contrast replaces colours, not transparency.
 -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -15,13 +16,18 @@
     <!-- Segoe Fluent Icons (Windows 11), else Segoe MDL2 Assets. -->
     <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
-    <!-- Keyboard focus rings: WPF draws these only when the focus came from the keyboard. -->
+    <!--
+      Keyboard focus rings, drawn only when the focus came from the keyboard: Fluent's two strokes,
+      a 2 px outer one and a 1 px inner one that keeps it apart from whatever is behind.
+    -->
     <Style x:Key="FocusRing">
         <Setter Property="Control.Template">
             <Setter.Value>
                 <ControlTemplate>
-                    <Border Margin="-6,-4" CornerRadius="6" BorderThickness="2" SnapsToDevicePixels="True"
-                            BorderBrush="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <Border Margin="-7,-5" CornerRadius="7" BorderThickness="2" SnapsToDevicePixels="True"
+                            BorderBrush="{DynamicResource FocusStrokeColorOuterBrush}">
+                        <Border CornerRadius="5" BorderThickness="1" BorderBrush="{DynamicResource FocusStrokeColorInnerBrush}" />
+                    </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -30,8 +36,10 @@
         <Setter Property="Control.Template">
             <Setter.Value>
                 <ControlTemplate>
-                    <Border CornerRadius="4" BorderThickness="2" SnapsToDevicePixels="True"
-                            BorderBrush="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <Border CornerRadius="5" BorderThickness="2" SnapsToDevicePixels="True"
+                            BorderBrush="{DynamicResource FocusStrokeColorOuterBrush}">
+                        <Border CornerRadius="3" BorderThickness="1" BorderBrush="{DynamicResource FocusStrokeColorInnerBrush}" />
+                    </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -61,7 +69,9 @@
         <Setter Property="BorderThickness" Value="0,1,0,0" />
     </Style>
 
+    <!-- Text colours are set here as dynamic resources, so they follow a theme change (and high contrast) while open. -->
     <Style x:Key="PageTitle" TargetType="TextBlock" BasedOn="{StaticResource TitleTextBlockStyle}">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
         <Setter Property="Margin" Value="0,0,0,16" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
@@ -71,14 +81,25 @@
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
+    <!-- A device's or an app's name at the top of its card. -->
+    <Style x:Key="CardTitle" TargetType="TextBlock" BasedOn="{StaticResource BodyStrongTextBlockStyle}">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="AutomationProperties.HeadingLevel" Value="Level2" />
+    </Style>
+
     <Style x:Key="RowTitle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
         <Setter Property="TextWrapping" Value="Wrap" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
     <!--
-      A CheckBox drawn as a Windows 11 toggle switch. Its content is the row's title (and so the
-      name a screen reader reads); "On" / "Off" sit beside the switch, as in Windows Settings.
+      A ToggleSwitch (a CheckBox) drawn as a Windows 11 toggle switch. Its content is the row's
+      title (and so the name a screen reader reads); "On" / "Off" sit beside the switch, as in
+      Windows Settings. Hover changes the track, pressing stretches the knob, and the disabled
+      look uses the theme's disabled colours (no opacity, so high contrast keeps working).
     -->
     <Style x:Key="Switch" TargetType="CheckBox">
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -95,7 +116,7 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <ContentPresenter VerticalAlignment="Center" Margin="0,0,12,0" RecognizesAccessKey="False">
+                        <ContentPresenter x:Name="Label" VerticalAlignment="Center" Margin="0,0,12,0" RecognizesAccessKey="False">
                             <ContentPresenter.Resources>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource RowTitle}" />
                             </ContentPresenter.Resources>
@@ -107,15 +128,15 @@
                         <Border x:Name="Track" Grid.Column="2" Width="40" Height="20" CornerRadius="10" VerticalAlignment="Center"
                                 Background="{DynamicResource ControlAltFillColorSecondaryBrush}"
                                 BorderBrush="{DynamicResource ControlStrongStrokeColorDefaultBrush}" BorderThickness="1">
-                            <Ellipse x:Name="Knob" Width="12" Height="12" HorizontalAlignment="Left" Margin="3,0,0,0"
-                                     Fill="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <Border x:Name="Knob" Width="12" Height="12" CornerRadius="7" HorizontalAlignment="Left" Margin="3,0,0,0"
+                                    Background="{DynamicResource TextFillColorSecondaryBrush}" />
                         </Border>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
                             <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
-                            <Setter TargetName="Knob" Property="Fill" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                            <Setter TargetName="Knob" Property="Background" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
                             <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right" />
                             <Setter TargetName="Knob" Property="Margin" Value="0,0,3,0" />
                             <Setter TargetName="OnText" Property="Visibility" Value="Visible" />
@@ -125,9 +146,55 @@
                             <Setter TargetName="Knob" Property="Width" Value="14" />
                             <Setter TargetName="Knob" Property="Height" Value="14" />
                         </Trigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Opacity" Value="0.5" />
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" />
+                                <Condition Property="IsChecked" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource ControlAltFillColorTertiaryBrush}" />
+                        </MultiTrigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" />
+                                <Condition Property="IsChecked" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentFillColorSecondaryBrush}" />
+                        </MultiTrigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Knob" Property="Width" Value="17" />
+                            <Setter TargetName="Knob" Property="Height" Value="14" />
                         </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsPressed" Value="True" />
+                                <Condition Property="IsChecked" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource ControlAltFillColorQuarternaryBrush}" />
+                        </MultiTrigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsPressed" Value="True" />
+                                <Condition Property="IsChecked" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentFillColorTertiaryBrush}" />
+                        </MultiTrigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Label" Property="TextElement.Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+                            <Setter TargetName="OffText" Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+                            <Setter TargetName="OnText" Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource ControlAltFillColorDisabledBrush}" />
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource ControlStrongStrokeColorDisabledBrush}" />
+                            <Setter TargetName="Knob" Property="Background" Value="{DynamicResource TextFillColorDisabledBrush}" />
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsEnabled" Value="False" />
+                                <Condition Property="IsChecked" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentFillColorDisabledBrush}" />
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentFillColorDisabledBrush}" />
+                            <Setter TargetName="Knob" Property="Background" Value="{DynamicResource TextOnAccentFillColorDisabledBrush}" />
+                        </MultiTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -137,24 +204,31 @@
     <!-- The pages on the left: a glyph and a name, the chosen one with a short accent bar. -->
     <Style x:Key="NavItem" TargetType="ListBoxItem">
         <Setter Property="FocusVisualStyle" Value="{StaticResource NavFocusRing}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
         <Setter Property="Margin" Value="0,0,0,4" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
                     <Grid>
-                        <Border x:Name="Back" CornerRadius="4" Background="Transparent" MinHeight="40" Padding="12,8">
+                        <Border x:Name="Back" CornerRadius="4" Background="Transparent" MinHeight="40" Padding="12,8"
+                                BorderThickness="1" BorderBrush="Transparent"
+                                TextElement.Foreground="{DynamicResource TextFillColorPrimaryBrush}">
                             <ContentPresenter VerticalAlignment="Center" />
                         </Border>
-                        <Border x:Name="Bar" Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left" Margin="0,0,0,0"
+                        <Border x:Name="Bar" Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left" Margin="1,0,0,0"
                                 Background="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Hidden" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Back" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
                         </Trigger>
+                        <!-- The chosen page: the fill and the bar, its name in semibold, and an outline
+                             (the one of these every high-contrast theme keeps). -->
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Back" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            <Setter TargetName="Back" Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
                             <Setter TargetName="Bar" Property="Visibility" Value="Visible" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

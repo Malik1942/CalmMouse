@@ -25,7 +25,8 @@ public sealed class BoolToVisibility : IValueConverter
 
 /// <summary>
 /// A caption written with the Mac's line breaks (tuned for its column) as running text that
-/// wraps to whatever width it gets: a space between English lines, nothing between Chinese ones.
+/// wraps to whatever width it gets: a space between English lines; between Chinese ones nothing,
+/// unless a Latin letter or digit touches the break ("登录 Windows 时 CalmMouse 自动启动").
 /// </summary>
 public sealed class OneLine : IValueConverter
 {
@@ -34,6 +35,17 @@ public sealed class OneLine : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 
-    public static string Join(string text, UiLanguage language) =>
-        text.Replace("\n", language == UiLanguage.English ? " " : "", StringComparison.Ordinal);
+    public static string Join(string text, UiLanguage language)
+    {
+        if (!text.Contains('\n')) { return text; }
+        var sb = new System.Text.StringBuilder(text.Length);
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (text[i] != '\n') { sb.Append(text[i]); continue; }
+            bool latinBefore = i > 0 && char.IsAsciiLetterOrDigit(text[i - 1]);
+            bool latinAfter = i + 1 < text.Length && char.IsAsciiLetterOrDigit(text[i + 1]);
+            if (language == UiLanguage.English || latinBefore || latinAfter) { sb.Append(' '); }
+        }
+        return sb.ToString();
+    }
 }

@@ -7,12 +7,26 @@ using CalmMouse.Win.SettingsUI;
 
 namespace CalmMouse.Win.Tests.SettingsUI;
 
-/// <summary>The running app as the settings window sees it, made up for tests.</summary>
+/// <summary>
+/// The running app as the settings window sees it, made up for tests. Its device event goes
+/// through the same EventRelay the app uses, from an engine-like source event.
+/// </summary>
 internal sealed class FakeHost : ISettingsHost
 {
+    private readonly EventRelay<IReadOnlyList<MouseDeviceInfo>> _devices;
+
+    public FakeHost() => _devices = new(h => EngineDevicesChanged += h, h => EngineDevicesChanged -= h);
+
+    /// <summary>Stands in for InputThread.DevicesChanged.</summary>
+    private event EventHandler<IReadOnlyList<MouseDeviceInfo>>? EngineDevicesChanged;
+
     public IReadOnlyList<MouseDeviceInfo> Devices { get; set; } = [];
 
-    public event EventHandler? DevicesChanged;
+    public event EventHandler? DevicesChanged
+    {
+        add => _devices.Add(value);
+        remove => _devices.Remove(value);
+    }
 
     public EngineHealth Health { get; set; } = EngineHealth.Fine;
 
@@ -33,7 +47,7 @@ internal sealed class FakeHost : ISettingsHost
     public void ChangeDevices(params MouseDeviceInfo[] devices)
     {
         Devices = devices;
-        DevicesChanged?.Invoke(this, EventArgs.Empty);
+        EngineDevicesChanged?.Invoke(this, devices);
     }
 
     public void ChangeConflicts(string? message)
@@ -42,7 +56,11 @@ internal sealed class FakeHost : ISettingsHost
         ConflictsChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public int DevicesChangedHandlers => DevicesChanged?.GetInvocationList().Length ?? 0;
+    /// <summary>Listeners on the relay.</summary>
+    public int DevicesChangedHandlers => _devices.ListenerCount;
+
+    /// <summary>Handlers on the engine-like source: the relay's one, or none.</summary>
+    public int EngineHandlers => EngineDevicesChanged?.GetInvocationList().Length ?? 0;
 }
 
 /// <summary>Apps without asking Windows.</summary>
