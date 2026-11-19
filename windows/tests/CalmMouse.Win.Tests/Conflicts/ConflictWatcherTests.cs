@@ -124,8 +124,44 @@ public sealed class ConflictWatcherTests
         Assert.Equal("SmoothScroll and AutoHotkey can also change how your mouse scrolls. If scrolling feels odd, turn off one of them.",
             english.Get("%@ can also change how your mouse scrolls. If scrolling feels odd, turn off one of them.", english.JoinList(["SmoothScroll", "AutoHotkey"])));
         var hant = new Localizer(Localizer.LoadEmbeddedTables(), UiLanguage.TraditionalChinese);
-        Assert.Equal("SmoothScroll 和 AutoHotkey 也可能改變滑鼠的捲動方式。如果捲動起來怪怪的，請關閉其中一個。",
+        Assert.Equal("SmoothScroll 和 AutoHotkey 也可能改變滑鼠的捲動方式。如果捲動感覺不太對，請關閉其中一個。",
             hant.Get("%@ can also change how your mouse scrolls. If scrolling feels odd, turn off one of them.", hant.JoinList(["SmoothScroll", "AutoHotkey"])));
+    }
+
+    [Fact]
+    public void OnlyThisSessionAndServicesCount()
+    {
+        Assert.True(ConflictWatcher.InScope(2, 2));
+        Assert.True(ConflictWatcher.InScope(0, 2));    // services
+        Assert.False(ConflictWatcher.InScope(3, 2));   // another user signed in on the same PC
+    }
+
+    [Fact]
+    public async Task AnOlderLookNeverLandsAfterANewerOne()
+    {
+        // The first look is slow and sees SmoothScroll; a second, quicker look sees nothing. The
+        // second waits for the first, so what's left is the newer answer.
+        using var firstStarted = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        int calls = 0;
+        using var watcher = new ConflictWatcher(() => Wheel, () =>
+        {
+            if (Interlocked.Increment(ref calls) == 1)
+            {
+                firstStarted.Set();
+                release.Wait(TimeSpan.FromSeconds(5));
+                return [WindowsMouseUtilities.FromProcessName("SmoothScroll")];
+            }
+            return [WindowsMouseUtilities.FromProcessName("explorer")];
+        }, interval: TimeSpan.FromHours(1));
+
+        Task first = Task.Run(watcher.Refresh, TestContext.Current.CancellationToken);
+        Assert.True(firstStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+        Task second = Task.Run(watcher.Refresh, TestContext.Current.CancellationToken);
+        await Task.Delay(100, TestContext.Current.CancellationToken);   // let the second look start (and wait) before the first finishes
+        release.Set();
+        await Task.WhenAll(first, second);
+        Assert.Empty(watcher.Conflicts);
     }
 
     [Fact]

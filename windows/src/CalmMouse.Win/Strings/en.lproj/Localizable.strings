@@ -43,3 +43,9 @@
 "No other apps are open." = "No other apps are open.";
 "Choose a program…" = "Choose a program…";
 "Programs" = "Programs";
+
+/* Start at sign-in: Windows says "sign in", so the Mac's "Launch at login" is worded the Windows way. */
+"Launch at login" = "Start when I sign in";
+/* Under that switch, when Windows won't do it. */
+"Turned off in Task Manager" = "Turned off in Task Manager";
+"Couldn't set CalmMouse to start when you sign in." = "Couldn't set CalmMouse to start when you sign in.";

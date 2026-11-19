@@ -36,6 +36,7 @@ public sealed class SettingsViewModel : Observable, IDisposable
     private AppLanguage _language;
     private EngineHealth _health = EngineHealth.Fine;
     private string? _conflictMessage;
+    private string? _launchAtLoginNote;
     private bool _disposed;
 
     /// <param name="post">Runs an action on the window's thread (Dispatcher.BeginInvoke); events from other threads go through it.</param>
@@ -146,6 +147,11 @@ public sealed class SettingsViewModel : Observable, IDisposable
 
     public bool HasConflict => _conflictMessage != null;
 
+    /// <summary>Why starting at sign-in won't happen though the switch is on, or null.</summary>
+    public string? LaunchAtLoginNote => _launchAtLoginNote;
+
+    public bool HasLaunchAtLoginNote => _launchAtLoginNote != null;
+
     /// <summary>Reads the engine's health and the conflict notice again (the window does every second).</summary>
     public void RefreshStatus()
     {
@@ -163,6 +169,13 @@ public sealed class SettingsViewModel : Observable, IDisposable
             _conflictMessage = conflict;
             Raise(nameof(ConflictMessage));
             Raise(nameof(HasConflict));
+        }
+        string? note = _host.LaunchAtLoginNote;
+        if (note != _launchAtLoginNote)
+        {
+            _launchAtLoginNote = note;
+            Raise(nameof(LaunchAtLoginNote));
+            Raise(nameof(HasLaunchAtLoginNote));
         }
     }
 
@@ -309,6 +322,7 @@ public sealed class SettingsViewModel : Observable, IDisposable
         // The engine's line and the conflict notice are built from L(), so build them again.
         _health = EngineHealth.Fine;
         _conflictMessage = null;
+        _launchAtLoginNote = null;
         RefreshStatus();
     });
 

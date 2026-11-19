@@ -69,6 +69,8 @@ public sealed class ConflictWatcher : IDisposable
     private readonly IReadOnlyList<MouseUtility> _known;
     private readonly TimeSpan _interval;
     private readonly Lock _lock = new();
+    /// <summary>Held from looking to publishing, so an older look can't land after a newer one.</summary>
+    private readonly Lock _refreshLock = new();
     private readonly Timer _timer;
     private IReadOnlyList<MouseUtility> _conflicts = [];
     private bool _disposed;
@@ -104,16 +106,17 @@ public sealed class ConflictWatcher : IDisposable
     /// <summary>Checks now, on this thread.</summary>
     public void Refresh()
     {
-        IReadOnlySet<MouseUtilityArea> active = _activeAreas();
-        IReadOnlyList<MouseUtility> found = active.Count == 0 ? [] : MouseUtilityConflicts.Conflicts(_known, _running(), active);
-        bool changed;
-        lock (_lock)
+        lock (_refreshLock)
         {
-            if (_disposed) { return; }
-            changed = !found.SequenceEqual(_conflicts);
-            if (changed) { _conflicts = found; }
+            IReadOnlySet<MouseUtilityArea> active = _activeAreas();
+            IReadOnlyList<MouseUtility> found = active.Count == 0 ? [] : MouseUtilityConflicts.Conflicts(_known, _running(), active);
+            lock (_lock)
+            {
+                if (_disposed || found.SequenceEqual(_conflicts)) { return; }
+                _conflicts = found;
+            }
+            ConflictsChanged?.Invoke(this, EventArgs.Empty);
         }
-        if (changed) { ConflictsChanged?.Invoke(this, EventArgs.Empty); }
     }
 
     /// <summary>"SmoothScroll can also change how your mouse scrolls. …", naming every tool found, or null.</summary>
@@ -125,19 +128,30 @@ public sealed class ConflictWatcher : IDisposable
             : L("%@ can also change how your mouse scrolls. If scrolling feels odd, turn off one of them.",
                 Localization.Localizer.Shared.JoinList(conflicts.Select(c => c.Name).ToList()));
 
-    /// <summary>Every running process's name. Process objects are disposed straight away.</summary>
+    /// <summary>
+    /// The names of the processes that can touch this user's mouse: those in this sign-in session,
+    /// and services (session 0), where some tools run their part. Another user's session on the
+    /// same PC doesn't count. Process objects are disposed straight away.
+    /// </summary>
     public static IReadOnlyList<RunningApp> RunningProcesses()
     {
+        int ownSession = Process.GetCurrentProcess().SessionId;
         Process[] processes = Process.GetProcesses();
         var apps = new List<RunningApp>(processes.Length);
         foreach (Process process in processes)
         {
-            try { apps.Add(WindowsMouseUtilities.FromProcessName(process.ProcessName)); }
+            try
+            {
+                if (InScope(process.SessionId, ownSession)) { apps.Add(WindowsMouseUtilities.FromProcessName(process.ProcessName)); }
+            }
             catch (InvalidOperationException) { /* exited meanwhile */ }
             finally { process.Dispose(); }
         }
         return apps;
     }
+
+    /// <summary>A process in this session, or a service (session 0).</summary>
+    public static bool InScope(int processSession, int ownSession) => processSession == ownSession || processSession == 0;
 
     public void Dispose()
     {

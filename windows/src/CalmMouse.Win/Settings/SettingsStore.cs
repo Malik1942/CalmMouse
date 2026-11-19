@@ -1,10 +1,14 @@
 // The settings file: %AppData%\CalmMouse\settings.json (see AppSettings.cs for its shape).
 //
 // - Read once at start. No file: defaults, and this is the first launch. A file that isn't JSON:
-//   it is kept next to it as settings.json.bak and CalmMouse starts from defaults.
+//   it is kept next to it as settings.json.bak and CalmMouse starts from defaults. A file that
+//   can't be read (a backup tool holding it?) is tried a few times; if it still can't, CalmMouse
+//   runs on defaults and doesn't write over it this time. A file from a newer version is copied
+//   to settings.v<n>.json first, and the fields this version doesn't know are written back.
 // - Every change is written a moment later (several changes in a row make one write), atomically:
 //   a temp file next to it, flushed to disk, then swapped in with File.Replace, so a crash or
 //   power cut leaves either the old file or the new one, never half of one. Flush() writes now.
+//   A write that fails is tried again later, waiting longer each time, and logged once.
 // - It is the engine's IWheelSettingsProvider: the input thread reads each mouse's settings and
 //   the app rules from here, and Changed tells it to read them again.
 
@@ -19,6 +23,7 @@ public sealed class SettingsStore : IWheelSettingsProvider, IDisposable
 {
     public const string FileName = "settings.json";
     public static readonly TimeSpan DefaultSaveDelay = TimeSpan.FromMilliseconds(500);
+    private static readonly TimeSpan FirstRetry = TimeSpan.FromSeconds(5), LongestRetry = TimeSpan.FromMinutes(5);
 
     private readonly Lock _lock = new();
     private readonly Lock _writeLock = new();
@@ -26,17 +31,25 @@ public sealed class SettingsStore : IWheelSettingsProvider, IDisposable
     private readonly Func<DateTimeOffset> _clock;
     private readonly Action<string>? _log;
     private readonly Timer _saveTimer;
+    private readonly int _readAttempts;
+    private readonly TimeSpan _readRetryDelay;
     private AppSettings _settings;
     private bool _dirty;
     private bool _disposed;
+    private TimeSpan _retry = FirstRetry;
+    private bool _writeFailing;
 
     /// <summary>%AppData%\CalmMouse\settings.json.</summary>
     public static string DefaultPath =>
         System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CalmMouse", FileName);
 
     /// <summary>Reads the file at <paramref name="path"/> (see the top of this file for what happens when it's missing or corrupt).</summary>
-    public SettingsStore(string path, TimeSpan? saveDelay = null, Func<DateTimeOffset>? clock = null, Action<string>? log = null)
+    /// <param name="readAttempts">How many times to try a file that can't be read before giving up on it for this run.</param>
+    public SettingsStore(string path, TimeSpan? saveDelay = null, Func<DateTimeOffset>? clock = null, Action<string>? log = null,
+                         int readAttempts = 5, TimeSpan? readRetryDelay = null)
     {
+        _readAttempts = Math.Max(1, readAttempts);
+        _readRetryDelay = readRetryDelay ?? TimeSpan.FromMilliseconds(200);
         Path = path;
         _saveDelay = saveDelay ?? DefaultSaveDelay;
         _clock = clock ?? (() => DateTimeOffset.Now);
@@ -52,6 +65,15 @@ public sealed class SettingsStore : IWheelSettingsProvider, IDisposable
 
     /// <summary>Where a corrupt settings file was kept, if there was one.</summary>
     public string? CorruptBackupPath { get; private set; }
+
+    /// <summary>Where a newer version's file was copied before this version writes it, if it was.</summary>
+    public string? NewerVersionCopyPath { get; private set; }
+
+    /// <summary>
+    /// The file was there but couldn't be read (or a newer version's file couldn't be copied):
+    /// changes work for this run but aren't written, so what's in the file isn't lost.
+    /// </summary>
+    public bool IsReadOnly { get; private set; }
 
     /// <summary>The settings now. Immutable: change them through the methods below.</summary>
     public AppSettings Current
@@ -126,25 +148,36 @@ public sealed class SettingsStore : IWheelSettingsProvider, IDisposable
 
     private AppSettings Load()
     {
-        string text;
-        try
+        if (!File.Exists(Path))
         {
-            if (!File.Exists(Path))
-            {
-                IsFirstLaunch = true;
-                return new AppSettings();
-            }
-            text = File.ReadAllText(Path);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            // Can't be read right now (locked by a backup tool?): use defaults, and don't write
-            // over the file unless something is changed.
-            _log?.Invoke($"settings: couldn't read {Path}: {ex.Message}");
+            IsFirstLaunch = true;
             return new AppSettings();
         }
+        string? text = null;
+        for (int attempt = 1; text == null; attempt++)
+        {
+            try
+            {
+                text = File.ReadAllText(Path);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                if (attempt >= _readAttempts)
+                {
+                    // Held by something else for good: run on defaults and leave the file alone.
+                    _log?.Invoke($"settings: couldn't read {Path} ({ex.Message}); using defaults and not writing it this time");
+                    IsReadOnly = true;
+                    return new AppSettings();
+                }
+                Thread.Sleep(_readRetryDelay);
+            }
+        }
 
-        if (SettingsJson.Read(text) is { } settings) { return settings; }
+        if (SettingsJson.Read(text) is { } settings)
+        {
+            if (settings.Version > AppSettings.CurrentVersion) { KeepNewerVersion(settings.Version); }
+            return settings;
+        }
 
         string backup = Path + ".bak";
         try
@@ -159,6 +192,24 @@ public sealed class SettingsStore : IWheelSettingsProvider, IDisposable
         }
         _dirty = true;   // replace the corrupt file with defaults at the first save
         return new AppSettings();
+    }
+
+    /// <summary>A newer CalmMouse wrote this file: keep it whole as settings.v&lt;n&gt;.json (never over an earlier copy).</summary>
+    private void KeepNewerVersion(int version)
+    {
+        string copy = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path)!, $"settings.v{version}.json");
+        try
+        {
+            if (!File.Exists(copy)) { File.Copy(Path, copy); }
+            NewerVersionCopyPath = copy;
+            _log?.Invoke($"settings: {Path} is from a newer CalmMouse (version {version}); a copy is in {copy}");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Without a copy, don't write over what the newer version wrote.
+            IsReadOnly = true;
+            _log?.Invoke($"settings: {Path} is from a newer CalmMouse (version {version}) and couldn't be copied ({ex.Message}); not writing it this time");
+        }
     }
 
     /// <summary>Writes the settings now if anything is waiting to be written (and on first launch, so the file exists).</summary>
@@ -178,21 +229,26 @@ public sealed class SettingsStore : IWheelSettingsProvider, IDisposable
             string json;
             lock (_lock)
             {
-                if (!_dirty) { return; }
+                if (!_dirty || IsReadOnly) { return; }
                 json = SettingsJson.Write(_settings);
                 _dirty = false;
             }
             try
             {
                 WriteAtomically(Path, json);
+                if (_writeFailing) { _log?.Invoke($"settings: {Path} written again"); }
+                _writeFailing = false;
+                _retry = FirstRetry;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                _log?.Invoke($"settings: couldn't write {Path}: {ex.Message}");
+                if (!_writeFailing) { _log?.Invoke($"settings: couldn't write {Path} ({ex.Message}); trying again later, less often each time"); }
+                _writeFailing = true;
                 lock (_lock)
                 {
-                    _dirty = true;   // try again a little later
-                    if (!_disposed) { _saveTimer.Change(TimeSpan.FromSeconds(5), Timeout.InfiniteTimeSpan); }
+                    _dirty = true;
+                    if (!_disposed) { _saveTimer.Change(_retry, Timeout.InfiniteTimeSpan); }
+                    _retry = TimeSpan.FromTicks(Math.Min(_retry.Ticks * 2, LongestRetry.Ticks));
                 }
             }
         }

@@ -8,9 +8,9 @@
 "Try again" = "重试";
 
 /* 通知区域图标：出了什么问题（提示文字和菜单顶部） */
-"CalmMouse stopped because of a problem. Your mouse scrolls as usual." = "CalmMouse 出了问题，已经停止。鼠标照常滚动。";
+"CalmMouse stopped because of a problem. Your mouse scrolls as usual." = "CalmMouse 出现问题，已停止运行。鼠标会照常滚动。";
 "CalmMouse couldn't start. Your mouse scrolls as usual." = "CalmMouse 无法启动。鼠标照常滚动。";
-"Something on this PC is blocking CalmMouse, so your mouse scrolls as usual for now. It will try again soon." = "这台电脑上有程序拦住了 CalmMouse，鼠标暂时照常滚动，稍后会再试。";
+"Something on this PC is blocking CalmMouse, so your mouse scrolls as usual for now. It will try again soon." = "这台电脑上有程序阻止了 CalmMouse，鼠标暂时照常滚动，稍后会自动重试。";
 
 /* 设置窗口 */
 "CalmMouse Settings" = "CalmMouse 设置";
@@ -18,7 +18,7 @@
 "Same as Windows" = "跟随 Windows";
 
 /* 其他鼠标软件。%@ 是一个名字，或者像“SmoothScroll 和 AutoHotkey”这样的列表。 */
-"%@ can also change how your mouse scrolls. If scrolling feels odd, turn off one of them." = "%@ 也可能改变鼠标的滚动方式。如果滚动感觉不对劲，请关掉其中一个。";
+"%@ can also change how your mouse scrolls. If scrolling feels odd, turn off one of them." = "%@ 也可能改变鼠标的滚动方式。如果滚动感觉异常，请关闭其中一个。";
 /* 连接列表的最后两个名字。 */
 "%@ and %@" = "%@ 和 %@";
 
@@ -42,3 +42,8 @@
 "No other apps are open." = "没有其他打开的应用。";
 "Choose a program…" = "选择程序…";
 "Programs" = "程序";
+
+/* 登录时启动：Windows 说“登录”。下面两行在开关下方，Windows 不会照做时显示。 */
+"Launch at login" = "登录时启动";
+"Turned off in Task Manager" = "已在任务管理器中关闭";
+"Couldn't set CalmMouse to start when you sign in." = "无法让 CalmMouse 在登录时启动。";

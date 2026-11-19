@@ -215,10 +215,11 @@ public static class StringsFile
             i = digitsStart;
         }
 
-        bool leftAlign = false;
+        bool leftAlign = false, zeroPad = false;
         while (i < s.Length && s[i] is '-' or '+' or ' ' or '#' or '0')
         {
             if (s[i] == '-') { leftAlign = true; }
+            if (s[i] == '0') { zeroPad = true; }
             i++;
         }
         int widthStart = i;
@@ -235,24 +236,35 @@ public static class StringsFile
         while (i < s.Length && s[i] is 'h' or 'l' or 'q' or 'L' or 'z' or 't' or 'j') { i++; }
         if (i >= s.Length) { return false; }
 
+        // printf's 0 flag pads numbers with zeros to the width ("%02ld" → "05"); "-" overrides it.
+        int? zeros = zeroPad && !leftAlign ? width : null;
         string? format = s[i] switch
         {
-            '@' or 'd' or 'i' or 'u' or 's' or 'S' or 'c' or 'C' => "",
-            'f' or 'F' => $"F{precision ?? 6}",
+            'd' or 'i' or 'u' => zeros is { } z ? $"D{z}" : "",
+            '@' or 's' or 'S' or 'c' or 'C' => "",
+            'f' or 'F' => zeros is { } fz ? FixedWithZeros(fz, precision ?? 6) : $"F{precision ?? 6}",
             'e' or 'E' => $"{s[i]}{precision ?? 6}",
             'g' or 'G' => precision is { } g ? $"G{g}" : "G",
-            'x' => "x",
-            'X' => "X",
+            'x' => zeros is { } xz ? $"x{xz}" : "x",
+            'X' => zeros is { } bz ? $"X{bz}" : "X",
             _ => null,
         };
         if (format == null) { return false; }
+        bool padded = zeros != null && s[i] is 'd' or 'i' or 'u' or 'f' or 'F' or 'x' or 'X';
         i++;
 
         int index = position ?? next;
         if (position == null) { next++; }
-        string alignment = width is { } w ? $",{(leftAlign ? "-" : "")}{w}" : "";
+        string alignment = width is { } w && !padded ? $",{(leftAlign ? "-" : "")}{w}" : "";
         converted = format.Length == 0 ? $"{{{index}{alignment}}}" : $"{{{index}{alignment}:{format}}}";
         length = i - start;
         return true;
+    }
+
+    /// <summary>A custom format with leading zeros: width 6, precision 2 → "000.00".</summary>
+    private static string FixedWithZeros(int width, int precision)
+    {
+        int whole = Math.Max(1, width - (precision > 0 ? precision + 1 : 0));
+        return precision > 0 ? $"{new string('0', whole)}.{new string('0', precision)}" : new string('0', whole);
     }
 }

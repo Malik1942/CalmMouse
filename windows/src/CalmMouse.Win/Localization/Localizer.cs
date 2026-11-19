@@ -69,8 +69,10 @@ public sealed class Localizer
         }
         catch (FormatException)
         {
-            // A translation with a broken specifier: the English never is (the tests check every key).
-            return string.Format(Culture, StringsFile.ConvertFormat(key), args);
+            // A translation with a broken specifier: try the English, and if even that can't take
+            // these arguments, show the text unformatted rather than fail.
+            try { return string.Format(Culture, StringsFile.ConvertFormat(key), args); }
+            catch (FormatException) { return text; }
         }
     }
 
@@ -81,13 +83,14 @@ public sealed class Localizer
         return key;
     }
 
-    /// <summary>"A", "A and B", "A, B and C" (and 「A、B 和 C」 in Chinese).</summary>
+    /// <summary>"A", "A and B", "A, B, and C" (as the Mac's ListFormatter), and 「A、B 和 C」 in Chinese.</summary>
     public string JoinList(IReadOnlyList<string> items)
     {
         if (items.Count == 0) { return ""; }
         if (items.Count == 1) { return items[0]; }
-        string separator = _language == UiLanguage.English ? ", " : "、";
-        string head = string.Join(separator, items.Take(items.Count - 1));
+        bool english = _language == UiLanguage.English;
+        string head = string.Join(english ? ", " : "、", items.Take(items.Count - 1));
+        if (english && items.Count > 2) { head += ","; }   // the serial comma
         return Get("%@ and %@", head, items[^1]);
     }
 

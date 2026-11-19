@@ -32,6 +32,12 @@ public interface ISettingsHost
     /// <summary>The conflict notice changed. Any thread.</summary>
     event EventHandler? ConflictsChanged;
 
+    /// <summary>
+    /// A line under "Start when I sign in" when Windows won't do what the switch says ("Turned off
+    /// in Task Manager", or the Run entry couldn't be written), or null. Read again every second.
+    /// </summary>
+    string? LaunchAtLoginNote { get; }
+
     /// <summary>Pause or resume, exactly as the tray does (resuming after a problem tries again too).</summary>
     void SetPaused(bool paused);
 

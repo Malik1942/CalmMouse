@@ -3,8 +3,9 @@
 // Start: one instance per user (a second launch opens the first one's Settings and exits), the
 // settings file, the language, launch at login kept pointing at this exe, the scroll engine, the
 // tray icon, and the watch for other mouse software. The first launch ever opens Settings once.
-// Quit (tray menu, `--quit`, or signing out): the icon goes, the engine stops (hook removed
-// first, so scrolling is never left broken), settings are written.
+// Quit (tray menu, `--quit`, or signing out): settings are written, the icon goes, the engine
+// stops (hook removed first, so scrolling is never left broken). A crash logs what happened,
+// writes the settings and takes the icon away too; Windows removes the hook with the process.
 
 using System.Windows;
 using System.Windows.Threading;
@@ -33,6 +34,7 @@ public partial class App : Application
     private DispatcherTimer? _statusTimer;
     private SettingsWindow? _settingsWindow;
     private EngineProblem _problem;
+    private bool _launchAtLoginFailed;
     private bool _quitting;
 
     private enum EngineProblem
@@ -55,7 +57,7 @@ public partial class App : Application
         string instanceName = SingleInstance.DefaultName;
         if (e.Args.Contains(QuitSwitch, StringComparer.OrdinalIgnoreCase))
         {
-            Shutdown(SingleInstance.SignalQuit(instanceName, TimeSpan.Zero) ? 0 : 1);
+            Shutdown(QuitRunningCopy(instanceName));
             return;
         }
         _instance = SingleInstance.TryAcquire(instanceName);
@@ -63,33 +65,44 @@ public partial class App : Application
         {
             // Already running: let it come to the front with its Settings window.
             global::Windows.Win32.PInvoke.AllowSetForegroundWindow(unchecked((uint)-1));   // ASFW_ANY
-            SingleInstance.SignalShowSettings(instanceName);
-            Shutdown();
-            return;
+            if (SingleInstance.SignalShowSettings(instanceName))
+            {
+                Shutdown();
+                return;
+            }
+            // No answer: it was on its way out. Take over once it's gone.
+            _instance = SingleInstance.TryAcquire(instanceName, TimeSpan.FromSeconds(2));
+            if (_instance == null)
+            {
+                Shutdown(1);
+                return;
+            }
         }
 
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         _log = new AppLog(AppLog.DefaultPath);
         _log.Write($"CalmMouse {typeof(App).Assembly.GetName().Version} starting, pid {Environment.ProcessId}, Windows {Environment.OSVersion.Version}");
+        if (!_instance.EventsWereNew) { _log.Write("single instance: its events were already there (a launch that was exiting?)"); }
         DispatcherUnhandledException += (_, args) => _log?.Write($"unhandled exception on the UI thread: {args.Exception}");
+        AppDomain.CurrentDomain.UnhandledException += (_, args) => OnCrash(args.ExceptionObject);
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            // Not fatal (the process goes on): note it and carry on.
+            _log?.Write($"unobserved task exception: {args.Exception}");
+            args.SetObserved();
+        };
 
         _store = new SettingsStore(SettingsStore.DefaultPath, log: _log.Write);
         AppSettings settings = _store.Current;
         if (_store.IsFirstLaunch || _store.CorruptBackupPath != null) { _store.SaveNow(); }
+        if (_store.IsReadOnly) { _log.Write("settings: changes this time won't be saved"); }
         Localizer.Shared.Apply(settings.Language);
         Localizer.Shared.LanguageChanged += (_, _) => _tray?.Refresh();
 
         if (Environment.ProcessPath is { } exe)
         {
             _launchAtLogin = new LaunchAtLogin(exe);
-            try
-            {
-                if (_launchAtLogin.Repair(settings.LaunchAtLogin)) { _log.Write($"launch at login now starts {exe}"); }
-            }
-            catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or System.IO.IOException)
-            {
-                _log.Write($"couldn't update launch at login: {ex.Message}");
-            }
+            SyncLaunchAtLogin(_launchAtLogin, settings.LaunchAtLogin, exe);
         }
 
         _engine = new InputThread(new InputThreadOptions { Settings = _store });
@@ -118,6 +131,101 @@ public partial class App : Application
         _log.Write($"started: settings {_store.Path}{(_store.IsFirstLaunch ? " (first launch)" : "")}, " +
                    $"language {Localizer.Shared.Language}, paused {settings.Paused}, engine {(_problem == EngineProblem.None ? "running" : "not running")}");
         if (_store.IsFirstLaunch) { ShowSettings(); }
+    }
+
+    /// <summary>`--quit`: asks the running copy to quit and waits until it's gone. 0 when it is (or none ran), 1 if it didn't answer, 2 if it's still there.</summary>
+    private static int QuitRunningCopy(string instanceName)
+    {
+        if (!SingleInstance.IsRunning(instanceName)) { return 0; }
+        if (!SingleInstance.SignalQuit(instanceName)) { return 1; }
+        return SingleInstance.WaitForExit(instanceName, TimeSpan.FromSeconds(10)) ? 0 : 2;
+    }
+
+    /// <summary>At start: make the setting and Windows agree, without overriding the user's own choices in Windows.</summary>
+    private void SyncLaunchAtLogin(LaunchAtLogin launch, bool enabled, string exe)
+    {
+        try
+        {
+            if (!enabled && launch.IsCurrent)
+            {
+                // The Run entry starts this exe (an installer, or an older settings file): show it as on.
+                _store?.SetLaunchAtLogin(true);
+                _log?.Write("start at sign-in: the Run entry starts this exe, so the setting is on");
+            }
+            else if (enabled && LaunchAtLogin.MayRepair(exe, IsDebugBuild) && launch.Repair(enabled))
+            {
+                _log?.Write($"start at sign-in now starts {exe}");
+            }
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or System.IO.IOException)
+        {
+            _log?.Write($"couldn't check start at sign-in: {ex.Message}");
+        }
+    }
+
+    /// <summary>A debug build never moves the Run entry to itself (so running from the IDE leaves an installed copy's entry alone).</summary>
+#if DEBUG
+    private const bool IsDebugBuild = true;
+#else
+    private const bool IsDebugBuild = false;
+#endif
+
+    /// <summary>The line under "Start when I sign in" in Settings, or null.</summary>
+    private string? LaunchAtLoginNote()
+    {
+        if (_launchAtLoginFailed) { return L("Couldn't set CalmMouse to start when you sign in."); }
+        if (_store is not { } store || _launchAtLogin is not { } launch || !store.Current.LaunchAtLogin) { return null; }
+        try
+        {
+            return launch.State == LaunchAtLoginState.TurnedOffInWindows ? L("Turned off in Task Manager") : null;
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or System.IO.IOException)
+        {
+            return null;
+        }
+    }
+
+    private void ApplyLaunchAtLogin(bool enabled)
+    {
+        if (_launchAtLogin is not { } launch || _store is not { } store) { return; }
+        try
+        {
+            if (launch.Apply(enabled)) { _log?.Write(enabled ? $"start at sign-in: on ({launch.Command})" : "start at sign-in: off"); }
+            _launchAtLoginFailed = false;
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or System.IO.IOException)
+        {
+            _log?.Write($"couldn't change start at sign-in: {ex.Message}");
+            if (enabled)
+            {
+                // Don't claim it's on: switch it back off and say so under the switch.
+                _launchAtLoginFailed = true;
+                store.SetLaunchAtLogin(false);
+            }
+        }
+    }
+
+    // MARK: Crashes
+
+    /// <summary>
+    /// An exception nobody caught is about to end the process: log it, save the settings, and take
+    /// the tray icon away (Windows would leave a dead one until the pointer passes over it). The
+    /// hook goes with the process.
+    /// </summary>
+    private void OnCrash(object exception)
+    {
+        try { _log?.Write($"CRASH: {exception}"); } catch (Exception) { /* nothing more to do */ }
+        try { _store?.Flush(); } catch (Exception) { /* as above */ }
+        try
+        {
+            if (_tray is { } tray)
+            {
+                if (Dispatcher.CheckAccess()) { tray.Dispose(); }
+                else { Dispatcher.Invoke(tray.Dispose, DispatcherPriority.Send, CancellationToken.None, TimeSpan.FromSeconds(1)); }
+            }
+        }
+        catch (Exception) { /* the UI thread is gone or stuck */ }
+        try { _log?.Dispose(); } catch (Exception) { }
     }
 
     // MARK: Engine
@@ -173,14 +281,7 @@ public partial class App : Application
             _log?.Write(settings.Paused ? "paused" : "resumed");
         }
         Localizer.Shared.Apply(settings.Language);
-        if (_launchAtLogin is { } launch)
-        {
-            try { launch.Apply(settings.LaunchAtLogin); }
-            catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or System.IO.IOException)
-            {
-                _log?.Write($"couldn't change launch at login: {ex.Message}");
-            }
-        }
+        ApplyLaunchAtLogin(settings.LaunchAtLogin);
         _conflicts?.RefreshSoon();
         UpdateTray();
     }
@@ -264,6 +365,7 @@ public partial class App : Application
         if (_quitting || _instance == null) { return; }
         _quitting = true;
         _log?.Write("quitting");
+        _store?.Flush();      // first, in case stopping the engine takes its full 5 seconds
         _statusTimer?.Stop();
         _tray?.Dispose();
         _conflicts?.Dispose();

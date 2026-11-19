@@ -77,6 +77,14 @@ public sealed partial class LocalizerTests
     }
 
     [Fact]
+    public void FormattingThatCanNeverWorkGivesTheTextUnformatted()
+    {
+        // Too few arguments for the English as well: no exception, just the text.
+        Assert.Equal("%@ and %@", Sample(UiLanguage.English).Get("%@ and %@", "only one"));
+        Assert.Equal("%@ 和 %@", Sample(UiLanguage.SimplifiedChinese).Get("%@ and %@", "only one"));
+    }
+
+    [Fact]
     public void SwitchingLanguageRaisesAnEventOnlyOnAChange()
     {
         Localizer l = Sample(UiLanguage.English);
@@ -97,7 +105,8 @@ public sealed partial class LocalizerTests
     {
         Assert.Equal("A", Sample(UiLanguage.English).JoinList(["A"]));
         Assert.Equal("A and B", Sample(UiLanguage.English).JoinList(["A", "B"]));
-        Assert.Equal("A, B and C", Sample(UiLanguage.English).JoinList(["A", "B", "C"]));
+        Assert.Equal("A, B, and C", Sample(UiLanguage.English).JoinList(["A", "B", "C"]));
+        Assert.Equal("A, B, C, and D", Sample(UiLanguage.English).JoinList(["A", "B", "C", "D"]));
         Assert.Equal("A、B 和 C", Sample(UiLanguage.SimplifiedChinese).JoinList(["A", "B", "C"]));
     }
 
@@ -137,8 +146,10 @@ public sealed partial class LocalizerTests
             Assert.Equal(english.Keys.Order(StringComparer.Ordinal), table.Keys.Order(StringComparer.Ordinal));
             Assert.All(table, entry => Assert.False(string.IsNullOrWhiteSpace(entry.Value), $"{language}: \"{entry.Key}\" is empty"));
         }
-        // English values are the keys themselves.
-        Assert.All(english, entry => Assert.Equal(entry.Key, entry.Value));
+        // English values are the keys themselves, except where Windows words a Mac string its own way.
+        IReadOnlyDictionary<string, string> mac = Localizer.ReadEmbedded(typeof(Localizer).Assembly, Localizer.ResourceNames(UiLanguage.English).Mac);
+        Assert.All(english.Where(e => !mac.ContainsKey(e.Key)), entry => Assert.Equal(entry.Key, entry.Value));
+        Assert.Equal("Start when I sign in", english["Launch at login"]);
     }
 
     [Fact]

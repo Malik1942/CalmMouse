@@ -60,6 +60,7 @@ internal sealed class TrayIcon : IDisposable
         Refresh();
         _icon.ForceCreate(enablesEfficiencyMode: false);
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+        SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
     }
 
     public TrayView View => _view;
@@ -126,7 +127,7 @@ internal sealed class TrayIcon : IDisposable
     public static string IconResourceName(TrayState state, bool lightTaskbar) =>
         $"CalmMouse.Tray.{state.ToString().ToLowerInvariant()}-on-{(lightTaskbar ? "light" : "dark")}.ico";
 
-    /// <summary>The icon at the size Windows draws tray icons now (16 px at 100 %, 20 at 125 %, 24 at 150 %…).</summary>
+    /// <summary>The icon at the size Windows draws tray icons now (see <see cref="SmallIconSize"/>).</summary>
     public static Icon LoadIcon(TrayState state, bool lightTaskbar)
     {
         using Stream stream = typeof(TrayIcon).Assembly.GetManifestResourceStream(IconResourceName(state, lightTaskbar))
@@ -135,10 +136,22 @@ internal sealed class TrayIcon : IDisposable
         return new Icon(stream, size, size);
     }
 
-    private static int SmallIconSize()
+    /// <summary>
+    /// The small-icon size at the primary display's scaling (the taskbar's notification area is on
+    /// it): 16 px at 100 %, 20 at 125 %, 24 at 150 %, 28 at 175 %… The app is per-monitor DPI aware
+    /// (app.manifest), so this follows a scaling change without signing out.
+    /// </summary>
+    public static int SmallIconSize()
     {
-        int size = Windows.Win32.PInvoke.GetSystemMetrics(Windows.Win32.UI.WindowsAndMessaging.SYSTEM_METRICS_INDEX.SM_CXSMICON);
-        return size > 0 ? size : 16;
+        uint dpi = PrimaryMonitorDpi();
+        int size = Windows.Win32.PInvoke.GetSystemMetricsForDpi(Windows.Win32.UI.WindowsAndMessaging.SYSTEM_METRICS_INDEX.SM_CXSMICON, dpi);
+        return size > 0 ? size : Math.Max(16, (int)Math.Round(16 * dpi / 96.0));
+    }
+
+    private static uint PrimaryMonitorDpi()
+    {
+        Windows.Win32.Graphics.Gdi.HMONITOR monitor = Windows.Win32.PInvoke.MonitorFromPoint(default, Windows.Win32.Graphics.Gdi.MONITOR_FROM_FLAGS.MONITOR_DEFAULTTOPRIMARY);
+        return Windows.Win32.PInvoke.GetDpiForMonitor(monitor, Windows.Win32.UI.HiDpi.MONITOR_DPI_TYPE.MDT_EFFECTIVE_DPI, out uint x, out _).Succeeded && x > 0 ? x : 96;
     }
 
     /// <summary>Whether the taskbar is light (Settings › Personalization › Colors › "Choose your mode": Windows mode light).</summary>
@@ -167,12 +180,19 @@ internal sealed class TrayIcon : IDisposable
         });
     }
 
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e)
+    {
+        // Scaling changed: load the icon again at the new size.
+        _icon.Dispatcher.BeginInvoke(() => { if (!_disposed) { SetIcon(); } });
+    }
+
     /// <summary>Removes the icon from the tray.</summary>
     public void Dispose()
     {
         if (_disposed) { return; }
         _disposed = true;
         SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
+        SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         _icon.Dispose();
         _currentIcon?.Dispose();
     }

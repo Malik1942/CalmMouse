@@ -37,6 +37,8 @@ public partial class App
             remove { if (app._conflicts is { } conflicts) { conflicts.ConflictsChanged -= value; } }
         }
 
+        public string? LaunchAtLoginNote => app.LaunchAtLoginNote();
+
         public void SetPaused(bool paused)
         {
             if (app._store is { } store && store.Current.Paused != paused) { app.TogglePause(); }

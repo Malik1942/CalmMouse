@@ -8,6 +8,7 @@ public sealed class LaunchAtLoginTests : IDisposable
 {
     private readonly string _parent = $@"Software\CalmMouse.Tests\{Guid.NewGuid():N}";
     private string RunKey => _parent + @"\Run";
+    private string ApprovedKey => _parent + @"\StartupApproved\Run";
 
     public void Dispose()
     {
@@ -16,7 +17,13 @@ public sealed class LaunchAtLoginTests : IDisposable
         if (tests is { SubKeyCount: 0, ValueCount: 0 }) { Registry.CurrentUser.DeleteSubKey(@"Software\CalmMouse.Tests", throwOnMissingSubKey: false); }
     }
 
-    private LaunchAtLogin For(string exe) => new(exe, Registry.CurrentUser, RunKey);
+    private LaunchAtLogin For(string exe) => new(exe, Registry.CurrentUser, RunKey, ApprovedKey);
+
+    private void SetApproved(byte first)
+    {
+        using RegistryKey key = Registry.CurrentUser.CreateSubKey(ApprovedKey);
+        key.SetValue(LaunchAtLogin.ValueName, new byte[] { first, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, RegistryValueKind.Binary);
+    }
 
     private string? Value()
     {
@@ -29,6 +36,7 @@ public sealed class LaunchAtLoginTests : IDisposable
     {
         Assert.Equal(@"Software\Microsoft\Windows\CurrentVersion\Run", LaunchAtLogin.RunKeyPath);
         Assert.Equal("CalmMouse", LaunchAtLogin.ValueName);
+        Assert.Equal(@"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run", LaunchAtLogin.ApprovedKeyPath);
     }
 
     [Fact]
@@ -60,6 +68,35 @@ public sealed class LaunchAtLoginTests : IDisposable
         Assert.False(moved.IsCurrent);
         Assert.True(moved.Repair(enabled: true));
         Assert.Equal("\"D:\\New place\\CalmMouse.Win.exe\"", Value());
+    }
+
+    [Fact]
+    public void ReadsWhatWindowsWillReallyDo()
+    {
+        LaunchAtLogin launch = For(@"C:\Apps\CalmMouse.Win.exe");
+        Assert.Equal(LaunchAtLoginState.Off, launch.State);
+        launch.Apply(true);
+        Assert.Equal(LaunchAtLoginState.On, launch.State);    // no StartupApproved entry: on
+        SetApproved(0x02);
+        Assert.Equal(LaunchAtLoginState.On, launch.State);    // even first byte: on
+        SetApproved(0x03);
+        Assert.Equal(LaunchAtLoginState.TurnedOffInWindows, launch.State);   // turned off in Task Manager
+        Assert.False(launch.Apply(true));                      // and CalmMouse doesn't override it
+        Assert.Equal(LaunchAtLoginState.TurnedOffInWindows, launch.State);
+        SetApproved(0x06);
+        Assert.Equal(LaunchAtLoginState.On, launch.State);
+        Assert.Equal(LaunchAtLoginState.OtherCopy, For(@"D:\Elsewhere\CalmMouse.Win.exe").State);
+    }
+
+    [Theory]
+    [InlineData(@"C:\Program Files\CalmMouse\CalmMouse.Win.exe", false, true)]
+    [InlineData(@"C:\Program Files\CalmMouse\calmmouse.win.exe", false, true)]
+    [InlineData(@"D:\CalmMouse\windows\src\CalmMouse.Win\bin\Debug\CalmMouse.Win.exe", true, false)]
+    [InlineData(@"C:\Program Files\dotnet\dotnet.exe", false, false)]
+    [InlineData(@"C:\Temp\CalmMouse.Win.Tests.exe", false, false)]
+    public void OnlyTheReleaseExeRepairsTheEntry(string exe, bool debugBuild, bool may)
+    {
+        Assert.Equal(may, LaunchAtLogin.MayRepair(exe, debugBuild));
     }
 
     [Fact]

@@ -8,17 +8,17 @@
 "Try again" = "再試一次";
 
 /* 通知區域圖示：出了什麼問題（提示文字和選單頂端） */
-"CalmMouse stopped because of a problem. Your mouse scrolls as usual." = "CalmMouse 發生問題，已經停止。滑鼠照常捲動。";
+"CalmMouse stopped because of a problem. Your mouse scrolls as usual." = "CalmMouse 發生問題，已停止運作。滑鼠會照常捲動。";
 "CalmMouse couldn't start. Your mouse scrolls as usual." = "CalmMouse 無法啟動。滑鼠照常捲動。";
-"Something on this PC is blocking CalmMouse, so your mouse scrolls as usual for now. It will try again soon." = "這台電腦上有程式擋住了 CalmMouse，滑鼠暫時照常捲動，稍後會再試一次。";
+"Something on this PC is blocking CalmMouse, so your mouse scrolls as usual for now. It will try again soon." = "這台電腦上有程式阻擋了 CalmMouse，滑鼠暫時照常捲動，稍後會自動再試一次。";
 
 /* 設定視窗 */
 "CalmMouse Settings" = "CalmMouse 設定";
 "Language" = "語言";
-"Same as Windows" = "跟隨 Windows";
+"Same as Windows" = "與 Windows 相同";
 
 /* 其他滑鼠軟體。%@ 是一個名稱，或像「SmoothScroll 和 AutoHotkey」這樣的清單。 */
-"%@ can also change how your mouse scrolls. If scrolling feels odd, turn off one of them." = "%@ 也可能改變滑鼠的捲動方式。如果捲動起來怪怪的，請關閉其中一個。";
+"%@ can also change how your mouse scrolls. If scrolling feels odd, turn off one of them." = "%@ 也可能改變滑鼠的捲動方式。如果捲動感覺不太對，請關閉其中一個。";
 /* 連接清單的最後兩個名稱。 */
 "%@ and %@" = "%@ 和 %@";
 
@@ -27,7 +27,7 @@
 "Rules follow the window under the pointer,\nthe one the wheel scrolls,\neven when another app is in front." = "規則看的是指標下方的視窗，\n也就是滾輪正在捲動的那一個，\n即使前景是別的應用程式。";
 "Every mouse scrolls as usual\nuntil you turn this off." = "所有滑鼠照常捲動，\n直到你關掉這一項。";
 "CalmMouse starts by itself\nwhen you sign in to Windows." = "登入 Windows 時\nCalmMouse 自動啟動。";
-"“Same as Windows” follows\nthe Windows display language." = "「跟隨 Windows」會使用\nWindows 的顯示語言。";
+"“Same as Windows” follows\nthe Windows display language." = "「與 Windows 相同」會使用\nWindows 的顯示語言。";
 "No mouse found yet." = "還沒有找到滑鼠。";
 "Touchpad" = "觸控板";
 "CalmMouse leaves the touchpad alone." = "CalmMouse 不會改動觸控板。";
@@ -42,3 +42,8 @@
 "No other apps are open." = "沒有其他開啟的應用程式。";
 "Choose a program…" = "選擇程式…";
 "Programs" = "程式";
+
+/* 登入時啟動：Windows 說「登入」。下面兩行在開關下方，Windows 不會照做時顯示。 */
+"Launch at login" = "登入時啟動";
+"Turned off in Task Manager" = "已在工作管理員中關閉";
+"Couldn't set CalmMouse to start when you sign in." = "無法讓 CalmMouse 在登入時啟動。";

@@ -19,14 +19,14 @@ public sealed class TrayIconTests
         Assert.NotNull(stream);
         var buffer = new MemoryStream();
         stream.CopyTo(buffer);
-        foreach (int size in new[] { 16, 20, 24, 32, 48 })
+        foreach (int size in new[] { 16, 20, 24, 28, 32, 40, 48 })
         {
             buffer.Position = 0;
             using var icon = new Icon(buffer, size, size);
             Assert.Equal(new Size(size, size), icon.Size);   // an exact frame, not a scaled one
         }
         using Icon loaded = TrayIcon.LoadIcon(state, lightTaskbar);
-        Assert.True(loaded.Width >= 16);
+        Assert.Equal(TrayIcon.SmallIconSize(), loaded.Width);
     }
 
     [Fact]

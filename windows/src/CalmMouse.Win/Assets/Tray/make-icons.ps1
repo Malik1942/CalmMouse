@@ -1,5 +1,6 @@
 # Draws the tray icons into this folder: a plain mouse glyph in three states, each for a dark
-# and a light taskbar, at 16, 20, 24, 32 and 48 px (100, 125, 150, 200 and 300 % scaling).
+# and a light taskbar, at 16, 20, 24, 28, 32, 40 and 48 px (100, 125, 150, 175, 200, 250 and 300 %
+# scaling).
 # Each size is drawn on its own pixel grid, so edges land on whole pixels and stay crisp.
 #
 #   normal   filled mouse, white on a dark taskbar, near-black on a light one
@@ -19,7 +20,9 @@ $metrics = @(
     @{ Size = 16; X = 4;  Y = 1; WheelW = 2; WheelTop = 3;  WheelBottom = 7;  Pen = 1 },
     @{ Size = 20; X = 5;  Y = 1; WheelW = 2; WheelTop = 4;  WheelBottom = 9;  Pen = 1 },
     @{ Size = 24; X = 6;  Y = 2; WheelW = 2; WheelTop = 5;  WheelBottom = 10; Pen = 2 },
+    @{ Size = 28; X = 7;  Y = 2; WheelW = 2; WheelTop = 5;  WheelBottom = 11; Pen = 2 },
     @{ Size = 32; X = 8;  Y = 2; WheelW = 4; WheelTop = 6;  WheelBottom = 13; Pen = 2 },
+    @{ Size = 40; X = 10; Y = 3; WheelW = 4; WheelTop = 8;  WheelBottom = 16; Pen = 3 },
     @{ Size = 48; X = 12; Y = 3; WheelW = 4; WheelTop = 9;  WheelBottom = 19; Pen = 3 }
 )
 

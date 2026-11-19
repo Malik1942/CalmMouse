@@ -14,8 +14,10 @@ when something is wrong, with a one-line tooltip saying what. The Settings windo
   `settings.json.bak`). The first launch, with no file, opens Settings once.
 - Log: `%LocalAppData%\CalmMouse\CalmMouse.log` (engine events, pauses, faults; plain English).
 - One copy per user: starting it again opens the running copy's Settings. `CalmMouse.Win.exe --quit`
-  asks the running copy to quit (for installers and updaters).
-- Launch at login: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value `CalmMouse`, off by default.
+  asks the running copy to quit and waits (up to 10 s) until it has (for installers and updaters).
+- Start when I sign in: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value `CalmMouse`, off by
+  default. Turning it off in Task Manager is respected (Settings says so); only the release exe
+  moves the entry to itself at start.
 - Strings: the Mac's `Resources/*.lproj/Localizable.strings` plus the Windows-only tables in
   `src/CalmMouse.Win/Strings/`, embedded in the exe. The tray icons are drawn by
   `src/CalmMouse.Win/Assets/Tray/make-icons.ps1` (the `.ico` files are checked in).

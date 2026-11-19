@@ -90,8 +90,11 @@ public sealed class StringsFileTests
     [InlineData("100%% sure", "100% sure")]
     [InlineData("%2$@ before %1$@", "{1} before {0}")]
     [InlineData("%.1f ms, %f, %.0f", "{0:F1} ms, {1:F6}, {2:F0}")]
-    [InlineData("%5d|%-5d|%05d", "{0,5}|{1,-5}|{2,5}")]
-    [InlineData("0x%04X, %x", "0x{0,4:X}, {1:x}")]
+    [InlineData("%5d|%-5d|%05d", "{0,5}|{1,-5}|{2:D5}")]
+    [InlineData("%-05d", "{0,-5}")]
+    [InlineData("%02ld:%02ld", "{0:D2}:{1:D2}")]
+    [InlineData("%06.2f|%04.0f", "{0:000.00}|{1:0000}")]
+    [InlineData("0x%04X, %x", "0x{0:X4}, {1:x}")]
     [InlineData("{braces} stay", "{{braces}} stay")]
     [InlineData("a % b, trailing %", "a % b, trailing %")]
     [InlineData("no specifiers", "no specifiers")]
@@ -107,5 +110,8 @@ public sealed class StringsFileTests
         Assert.Equal("Battery 15% · MX Master",
             string.Format(culture, StringsFile.ConvertFormat("Battery %ld%% · %@"), 15, "MX Master"));
         Assert.Equal("B then A", string.Format(culture, StringsFile.ConvertFormat("%2$@ then %1$@"), "A", "B"));
+        Assert.Equal("09:05", string.Format(culture, StringsFile.ConvertFormat("%02ld:%02ld"), 9, 5));
+        Assert.Equal("003.14", string.Format(culture, StringsFile.ConvertFormat("%06.2f"), 3.14159));
+        Assert.Equal("0x00FF", string.Format(culture, StringsFile.ConvertFormat("0x%04X"), 255));
     }
 }

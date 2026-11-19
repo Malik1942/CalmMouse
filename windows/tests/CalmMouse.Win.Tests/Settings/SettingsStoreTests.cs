@@ -18,8 +18,11 @@ public sealed class SettingsStoreTests : IDisposable
         catch (DirectoryNotFoundException) { }
     }
 
+    private readonly List<string> _log = [];
+
     private SettingsStore Open(TimeSpan? delay = null, Func<DateTimeOffset>? clock = null) =>
-        new(FilePath, delay ?? TimeSpan.FromHours(1), clock);
+        new(FilePath, delay ?? TimeSpan.FromHours(1), clock, log: line => { lock (_log) { _log.Add(line); } },
+            readAttempts: 3, readRetryDelay: TimeSpan.FromMilliseconds(20));
 
     [Fact]
     public void ANewStoreIsAFirstLaunchWithEverythingOff()
@@ -128,7 +131,8 @@ public sealed class SettingsStoreTests : IDisposable
               "language": "klingon",
               "mice": {
                 "good": { "displayName": "Good", "wheel": { "reverse": true, "blockWhilePressed": false, "smooth": false, "speed": 3 }, "updatedAt": "2026-11-18T00:00:00+00:00" },
-                "bad wheel": { "displayName": "Bad", "wheel": { "reverse": true } },
+                "partial wheel": { "displayName": "Partial", "wheel": { "reverse": true, "speed": "fast" } },
+                "no wheel": { "displayName": "None" },
                 "not an object": 7
               },
               "appRules": [ { "exeName": "a.exe", "displayName": "A" }, { "displayName": "no exe" }, 3, { "exeName": "b.exe", "leaveAlone": true } ],
@@ -141,12 +145,82 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.False(s.Paused);
         Assert.True(s.LaunchAtLogin);
         Assert.Equal(AppLanguage.System, s.Language);
-        Assert.Equal(["good"], s.Mice.Keys);
+        Assert.Equal(["good", "no wheel", "partial wheel"], s.Mice.Keys.Order(StringComparer.Ordinal));
         Assert.True(s.Mice["good"].Wheel.Reverse);
+        // A wheel missing keys (or with odd ones) keeps what it has; the rest are defaults.
+        Assert.Equal(new WheelSettings(reverse: true), s.Mice["partial wheel"].Wheel);
+        Assert.Equal("Partial", s.Mice["partial wheel"].DisplayName);
+        Assert.Equal(new WheelSettings(), s.Mice["no wheel"].Wheel);
         Assert.Equal(["a.exe", "b.exe"], s.AppRules.Select(r => r.ExeName));
         Assert.True(s.AppRules[0].Enabled);   // missing → a rule that is added is on
         Assert.Equal("b.exe", s.AppRules[1].DisplayName);   // missing name → the exe name
         Assert.True(s.AppRules[1].LeaveAlone);
+    }
+
+    [Fact]
+    public void AFileThatCantBeReadIsNeverWrittenOver()
+    {
+        Directory.CreateDirectory(_folder);
+        const string precious = """{ "version": 1, "paused": true, "mice": { "k": { "displayName": "Mine" } } }""";
+        File.WriteAllText(FilePath, precious);
+        using (new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.None))   // a backup tool holding it
+        {
+            using SettingsStore store = Open();
+            Assert.True(store.IsReadOnly);
+            Assert.False(store.IsFirstLaunch);
+            Assert.False(store.Current.Paused);   // defaults for this run
+            store.SetPaused(true);
+            store.SetLanguage(AppLanguage.English);
+            store.Flush();
+        }
+        Assert.Equal(precious, File.ReadAllText(FilePath));
+        Assert.Contains(_log, line => line.Contains("not writing it this time"));
+    }
+
+    [Fact]
+    public void AFileFromANewerVersionIsCopiedAndItsNewFieldsKept()
+    {
+        Directory.CreateDirectory(_folder);
+        const string newer = """
+            { "version": 3, "paused": false, "language": "english", "mice": {}, "appRules": [],
+              "gestures": { "swipe": true }, "theme": "dark" }
+            """;
+        File.WriteAllText(FilePath, newer);
+        using (SettingsStore store = Open())
+        {
+            Assert.Equal(Path.Combine(_folder, "settings.v3.json"), store.NewerVersionCopyPath);
+            Assert.Equal(newer, File.ReadAllText(store.NewerVersionCopyPath!));
+            Assert.Equal(AppLanguage.English, store.Current.Language);
+            store.SetPaused(true);
+        }
+        JsonObject written = JsonNode.Parse(File.ReadAllText(FilePath))!.AsObject();
+        Assert.True((bool)written["paused"]!);
+        Assert.Equal("""{"swipe":true}""", written["gestures"]!.ToJsonString());
+        Assert.Equal("dark", (string)written["theme"]!);
+
+        // A later run doesn't overwrite the first copy.
+        File.WriteAllText(FilePath, newer.Replace("\"english\"", "\"system\""));
+        using (SettingsStore again = Open()) { }
+        Assert.Equal(newer, File.ReadAllText(Path.Combine(_folder, "settings.v3.json")));
+    }
+
+    [Fact]
+    public void AWriteThatKeepsFailingIsLoggedOnce()
+    {
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(FilePath, "{}");
+        using SettingsStore store = Open();
+        using (new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            store.SetPaused(true);
+            store.Flush();
+            store.Flush();
+            store.Flush();
+        }
+        Assert.Single(_log, line => line.Contains("couldn't write"));
+        store.Flush();   // free again
+        Assert.True(SettingsJson.Read(File.ReadAllText(FilePath))!.Paused);
+        Assert.Single(_log, line => line.Contains("written again"));
     }
 
     [Fact]

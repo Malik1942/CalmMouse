@@ -19,8 +19,10 @@
 //     ]
 //   }
 //
-// Reading is forgiving: a field that is missing or of the wrong kind gets its default, a mouse or
-// app rule that can't be read is skipped, and only a file that isn't JSON at all counts as corrupt.
+// Reading is forgiving: a field that is missing or of the wrong kind gets its default (inside a
+// mouse's "wheel" too), an app rule that can't be read is skipped, and only a file that isn't JSON
+// at all counts as corrupt. Top-level fields this version doesn't know (written by a newer one) are
+// kept and written back as they were.
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -61,6 +63,9 @@ public sealed record AppSettings
     public IReadOnlyDictionary<string, MouseSettings> Mice { get; init; } = new Dictionary<string, MouseSettings>(StringComparer.Ordinal);
     public IReadOnlyList<WheelAppRule> AppRules { get; init; } = [];
 
+    /// <summary>Top-level fields this version doesn't know, as read (JSON text by name), written back unchanged.</summary>
+    public IReadOnlyDictionary<string, string> UnknownFields { get; init; } = new Dictionary<string, string>(StringComparer.Ordinal);
+
     /// <summary>
     /// The settings a mouse uses, as the Mac's <c>DeviceSettingsIndex.wheelDevice(key:name:)</c>:
     /// its own if it has any; else those of the mouse with the same name that was changed last (one
@@ -97,6 +102,10 @@ public static class SettingsJson
                 settings.Mice.OrderBy(m => m.Key, StringComparer.Ordinal).ToDictionary(m => m.Key, m => m.Value, StringComparer.Ordinal), Options),
             ["appRules"] = JsonSerializer.SerializeToNode(settings.AppRules, Options),
         };
+        foreach ((string name, string json) in settings.UnknownFields)
+        {
+            if (!root.ContainsKey(name)) { root[name] = JsonNode.Parse(json); }
+        }
         return root.ToJsonString(Options);
     }
 
@@ -123,7 +132,7 @@ public static class SettingsJson
         {
             foreach ((string key, JsonNode? node) in miceNode)
             {
-                if (TryRead(node, out MouseSettings? mouse) && mouse != null) { mice[key] = mouse; }
+                if (ReadMouse(node) is { } mouse) { mice[key] = mouse; }
             }
         }
         var rules = new List<WheelAppRule>();
@@ -145,6 +154,28 @@ public static class SettingsJson
             Language = Value(root, "language", defaults.Language),
             Mice = mice,
             AppRules = rules,
+            UnknownFields = root.Where(p => !KnownFields.Contains(p.Key))
+                .ToDictionary(p => p.Key, p => p.Value?.ToJsonString() ?? "null", StringComparer.Ordinal),
+        };
+    }
+
+    private static readonly HashSet<string> KnownFields = new(StringComparer.Ordinal) { "version", "paused", "launchAtLogin", "language", "mice", "appRules" };
+
+    /// <summary>One mouse, each field on its own: a missing or odd one (even inside "wheel") gets its default.</summary>
+    private static MouseSettings? ReadMouse(JsonNode? node)
+    {
+        if (node is not JsonObject mouse) { return null; }
+        var defaults = new WheelSettings();
+        JsonObject wheel = mouse["wheel"] as JsonObject ?? [];
+        return new MouseSettings
+        {
+            DisplayName = Value(mouse, "displayName", ""),
+            Wheel = new WheelSettings(
+                reverse: Value(wheel, "reverse", defaults.Reverse),
+                blockWhilePressed: Value(wheel, "blockWhilePressed", defaults.BlockWhilePressed),
+                smooth: Value(wheel, "smooth", defaults.Smooth),
+                speed: Value(wheel, "speed", defaults.Speed)),
+            UpdatedAt = Value(mouse, "updatedAt", default(DateTimeOffset)),
         };
     }
 

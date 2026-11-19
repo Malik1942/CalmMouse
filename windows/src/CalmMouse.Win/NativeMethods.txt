@@ -6,3 +6,6 @@ DwmGetCompositionTimingInfo
 EnumDisplaySettings
 GetSystemMetrics
 AllowSetForegroundWindow
+GetSystemMetricsForDpi
+MonitorFromPoint
+GetDpiForMonitor

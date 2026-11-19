@@ -21,6 +21,24 @@ public sealed class SettingsViewModelTests : IDisposable
 
     public void Dispose() => _temp.Dispose();
 
+    // MARK: General
+
+    [Fact]
+    public void ALineUnderStartAtSignInOnlyWhenWindowsWontDoIt()
+    {
+        using SettingsViewModel model = Model();
+        Assert.False(model.HasLaunchAtLoginNote);
+
+        _host.LaunchAtLoginNote = "Turned off in Task Manager";
+        model.RefreshStatus();
+        Assert.True(model.HasLaunchAtLoginNote);
+        Assert.Equal("Turned off in Task Manager", model.LaunchAtLoginNote);
+
+        _host.LaunchAtLoginNote = null;
+        model.RefreshStatus();
+        Assert.False(model.HasLaunchAtLoginNote);
+    }
+
     // MARK: Devices
 
     [Fact]

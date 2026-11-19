@@ -50,8 +50,13 @@
                 </Border>
                 <Border Style="{StaticResource NextRow}"
                         ui:Explain.Text="{loc:L 'CalmMouse starts by itself&#10;when you sign in to Windows.'}">
-                    <CheckBox Style="{StaticResource Switch}" Content="{loc:L 'Launch at login'}" IsChecked="{Binding LaunchAtLogin}"
-                              AutomationProperties.Name="{loc:L 'Launch at login'}" />
+                    <StackPanel>
+                        <CheckBox Style="{StaticResource Switch}" Content="{loc:L 'Launch at login'}" IsChecked="{Binding LaunchAtLogin}"
+                                  AutomationProperties.Name="{loc:L 'Launch at login'}" />
+                        <!-- Only when Windows won't start it: turned off in Task Manager, or the entry couldn't be written. -->
+                        <TextBlock Text="{Binding LaunchAtLoginNote}" Style="{StaticResource Secondary}" Margin="0,4,0,0"
+                                   Visibility="{Binding HasLaunchAtLoginNote, Converter={StaticResource BoolToVisibility}}" />
+                    </StackPanel>
                 </Border>
             </StackPanel>
         </Border>

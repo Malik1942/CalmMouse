@@ -20,6 +20,8 @@ internal sealed class FakeHost : ISettingsHost
 
     public event EventHandler? ConflictsChanged;
 
+    public string? LaunchAtLoginNote { get; set; }
+
     public List<bool> PauseRequests { get; } = [];
 
     public int Retries { get; private set; }

@@ -60,6 +60,50 @@ public sealed class SingleInstanceTests
     }
 
     [Fact]
+    public void ARequestBeforeAnyoneListensIsKept()
+    {
+        string name = UniqueName();
+        using SingleInstance first = SingleInstance.TryAcquire(name)!;
+        Assert.True(first.EventsWereNew);
+        Assert.True(SingleInstance.SignalShowSettings(name));
+        Thread.Sleep(200);   // the signal arrives while nobody listens yet
+
+        using var shown = new ManualResetEventSlim();
+        first.ShowSettingsRequested += (_, _) => shown.Set();
+        Assert.True(shown.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public void QuitCanWaitForTheRunningCopyToBeGone()
+    {
+        string name = UniqueName();
+        SingleInstance first = SingleInstance.TryAcquire(name)!;
+        first.QuitRequested += (_, _) => { Thread.Sleep(200); first.Dispose(); };
+        Assert.True(SingleInstance.IsRunning(name));
+        Assert.True(SingleInstance.SignalQuit(name));
+        Assert.True(SingleInstance.WaitForExit(name, TimeSpan.FromSeconds(5)));
+        Assert.False(SingleInstance.IsRunning(name));
+    }
+
+    [Fact]
+    public void WaitingForACopyThatStaysTimesOut()
+    {
+        string name = UniqueName();
+        using SingleInstance first = SingleInstance.TryAcquire(name)!;
+        Assert.False(SingleInstance.WaitForExit(name, TimeSpan.FromMilliseconds(150)));
+    }
+
+    [Fact]
+    public void ALaunchCanTakeOverOnceTheOldCopyIsGone()
+    {
+        string name = UniqueName();
+        SingleInstance old = SingleInstance.TryAcquire(name)!;
+        Task.Run(async () => { await Task.Delay(300); old.Dispose(); }, TestContext.Current.CancellationToken);
+        using SingleInstance? taken = SingleInstance.TryAcquire(name, TimeSpan.FromSeconds(3));
+        Assert.NotNull(taken);
+    }
+
+    [Fact]
     public void SignallingWithNobodyRunningSaysSo()
     {
         Assert.False(SingleInstance.SignalShowSettings(UniqueName(), TimeSpan.Zero));
