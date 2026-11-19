@@ -203,6 +203,47 @@
   margin-bottom: var(--space-4);
 }
 
+/* ---------- Devices ("works with") --------------------------------- */
+.devices {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-8);
+  margin-top: var(--space-12);
+}
+
+.devices__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.devices__item img {
+  width: var(--size-device);
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.devices__name {
+  margin-top: var(--space-3);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.devices__note {
+  margin-top: var(--space-1);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+  color: var(--color-text-secondary);
+}
+
+.devices + .fineprint {
+  margin-top: var(--space-10);
+}
+
 /* ---------- Comparison (with / without) -------------------------- */
 .compare {
   display: grid;
@@ -387,6 +428,11 @@
 }
 
 @media (max-width: 640px) {
+  .devices {
+    grid-template-columns: 1fr;
+    gap: var(--space-10);
+  }
+
   /* Keep one anchor link on phones; shed only the secondary ones. */
   .site-nav__link--extra {
     display: none;

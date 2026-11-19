@@ -10,6 +10,9 @@
     />
     <link rel="icon" type="image/png" href="/icon-256.png" />
     <link rel="canonical" href="https://calmmouse.malikzhang.com/" />
+    <link rel="alternate" hreflang="en" href="https://calmmouse.malikzhang.com/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://calmmouse.malikzhang.com/zh" />
+    <link rel="alternate" hreflang="x-default" href="https://calmmouse.malikzhang.com/" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -29,16 +32,17 @@
       }
     </script>
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://calmmouse.malikzhang.com/" />
     <meta property="og:title" content="CalmMouse" />
-    <meta property="og:description" content="Magic Mouse fixes for macOS. Free and open source." />
+    <meta property="og:description" content="Fixes for the Magic Mouse, wheel mice and game controllers on macOS. Free and open source." />
     <meta property="og:image" content="https://calmmouse.malikzhang.com/og-image.png?v=1.2" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="CalmMouse — a Magic Mouse with a blue tap ripple. Magic Mouse UX fixes for macOS." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="CalmMouse" />
-    <meta name="twitter:description" content="Magic Mouse fixes for macOS. Free and open source." />
+    <meta name="twitter:description" content="Fixes for the Magic Mouse, wheel mice and game controllers on macOS. Free and open source." />
     <meta name="twitter:image" content="https://calmmouse.malikzhang.com/og-image.png?v=1.2" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
@@ -52,9 +56,11 @@
           CalmMouse
         </a>
         <div class="site-nav__links">
+          <a class="site-nav__link site-nav__link--extra" href="#devices">Devices</a>
           <a class="site-nav__link site-nav__link--extra" href="#problem">How&nbsp;it&nbsp;works</a>
           <a class="site-nav__link" href="#features">Features</a>
           <a class="site-nav__link site-nav__link--extra" href="#privacy">Privacy</a>
+          <a class="site-nav__link" href="/zh" lang="zh-Hans" hreflang="zh-Hans">中文</a>
           <a
             class="btn btn--primary btn--sm"
             href="https://github.com/Malik1942/CalmMouse/releases/latest/download/CalmMouse.zip"
@@ -67,7 +73,7 @@
     <header class="hero" id="top">
       <p class="eyebrow reveal">Free &amp; open source</p>
       <h1 class="hero__title reveal">CalmMouse</h1>
-      <p class="hero__tagline reveal">A small menu-bar app for the Magic&nbsp;Mouse on macOS.</p>
+      <p class="hero__tagline reveal">A small menu-bar app for the Magic&nbsp;Mouse on macOS, and for wheel mice and controllers too.</p>
       <p class="hero__statement reveal">
         <strong>It stops the page from scrolling every&nbsp;time you&nbsp;click.</strong>
       </p>
@@ -127,6 +133,44 @@
     </header>
 
     <main>
+      <!-- ============ Works with ============ -->
+      <section class="section section--alt section--center" id="devices">
+        <div class="container">
+          <div class="section__copy">
+            <h2 class="section__title reveal">Made for the Magic&nbsp;Mouse.<br />Good with the rest.</h2>
+            <p class="lede reveal">
+              CalmMouse recognises each mouse and controller you connect and gives it settings of
+              its own. A wheel mouse or a controller stays exactly as it is until you turn
+              something on.
+            </p>
+          </div>
+          <ul class="devices reveal">
+            <li class="devices__item">
+              <picture>
+                <source media="(prefers-color-scheme: dark)" srcset="/magic-mouse/black/home.webp" />
+                <img src="/magic-mouse/white/home.webp" alt="" width="720" height="720" loading="lazy" />
+              </picture>
+              <strong class="devices__name">Magic&nbsp;Mouse</strong>
+              <span class="devices__note">Clicks no longer make the page jump</span>
+            </li>
+            <li class="devices__item">
+              <picture>
+                <source media="(prefers-color-scheme: dark)" srcset="/devices/wheel-black.webp" />
+                <img src="/devices/wheel-white.webp" alt="" width="720" height="720" loading="lazy" />
+              </picture>
+              <strong class="devices__name">Scroll-wheel mouse</strong>
+              <span class="devices__note">Flip the direction, scroll smoothly</span>
+            </li>
+            <li class="devices__item">
+              <img src="/devices/controller.webp" alt="" width="720" height="720" loading="lazy" />
+              <strong class="devices__name">Game controller</strong>
+              <span class="devices__note">The PS5 touchpad, or any controller's sticks</span>
+            </li>
+          </ul>
+          <p class="fineprint reveal">Trackpads aren't affected.</p>
+        </div>
+      </section>
+
       <!-- ============ The problem / headline fix ============ -->
       <section class="section" id="problem">
         <div class="container">
@@ -458,13 +502,13 @@
           <ul class="tile-grid reveal">
             <li class="tile">
               <strong>Will it affect my trackpad?</strong>
-              No. The trackpad is never touched, and a wheel mouse changes only when you turn on its
-              own settings.
+              No. The trackpad is never touched, and a wheel mouse or controller changes only when
+              you turn on its own settings.
             </li>
             <li class="tile">
               <strong>What do I need?</strong>
               A Mac on macOS 13 or later, Apple silicon or Intel. It's made for the Magic&nbsp;Mouse,
-              and can smooth out a wheel mouse too.
+              can smooth out a wheel mouse, and can turn a game controller into a mouse.
             </li>
             <li class="tile">
               <strong>Is it really free?</strong>

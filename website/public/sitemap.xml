@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://calmmouse.malikzhang.com/</loc>
-    <lastmod>2026-11-17</lastmod>
+    <lastmod>2026-11-19</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calmmouse.malikzhang.com/" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://calmmouse.malikzhang.com/zh" />
+  </url>
+  <url>
+    <loc>https://calmmouse.malikzhang.com/zh</loc>
+    <lastmod>2026-11-19</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calmmouse.malikzhang.com/" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://calmmouse.malikzhang.com/zh" />
   </url>
 </urlset>

@@ -7,12 +7,13 @@
 
 export const MIN_DISPLAY_COUNT = 500;
 
-// formatDownloadCount(500)    → "500 downloads"
-// formatDownloadCount(1284)   → "1,284 downloads"
-// formatDownloadCount(15800)  → "15,800 downloads"
-// formatDownloadCount(100000) → "100,000 downloads"
-export function formatDownloadCount(n) {
-  return `${n.toLocaleString("en-US")} downloads`;
+// formatDownloadCount(500)          → "500 downloads"
+// formatDownloadCount(1284)         → "1,284 downloads"
+// formatDownloadCount(100000)       → "100,000 downloads"
+// formatDownloadCount(1284, "zh")   → "1,284 次下载"
+export function formatDownloadCount(n, lang = "en") {
+  const number = n.toLocaleString("en-US");
+  return lang.toLowerCase().startsWith("zh") ? `${number} 次下载` : `${number} downloads`;
 }
 
 export async function showDownloadCount() {
@@ -23,7 +24,7 @@ export async function showDownloadCount() {
     if (!response.ok) return;
     const { total } = await response.json();
     if (!Number.isFinite(total) || total < MIN_DISPLAY_COUNT) return;
-    line.textContent = formatDownloadCount(total);
+    line.textContent = formatDownloadCount(total, document.documentElement.lang);
     line.removeAttribute("aria-hidden");
   } catch {
     // Offline, a non-JSON reply (plain `npm run dev` has no api/), or anything
