@@ -3,6 +3,7 @@
 // Sources/CalmMouse/MouseShowcase.swift (MouseStageView, MouseStageDrawing, PageCardDrawing);
 // turn.js holds the motion. Coordinates are points: the stage's 290 × 226, as in the app.
 
+import { t } from "./i18n.js";
 import { HOME_YAW, deskCamera, surface, vec } from "./figure.js";
 import { FRAMES } from "./render.js";
 import { PresenceRing, StoryFade } from "./stories.js";
@@ -705,11 +706,11 @@ export function createStage({ canvas, hit, reducedMotion = false, scale = () => 
   menu.className = "sw__menu";
   menu.hidden = true;
   menu.setAttribute("role", "menu");
-  menu.setAttribute("aria-label", "Mouse color");
+  menu.setAttribute("aria-label", t("Mouse color"));
   menu.innerHTML =
-    `<p class="sw__menu-title" role="presentation">Mouse color</p>` +
-    `<button type="button" role="menuitemradio" data-finish="white">White</button>` +
-    `<button type="button" role="menuitemradio" data-finish="black">Black</button>`;
+    `<p class="sw__menu-title" role="presentation">${t("Mouse color")}</p>` +
+    `<button type="button" role="menuitemradio" data-finish="white">${t("White")}</button>` +
+    `<button type="button" role="menuitemradio" data-finish="black">${t("Black")}</button>`;
   win.append(menu);
   const closeMenu = () => {
     menu.hidden = true;
