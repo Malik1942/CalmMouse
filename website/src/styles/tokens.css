@@ -289,6 +289,7 @@
   --measure-wide: 700px;   /* section copy */
   --measure-mid: 640px;    /* hero statement */
   --measure-narrow: 560px; /* install steps, settings window */
+  --size-device: 15rem;    /* the rendered devices in "Works with" */
   --nav-height: 52px;
   --z-nav: 100;
 
