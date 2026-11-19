@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://calmmouse.malikzhang.com/sitemap.xml
