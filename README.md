@@ -6,6 +6,7 @@
 
 <p align="center">
   <b>Your Magic Mouse stops scrolling the page when you click.</b><br>
+  Plus smooth scrolling for wheel mice, and a game controller that works as a mouse.<br>
   Free, open source, macOS 13+, Apple silicon and Intel.
 </p>
 
@@ -51,12 +52,12 @@ It starts working within two seconds, no relaunch.
 
 <p align="center">
   <img src="docs/images/welcome-presets.png" width="560" alt="The welcome tour's preset step: Just fix clicking, Extra steady, Trackpad feel">
-  <br><sub>First launch: pick a preset, then try the fix live. It counts the accidental scrolls it just caught.</sub>
+  <br><sub>First launch: pick a starting point, then try the fix live. It counts the accidental scrolls it just caught.</sub>
 </p>
 
 ## What it fixes
 
-Everything here is for the **Magic Mouse**. A mouse with a scroll wheel gets a few options of its own, all off until you turn them on. Your trackpad is never touched.
+Most of this is for the **Magic Mouse**. Wheel mice and game controllers get options of their own, all off until you turn them on. Your trackpad is never touched.
 
 **Scrolling**
 
@@ -77,9 +78,9 @@ Everything here is for the **Magic Mouse**. A mouse with a scroll wheel gets a f
 - **Reverse direction**: flip the wheel alone. Other devices stay as they are.
 - **Still while pressed**: pressing the wheel doesn't scroll the page.
 
-**Game controllers**
+**Game controllers** <sup>new in 1.3</sup>
 
-- **Controller as mouse**, off until you turn it on: from the menu bar, or by holding the two small middle buttons.
+- **Controller as mouse**, off until you turn it on: from the menu bar, Settings → Devices, or by holding the two small middle buttons.
 - **PS5 / PS4 controllers** use the touchpad like a laptop's: slide to point, tap to click, two fingers to scroll and right-click, press to drag.
 - **Every controller**: the left stick points, the right stick scrolls. Press the left stick or ✕ / A to click, the right stick or ○ / B to right-click.
 - **Steps aside for games**: while a game is in front, the controller is left to the game.
@@ -88,15 +89,19 @@ Everything here is for the **Magic Mouse**. A mouse with a scroll wheel gets a f
 
 - **Per-app rules**: no scrolling in Figma, no sideways scroll in Excel, no momentum in your editor.
 - **Modifier + scroll**: hold ⌘ ⌥ ⌃ or ⇧ to scroll sideways, invert, or zoom.
-- **Each mouse its own settings**, from tracking speed to scrolling, all on one Devices page.
+- **Each device its own settings**, from tracking speed to scrolling, all on one Devices page.
 - **Presets** to start from, a **low-battery warning** for every mouse, **in-app updates**, and English / 简体中文 / 繁體中文.
 
 <p align="center">
-  <img src="docs/images/settings-general.png" width="620" alt="CalmMouse settings window">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-devices-dark.png">
+    <img src="docs/images/settings-devices-light.png" width="720" alt="CalmMouse Settings, Devices: a rendered Magic Mouse on the left; presets, tracking speed and scrolling options on the right">
+  </picture>
 </p>
 
-Pause CalmMouse from the menu bar; everything else is in Settings (⌘,), where Devices lists each
-mouse with its own settings. Point at a setting and the left column shows what it does.
+Pause CalmMouse from the menu bar; everything else is in Settings (⌘,). Devices lists each mouse and
+controller with its own settings. Point at a setting and the rendered mouse on the left acts out what
+it does; drag the mouse to turn it.
 
 <details>
 <summary><b>Full feature reference</b></summary>
@@ -117,9 +122,12 @@ mouse with its own settings. Point at a setting and the left column shows what i
 | **Tracking speed** | Each mouse gets its own pointer speed, so the Magic Mouse and a wheel mouse can move at different speeds. |
 | **Magic Mouse direction** | Flip the Magic Mouse's scrolling on its own. macOS has one natural-scrolling switch for the trackpad and every mouse. |
 | **Wheel mice** | For a mouse with a scroll wheel: smooth scrolling with its own speed, reverse the wheel's direction without touching other devices, and no scrolling while the wheel is pressed. Each wheel mouse keeps its own settings, all off until you turn them on. Settings → Devices → **Treat as** corrects a mouse that was taken for the wrong kind. |
+| **Game controller as a mouse** | Off until you turn it on: from the menu bar (the switch appears while a controller is connected), Settings → Devices, or by holding the controller's two small middle buttons. The left stick points, faster the further you push, and the right stick scrolls. ✕ / A or a left-stick press clicks; ○ / B or a right-stick press right-clicks; hold and move to drag. The nudge a stick gets when you press it is ignored for a moment, so the click lands where you aimed. Works over a cable, Bluetooth or a 2.4G receiver, for any controller macOS can read: PlayStation, Xbox, Switch Pro, MFi and most generic ones. |
+| **PS5 / PS4 touchpad** | Slide a finger to point, tap to click, tap with two fingers to right-click, slide two fingers to scroll, press the pad down to click and drag. |
+| **Pause while playing games** | While the frontmost app is a game, the controller is left to the game. On by default. |
 | **Battery warning** | A notification when any mouse that reports its level drops below a threshold you set, so it doesn't die mid-afternoon. |
 | **Other mouse apps** | Devices says so when Mac Mouse Fix, LinearMouse, Mos, Scroll Reverser, BetterTouchTool, SteerMouse, Logi Options+ or a similar app is changing the same thing as CalmMouse, so a doubled reverse or glide doesn't go unexplained. |
-| **Presets** | Three one-click starting points (*Just fix clicking*, *Extra steady*, *Trackpad feel*) that set the Scrolling and Clicking options in one go. Everything stays tweakable afterwards. Per-app rules and shortcuts are never touched. |
+| **Presets** | Three one-click starting points at the top of Settings → Devices (*Just fix clicking*, *Extra steady*, *Trackpad feel*) that set the Scrolling and Clicking options in one go. Everything stays tweakable afterwards, and **Save as Preset…** keeps your own setup. Per-app rules and shortcuts are never touched. |
 | **In-app updates** | CalmMouse checks the releases feed twice a day; a new version shows up as a menu-bar item and in Settings → General with its release notes. One click downloads, verifies the signature is ours, swaps the app in place, and relaunches. |
 | **Speaks your language** | English, 简体中文 and 繁體中文, following the system language setting; no in-app switch needed. |
 
@@ -131,14 +139,19 @@ The menu-bar icon carries state: orange when it needs attention, dimmed when pau
 mouse battery is low.
 
 <p align="center">
-  <img src="docs/images/settings-presets.png" width="620" alt="The Presets tab: three built-in starting points and a field to save your own">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-advanced-dark.png">
+    <img src="docs/images/settings-advanced-light.png" width="480" alt="Settings, Advanced: per-app rules for Figma and Rhino, and modifier shortcuts (⌘ zooms, ⌥ scrolls sideways)">
+  </picture>
+  <br><sub>Advanced: per-app rules and modifier shortcuts.</sub>
 </p>
 
 </details>
 
 ## Under the hood
 
-CalmMouse never sees keystrokes, never touches the network, and stores nothing but its own settings.
+CalmMouse never sees keystrokes and stores nothing but its own settings. The only network request
+it makes is a check of this repo's latest release, twice a day, for in-app updates.
 
 <details>
 <summary><b>How it works</b>: device attribution, deferred drag presses, gesture bookkeeping</summary>
@@ -148,13 +161,18 @@ Sources/CalmMouseCore/     pure logic, no AppKit; the part that's unit-tested
   ScrollBlocker.swift     the state machine: gesture phases, blocking, dead zone, axis lock
   Config.swift            settings model, per-app rule resolution, modifier actions
   TapRecognizer.swift     taps and drags: duration/movement/size gates, zone, scroll & click vetoes
+  WheelSmoother.swift     smooth scrolling for wheel mice
+  ControllerPointer.swift sticks and touchpad → pointer, scroll and clicks
+  MouseFigure.swift       the rendered mouse's shape and camera, tested against the renders
 Sources/CalmMouse/
   EventTap.swift          CGEventTap ⇄ ScrollBlocker: pass / drop / rewrite each event
   DeviceIdentifier.swift  which physical device sent this event?
   Multitouch.swift        dlopen bridge to the private MultitouchSupport framework (raw touches)
   TapController.swift     contact frames → TapRecognizer → synthetic clicks and drag press/release
+  GamepadController.swift GameController framework ⇄ ControllerPointer, game detection
   BatteryMonitor.swift    IORegistry battery polling + notification
   SettingsWindow.swift    SwiftUI settings window
+  MouseShowcase.swift     the turning Magic Mouse in Devices, drawn in AppKit; MouseStory plays each setting on it
   AppDelegate.swift       menu bar, permission polling, launch at login
 ```
 
@@ -181,7 +199,7 @@ makes the momentum tail arrive out of nowhere. The state machine tracks what eac
 allowed to see and always closes the gesture it opened.
 
 ```bash
-swift test    # 99 tests, no device or permission needed
+swift test    # 330+ tests, no device or permission needed
 ```
 
 </details>
@@ -205,7 +223,13 @@ defaults write com.calmmouse.app tapAndDrag -bool YES
 defaults write com.calmmouse.app twoFingerDrag -bool YES
 defaults write com.calmmouse.app tapZoneEnabled -bool YES
 defaults write com.calmmouse.app tapZoneDepth -float 0.5     # front 25%...75% of the surface
+defaults write com.calmmouse.app reverseMagicMouseScroll -bool YES
+defaults write com.calmmouse.app controllerPointer -bool YES
+defaults write com.calmmouse.app controllerPauseInGames -bool YES
+defaults write com.calmmouse.app controllerStickClicks -bool YES
 ```
+
+Wheel-mouse settings are kept per device, so set those in Settings → Devices.
 
 There's also a small CLI inside the bundle:
 
@@ -243,6 +267,7 @@ real identity means macOS keeps your Accessibility grant across rebuilds.
 | Trackpad scrolling got caught too | `defaults write com.calmmouse.app treatUnknownContinuousAsMagicMouse -bool false`, then relaunch. |
 | Scrolling feels like it stops too long after a click | Settings → Devices → Magic Mouse → Fine-tuning → lower "Hold still after you let go". |
 | A tap does nothing in one part of the surface | The tap zone is on. `CalmMouse --status` reports `outsideZone` in `tapRejections` plus the exact landing point in `tapLastRejectionAt`. Widen the depth in Settings → Devices → Magic Mouse → Fine-tuning, or turn the zone off. |
+| The controller doesn't move the pointer | Turn it on first (menu bar, Settings → Devices, or hold the two small middle buttons). It also rests while a game is in front. If it still does nothing, `CalmMouse --status` lists it under `unsupportedControllers` when macOS itself can't read it; Xbox Wireless Adapters and XInput-only dongles have no macOS driver. |
 | Want to see what's happening | `log stream --predicate 'subsystem == "com.calmmouse.app"' --level debug` |
 
 </details>
@@ -268,7 +293,7 @@ real scrolling and physical clicks, which standalone tap apps can't see.)
 
 Solo project; issues and PRs are welcome. The easiest bug report is **Send Feedback…** in the
 menu-bar menu: it opens an issue with the version, macOS and your mice's hardware IDs filled in (never
-their names). Otherwise, `CalmMouse --status` output plus which mouse you have. On the table, not promised: a scroll-acceleration curve
+their names). Otherwise, `CalmMouse --status` output plus which mouse or controller you have. On the table, not promised: a scroll-acceleration curve
 for the Magic Mouse alone, and per-app rules keyed on window title.
 
 ## License
