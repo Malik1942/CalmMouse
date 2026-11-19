@@ -1,7 +1,7 @@
 // One CalmMouse per user. The first one to start creates a named mutex, Local\CalmMouse-<user SID>,
 // and two named events next to it, all three open to the current user only. A second launch finds
 // the mutex, sets the "open Settings" event (so double-clicking the app again shows its window) and
-// exits. `CalmMouse.Win.exe --quit` sets the "quit" event instead and waits for the running copy to
+// exits. `CalmMouse.exe --quit` sets the "quit" event instead and waits for the running copy to
 // be gone, which an installer or updater can use to close the app.
 //
 // Local\ keeps it to this sign-in session; the SID keeps apart a copy another user starts in the

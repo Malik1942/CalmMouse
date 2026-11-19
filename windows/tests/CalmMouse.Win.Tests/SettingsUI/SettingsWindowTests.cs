@@ -51,7 +51,7 @@ public sealed partial class SettingsWindowTests
     {
         const string xaml = """
             <StackPanel xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                        xmlns:loc="clr-namespace:CalmMouse.Win.Localization;assembly=CalmMouse.Win">
+                        xmlns:loc="clr-namespace:CalmMouse.Win.Localization;assembly=CalmMouse">
                 <TextBlock Text="{loc:L 'Don\'t scroll while pressed'}" />
                 <TextBlock Text="{loc:L 'Pressing a wheel often turns it too.&#10;That won\'t scroll the page.'}" />
                 <TextBlock Text="{loc:L Language}" />

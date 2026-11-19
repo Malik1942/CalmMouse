@@ -42,10 +42,10 @@ public sealed class LaunchAtLoginTests : IDisposable
     [Fact]
     public void TurningItOnWritesTheQuotedExePath()
     {
-        LaunchAtLogin launch = For(@"C:\Program Files\CalmMouse\CalmMouse.Win.exe");
+        LaunchAtLogin launch = For(@"C:\Program Files\CalmMouse\CalmMouse.exe");
         Assert.False(launch.IsRegistered);
         Assert.True(launch.Apply(true));
-        Assert.Equal("\"C:\\Program Files\\CalmMouse\\CalmMouse.Win.exe\"", Value());
+        Assert.Equal("\"C:\\Program Files\\CalmMouse\\CalmMouse.exe\"", Value());
         Assert.True(launch.IsCurrent);
         Assert.False(launch.Apply(true));   // already right
     }
@@ -53,7 +53,7 @@ public sealed class LaunchAtLoginTests : IDisposable
     [Fact]
     public void TurningItOffRemovesTheValue()
     {
-        LaunchAtLogin launch = For(@"C:\Apps\CalmMouse.Win.exe");
+        LaunchAtLogin launch = For(@"C:\Apps\CalmMouse.exe");
         launch.Apply(true);
         Assert.True(launch.Apply(false));
         Assert.Null(Value());
@@ -63,17 +63,17 @@ public sealed class LaunchAtLoginTests : IDisposable
     [Fact]
     public void RepairRewritesAStalePathWhenOn()
     {
-        For(@"C:\Old place\CalmMouse.Win.exe").Apply(true);
-        LaunchAtLogin moved = For(@"D:\New place\CalmMouse.Win.exe");
+        For(@"C:\Old place\CalmMouse.exe").Apply(true);
+        LaunchAtLogin moved = For(@"D:\New place\CalmMouse.exe");
         Assert.False(moved.IsCurrent);
         Assert.True(moved.Repair(enabled: true));
-        Assert.Equal("\"D:\\New place\\CalmMouse.Win.exe\"", Value());
+        Assert.Equal("\"D:\\New place\\CalmMouse.exe\"", Value());
     }
 
     [Fact]
     public void ReadsWhatWindowsWillReallyDo()
     {
-        LaunchAtLogin launch = For(@"C:\Apps\CalmMouse.Win.exe");
+        LaunchAtLogin launch = For(@"C:\Apps\CalmMouse.exe");
         Assert.Equal(LaunchAtLoginState.Off, launch.State);
         launch.Apply(true);
         Assert.Equal(LaunchAtLoginState.On, launch.State);    // no StartupApproved entry: on
@@ -85,13 +85,13 @@ public sealed class LaunchAtLoginTests : IDisposable
         Assert.Equal(LaunchAtLoginState.TurnedOffInWindows, launch.State);
         SetApproved(0x06);
         Assert.Equal(LaunchAtLoginState.On, launch.State);
-        Assert.Equal(LaunchAtLoginState.OtherCopy, For(@"D:\Elsewhere\CalmMouse.Win.exe").State);
+        Assert.Equal(LaunchAtLoginState.OtherCopy, For(@"D:\Elsewhere\CalmMouse.exe").State);
     }
 
     [Theory]
-    [InlineData(@"C:\Program Files\CalmMouse\CalmMouse.Win.exe", false, true)]
-    [InlineData(@"C:\Program Files\CalmMouse\calmmouse.win.exe", false, true)]
-    [InlineData(@"D:\CalmMouse\windows\src\CalmMouse.Win\bin\Debug\CalmMouse.Win.exe", true, false)]
+    [InlineData(@"C:\Program Files\CalmMouse\CalmMouse.exe", false, true)]
+    [InlineData(@"C:\Program Files\CalmMouse\calmmouse.exe", false, true)]
+    [InlineData(@"D:\CalmMouse\windows\src\CalmMouse.Win\bin\Debug\CalmMouse.exe", true, false)]
     [InlineData(@"C:\Program Files\dotnet\dotnet.exe", false, false)]
     [InlineData(@"C:\Temp\CalmMouse.Win.Tests.exe", false, false)]
     public void OnlyTheReleaseExeRepairsTheEntry(string exe, bool debugBuild, bool may)
@@ -102,8 +102,8 @@ public sealed class LaunchAtLoginTests : IDisposable
     [Fact]
     public void RepairLeavesThingsAloneWhenOff()
     {
-        For(@"C:\Old place\CalmMouse.Win.exe").Apply(true);
-        Assert.False(For(@"D:\New place\CalmMouse.Win.exe").Repair(enabled: false));
-        Assert.Equal("\"C:\\Old place\\CalmMouse.Win.exe\"", Value());
+        For(@"C:\Old place\CalmMouse.exe").Apply(true);
+        Assert.False(For(@"D:\New place\CalmMouse.exe").Repair(enabled: false));
+        Assert.Equal("\"C:\\Old place\\CalmMouse.exe\"", Value());
     }
 }

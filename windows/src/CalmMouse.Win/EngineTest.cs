@@ -1,4 +1,4 @@
-// `CalmMouse.Win.exe --engine-test [--seconds N]`: a temporary developer switch for the hands-on
+// `CalmMouse.exe --engine-test [--seconds N]`: a temporary developer switch for the hands-on
 // check on a real PC (plan task 16). It runs the input thread with every feature off (the
 // in-memory settings: no smoothing, no reverse, no blocking), so every wheel event passes
 // untouched, and logs what the engine sees to %TEMP%\CalmMouse-engine-test-<time>.log: the

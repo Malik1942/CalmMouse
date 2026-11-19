@@ -5,7 +5,7 @@ Work in progress. The plan is in [docs/specs/windows.md](../docs/specs/windows.m
 
 ## The app so far
 
-`CalmMouse.Win.exe` starts with no window: a mouse icon in the notification area (left click:
+`CalmMouse.exe` starts with no window: a mouse icon in the notification area (left click:
 Settings; right click: Pause / Resume, Settings…, Quit). The icon is dimmed when paused and orange
 when something is wrong, with a one-line tooltip saying what. The Settings window is still empty
 (plan task 15). Every scroll feature is off until it's turned on there.
@@ -13,7 +13,7 @@ when something is wrong, with a one-line tooltip saying what. The Settings windo
 - Settings: `%AppData%\CalmMouse\settings.json` (written atomically; a corrupt file is kept as
   `settings.json.bak`). The first launch, with no file, opens Settings once.
 - Log: `%LocalAppData%\CalmMouse\CalmMouse.log` (engine events, pauses, faults; plain English).
-- One copy per user: starting it again opens the running copy's Settings. `CalmMouse.Win.exe --quit`
+- One copy per user: starting it again opens the running copy's Settings. `CalmMouse.exe --quit`
   asks the running copy to quit and waits (up to 10 s) until it has (for installers and updaters).
 - Start when I sign in: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value `CalmMouse`, off by
   default. Turning it off in Task Manager is respected (Settings says so); only the release exe
@@ -24,7 +24,7 @@ when something is wrong, with a one-line tooltip saying what. The Settings windo
 
 ## The engine test switch (temporary)
 
-`CalmMouse.Win.exe --engine-test [--seconds N]` runs the scroll engine (hook + Raw Input) with
+`CalmMouse.exe --engine-test [--seconds N]` runs the scroll engine (hook + Raw Input) with
 every feature off, so scrolling is unchanged, and logs each wheel event, the mice found and the
 counters every 5 seconds to `%TEMP%\CalmMouse-engine-test-<time>.log`, including hook
 reinstalls (the watchdog judges from Raw Input and injects nothing) and the resend breaker. Close its window (or let

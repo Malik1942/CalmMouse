@@ -9,6 +9,11 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Per-monitor DPI awareness (v2): crisp tray icon and settings window at any scaling. -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- The program is CalmMouse.exe; the project, namespaces and tests keep the CalmMouse.Win name. -->
+    <AssemblyName>CalmMouse</AssemblyName>
+    <RootNamespace>CalmMouse.Win</RootNamespace>
+    <!-- The Mac app's icon (Assets/App/make-app-icon.ps1). Windows without their own icon use it too. -->
+    <ApplicationIcon>Assets\App\CalmMouse.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

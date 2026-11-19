@@ -30,7 +30,7 @@ public sealed class LaunchAtLogin
     public const string ApprovedKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
     public const string ValueName = "CalmMouse";
     /// <summary>The release exe's file name. Builds with another name (or `dotnet run`) never repair the Run value.</summary>
-    public const string ReleaseExeName = "CalmMouse.Win.exe";
+    public const string ReleaseExeName = "CalmMouse.exe";
 
     private readonly RegistryKey _root;
     private readonly string _keyPath;
