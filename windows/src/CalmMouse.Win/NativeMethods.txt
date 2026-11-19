@@ -1,2 +1,7 @@
-// Win32 APIs that CsWin32 generates declarations for, one per line.
+// Win32 APIs that CsWin32 generates declarations for, one per line. The hook, Raw Input,
+// SendInput and device calls are hand-written in Input/Native.cs (blittable, function-pointer
+// callbacks, nothing marshalled on the hook path).
 GetForegroundWindow
+DwmGetCompositionTimingInfo
+EnumDisplaySettings
+GetLastInputInfo

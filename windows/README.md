@@ -2,6 +2,13 @@
 
 Not an app yet. The plan is in [docs/specs/windows.md](../docs/specs/windows.md).
 
+## The engine test switch (temporary)
+
+`CalmMouse.Win.exe --engine-test [--seconds N]` runs the scroll engine (hook + Raw Input) with
+every feature off, so scrolling is unchanged, and logs each wheel event, the mice found and the
+counters every 5 seconds to `%TEMP%\CalmMouse-engine-test-<time>.log`. Close its window (or let
+`--seconds` run out) to stop it. It goes away once the tray app (plan task 13) is in.
+
 ## `probe/`: the Phase 0 test program
 
 A console program that answers the spec's Phase 0 questions on a real Windows PC:
