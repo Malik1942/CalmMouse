@@ -22,3 +22,24 @@
 "%@ can also change how your mouse scrolls. If scrolling feels odd, turn off one of them." = "%@ can also change how your mouse scrolls. If scrolling feels odd, turn off one of them.";
 /* Joins the last two names of a list. */
 "%@ and %@" = "%@ and %@";
+
+/* Settings window: pages, the explanations in the side panel (\n breaks a line there), devices and app rules */
+"App rules" = "App rules";
+"Rules follow the window under the pointer,\nthe one the wheel scrolls,\neven when another app is in front." = "Rules follow the window under the pointer,\nthe one the wheel scrolls,\neven when another app is in front.";
+"Every mouse scrolls as usual\nuntil you turn this off." = "Every mouse scrolls as usual\nuntil you turn this off.";
+"CalmMouse starts by itself\nwhen you sign in to Windows." = "CalmMouse starts by itself\nwhen you sign in to Windows.";
+"“Same as Windows” follows\nthe Windows display language." = "“Same as Windows” follows\nthe Windows display language.";
+"No mouse found yet." = "No mouse found yet.";
+"Touchpad" = "Touchpad";
+"CalmMouse leaves the touchpad alone." = "CalmMouse leaves the touchpad alone.";
+"Pick an app that's open now,\nor choose a program file." = "Pick an app that's open now,\nor choose a program file.";
+"Add an app…" = "Add an app…";
+"No app rules yet." = "No app rules yet.";
+"Turn a rule off to keep it\nwithout using it for now." = "Turn a rule off to keep it\nwithout using it for now.";
+"Every mouse scrolls a notch at a time here.\nFor older apps that miss small steps." = "Every mouse scrolls a notch at a time here.\nFor older apps that miss small steps.";
+"Don't smooth scrolling in this app" = "Don't smooth scrolling in this app";
+"CalmMouse doesn't touch scrolling here:\nno smoothing, no reversing, nothing held back." = "CalmMouse doesn't touch scrolling here:\nno smoothing, no reversing, nothing held back.";
+"Leave scrolling alone in this app" = "Leave scrolling alone in this app";
+"No other apps are open." = "No other apps are open.";
+"Choose a program…" = "Choose a program…";
+"Programs" = "Programs";

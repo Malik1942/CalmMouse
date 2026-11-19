@@ -1,8 +1,92 @@
+<!--
+  The settings window: the pages on the left, the chosen page in the middle, and on the right
+  what the setting under the pointer (or with the keyboard focus) does, as on the Mac.
+  Every change is saved at once; there is no OK or Apply.
+-->
 <Window x:Class="CalmMouse.Win.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="CalmMouse" Height="450" Width="800"
-        WindowStartupLocation="CenterScreen">
-    <!-- Empty for now: plan task 15 builds the General, Devices and App rules pages. -->
-    <Grid />
+        xmlns:loc="clr-namespace:CalmMouse.Win.Localization"
+        xmlns:ui="clr-namespace:CalmMouse.Win.SettingsUI"
+        x:Name="Root"
+        Title="{loc:L 'CalmMouse Settings'}"
+        Width="940" Height="640" MinWidth="800" MinHeight="440"
+        WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+    <Window.Resources>
+        <ResourceDictionary Source="SettingsUI/SettingsStyles.xaml" />
+    </Window.Resources>
+
+    <Grid x:Name="Layout">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="190" />
+            <ColumnDefinition Width="*" MinWidth="320" />
+            <ColumnDefinition x:Name="PanelColumn" Width="260" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Pages -->
+        <ListBox x:Name="Pages" Grid.Column="0" Margin="8,16,8,16"
+                 Background="Transparent" BorderThickness="0"
+                 ItemContainerStyle="{StaticResource NavItem}"
+                 SelectedValuePath="Tag"
+                 SelectedValue="{Binding Page, Mode=TwoWay}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 KeyboardNavigation.TabNavigation="Once"
+                 AutomationProperties.Name="{loc:L 'CalmMouse Settings'}">
+            <ListBoxItem Tag="{x:Static ui:SettingsPage.General}" AutomationProperties.Name="{loc:L General}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFont}" FontSize="16" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <TextBlock Text="{loc:L General}" VerticalAlignment="Center" />
+                </StackPanel>
+            </ListBoxItem>
+            <ListBoxItem Tag="{x:Static ui:SettingsPage.Devices}" AutomationProperties.Name="{loc:L Devices}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE962;" FontFamily="{StaticResource IconFont}" FontSize="16" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <TextBlock Text="{loc:L Devices}" VerticalAlignment="Center" />
+                </StackPanel>
+            </ListBoxItem>
+            <ListBoxItem Tag="{x:Static ui:SettingsPage.AppRules}" AutomationProperties.Name="{loc:L 'App rules'}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE71D;" FontFamily="{StaticResource IconFont}" FontSize="16" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <TextBlock Text="{loc:L 'App rules'}" VerticalAlignment="Center" />
+                </StackPanel>
+            </ListBoxItem>
+        </ListBox>
+
+        <!-- The chosen page -->
+        <ScrollViewer x:Name="PageScroller" Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                      Focusable="False" Padding="0,16,0,16">
+            <Grid Margin="16,8,24,8">
+                <ui:GeneralPage Visibility="{Binding Page, Converter={StaticResource EqualsToVisibility}, ConverterParameter={x:Static ui:SettingsPage.General}}" />
+                <ui:DevicesPage Visibility="{Binding Page, Converter={StaticResource EqualsToVisibility}, ConverterParameter={x:Static ui:SettingsPage.Devices}}" />
+                <ui:AppRulesPage Visibility="{Binding Page, Converter={StaticResource EqualsToVisibility}, ConverterParameter={x:Static ui:SettingsPage.AppRules}}" />
+            </Grid>
+        </ScrollViewer>
+
+        <!-- What the setting under the pointer does -->
+        <Border x:Name="ExplanationPanel" Grid.Column="2" Margin="0,24,16,24" Padding="16"
+                Background="{DynamicResource LayerFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6"
+                VerticalAlignment="Top">
+            <StackPanel>
+                <TextBlock Text="&#xE946;" FontFamily="{StaticResource IconFont}" FontSize="20" Margin="0,0,0,10"
+                           Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                <!-- Read out when it changes (keyboard focus moved to another setting). -->
+                <TextBlock x:Name="ExplanationText" Text="{Binding Explanation.Text, Converter={StaticResource OneLine}}" TextWrapping="Wrap" LineHeight="22"
+                           AutomationProperties.LiveSetting="Polite">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Explanation.ShowsIntro}" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+        </Border>
+    </Grid>
 </Window>

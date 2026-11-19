@@ -21,3 +21,24 @@
 "%@ can also change how your mouse scrolls. If scrolling feels odd, turn off one of them." = "%@ 也可能改變滑鼠的捲動方式。如果捲動起來怪怪的，請關閉其中一個。";
 /* 連接清單的最後兩個名稱。 */
 "%@ and %@" = "%@ 和 %@";
+
+/* 設定視窗：頁面、右側面板裡的說明（\n 在那裡換行）、裝置和應用程式規則 */
+"App rules" = "應用程式規則";
+"Rules follow the window under the pointer,\nthe one the wheel scrolls,\neven when another app is in front." = "規則看的是指標下方的視窗，\n也就是滾輪正在捲動的那一個，\n即使前景是別的應用程式。";
+"Every mouse scrolls as usual\nuntil you turn this off." = "所有滑鼠照常捲動，\n直到你關掉這一項。";
+"CalmMouse starts by itself\nwhen you sign in to Windows." = "登入 Windows 時\nCalmMouse 自動啟動。";
+"“Same as Windows” follows\nthe Windows display language." = "「跟隨 Windows」會使用\nWindows 的顯示語言。";
+"No mouse found yet." = "還沒有找到滑鼠。";
+"Touchpad" = "觸控板";
+"CalmMouse leaves the touchpad alone." = "CalmMouse 不會改動觸控板。";
+"Pick an app that's open now,\nor choose a program file." = "從現在開啟的應用程式裡挑一個，\n或者選擇一個程式檔案。";
+"Add an app…" = "加入應用程式…";
+"No app rules yet." = "還沒有應用程式規則。";
+"Turn a rule off to keep it\nwithout using it for now." = "暫時用不到的規則可以關掉，\n不必刪除。";
+"Every mouse scrolls a notch at a time here.\nFor older apps that miss small steps." = "在這裡，每隻滑鼠都一格一格地捲動。\n適合跟不上小步捲動的舊程式。";
+"Don't smooth scrolling in this app" = "在這個應用程式裡不平滑捲動";
+"CalmMouse doesn't touch scrolling here:\nno smoothing, no reversing, nothing held back." = "CalmMouse 不碰這裡的捲動：\n不平滑、不反轉，也不攔下任何捲動。";
+"Leave scrolling alone in this app" = "不改動這個應用程式裡的捲動";
+"No other apps are open." = "沒有其他開啟的應用程式。";
+"Choose a program…" = "選擇程式…";
+"Programs" = "程式";

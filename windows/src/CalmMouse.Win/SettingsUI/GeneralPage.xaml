@@ -1,0 +1,76 @@
+<!-- General: pause, start at sign-in, language, and a line only when something needs saying. -->
+<UserControl x:Class="CalmMouse.Win.SettingsUI.GeneralPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:CalmMouse.Win.Localization"
+             xmlns:ui="clr-namespace:CalmMouse.Win.SettingsUI">
+    <UserControl.Resources>
+        <ResourceDictionary Source="SettingsStyles.xaml" />
+    </UserControl.Resources>
+    <StackPanel>
+        <TextBlock Text="{loc:L General}" Style="{StaticResource PageTitle}" />
+
+        <!-- The engine stopped, couldn't start, or is being blocked. -->
+        <Border Style="{StaticResource Notice}" Visibility="{Binding HasProblem, Converter={StaticResource BoolToVisibility}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="&#xE7BA;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,2,12,0" VerticalAlignment="Top"
+                           Foreground="{DynamicResource SystemFillColorCautionBrush}" />
+                <TextBlock Grid.Column="1" Text="{Binding ProblemText}" Style="{StaticResource RowTitle}" />
+                <Button Grid.Column="2" Content="{loc:L 'Try again'}" Margin="12,0,0,0" VerticalAlignment="Center"
+                        Command="{Binding RetryCommand}"
+                        Visibility="{Binding CanRetry, Converter={StaticResource BoolToVisibility}}"
+                        AutomationProperties.Name="{loc:L 'Try again'}" />
+            </Grid>
+        </Border>
+
+        <!-- Another tool that changes scrolling is running. -->
+        <Border Style="{StaticResource Notice}" Visibility="{Binding HasConflict, Converter={StaticResource BoolToVisibility}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="&#xE7BA;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,2,12,0" VerticalAlignment="Top"
+                           Foreground="{DynamicResource SystemFillColorCautionBrush}" />
+                <TextBlock Grid.Column="1" Text="{Binding ConflictMessage}" Style="{StaticResource RowTitle}" />
+            </Grid>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <Border Style="{StaticResource Row}"
+                        ui:Explain.Text="{loc:L 'Every mouse scrolls as usual&#10;until you turn this off.'}">
+                    <CheckBox Style="{StaticResource Switch}" Content="{loc:L 'Pause CalmMouse'}" IsChecked="{Binding Paused}"
+                              AutomationProperties.Name="{loc:L 'Pause CalmMouse'}" />
+                </Border>
+                <Border Style="{StaticResource NextRow}"
+                        ui:Explain.Text="{loc:L 'CalmMouse starts by itself&#10;when you sign in to Windows.'}">
+                    <CheckBox Style="{StaticResource Switch}" Content="{loc:L 'Launch at login'}" IsChecked="{Binding LaunchAtLogin}"
+                              AutomationProperties.Name="{loc:L 'Launch at login'}" />
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+            <Border Style="{StaticResource Row}"
+                    ui:Explain.Text="{loc:L '“Same as Windows” follows&#10;the Windows display language.'}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="LanguageLabel" Text="{loc:L Language}" Style="{StaticResource RowTitle}" Margin="0,0,12,0" />
+                    <ComboBox Grid.Column="1" MinWidth="180" VerticalAlignment="Center"
+                              ItemsSource="{Binding LanguageOptions}" DisplayMemberPath="Name"
+                              SelectedValuePath="Value" SelectedValue="{Binding Language}"
+                              AutomationProperties.Name="{loc:L Language}" />
+                </Grid>
+            </Border>
+        </Border>
+    </StackPanel>
+</UserControl>

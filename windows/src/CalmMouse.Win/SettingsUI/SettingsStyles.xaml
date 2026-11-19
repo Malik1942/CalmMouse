@@ -1,0 +1,175 @@
+<!--
+  The settings window's few styles, all on top of WPF's Fluent theme and its brushes (so light,
+  dark and high contrast follow Windows). Windows 11 Settings is the model: cards of rows, a
+  switch with "On"/"Off" beside it, a navigation list with a small accent bar on the chosen page.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:loc="clr-namespace:CalmMouse.Win.Localization"
+                    xmlns:ui="clr-namespace:CalmMouse.Win.SettingsUI">
+
+    <ui:EqualsToVisibility x:Key="EqualsToVisibility" />
+    <ui:BoolToVisibility x:Key="BoolToVisibility" />
+    <ui:OneLine x:Key="OneLine" />
+
+    <!-- Segoe Fluent Icons (Windows 11), else Segoe MDL2 Assets. -->
+    <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+    <!-- Keyboard focus rings: WPF draws these only when the focus came from the keyboard. -->
+    <Style x:Key="FocusRing">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border Margin="-6,-4" CornerRadius="6" BorderThickness="2" SnapsToDevicePixels="True"
+                            BorderBrush="{DynamicResource TextFillColorPrimaryBrush}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="NavFocusRing">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border CornerRadius="4" BorderThickness="2" SnapsToDevicePixels="True"
+                            BorderBrush="{DynamicResource TextFillColorPrimaryBrush}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A group of rows. -->
+    <Style x:Key="Card" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+    <!-- One setting in a card: a title on the left, its control on the right. -->
+    <Style x:Key="Row" TargetType="Border">
+        <!-- Transparent, not empty, so the whole row counts for hover (the explanation). -->
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="MinHeight" Value="52" />
+    </Style>
+
+    <!-- A row after the first in a card: a hairline above it. -->
+    <Style x:Key="NextRow" TargetType="Border" BasedOn="{StaticResource Row}">
+        <Setter Property="BorderBrush" Value="{DynamicResource DividerStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+
+    <Style x:Key="PageTitle" TargetType="TextBlock" BasedOn="{StaticResource TitleTextBlockStyle}">
+        <Setter Property="Margin" Value="0,0,0,16" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="Secondary" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="RowTitle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!--
+      A CheckBox drawn as a Windows 11 toggle switch. Its content is the row's title (and so the
+      name a screen reader reads); "On" / "Off" sit beside the switch, as in Windows Settings.
+    -->
+    <Style x:Key="Switch" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ContentPresenter VerticalAlignment="Center" Margin="0,0,12,0" RecognizesAccessKey="False">
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource RowTitle}" />
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                        <Grid Grid.Column="1" Margin="0,0,12,0" VerticalAlignment="Center">
+                            <TextBlock x:Name="OffText" Text="{loc:L Off}" Style="{StaticResource Secondary}" TextWrapping="NoWrap" />
+                            <TextBlock x:Name="OnText" Text="{loc:L On}" Style="{StaticResource Secondary}" TextWrapping="NoWrap" Visibility="Hidden" />
+                        </Grid>
+                        <Border x:Name="Track" Grid.Column="2" Width="40" Height="20" CornerRadius="10" VerticalAlignment="Center"
+                                Background="{DynamicResource ControlAltFillColorSecondaryBrush}"
+                                BorderBrush="{DynamicResource ControlStrongStrokeColorDefaultBrush}" BorderThickness="1">
+                            <Ellipse x:Name="Knob" Width="12" Height="12" HorizontalAlignment="Left" Margin="3,0,0,0"
+                                     Fill="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            <Setter TargetName="Knob" Property="Fill" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                            <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right" />
+                            <Setter TargetName="Knob" Property="Margin" Value="0,0,3,0" />
+                            <Setter TargetName="OnText" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="OffText" Property="Visibility" Value="Hidden" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Knob" Property="Width" Value="14" />
+                            <Setter TargetName="Knob" Property="Height" Value="14" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- The pages on the left: a glyph and a name, the chosen one with a short accent bar. -->
+    <Style x:Key="NavItem" TargetType="ListBoxItem">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource NavFocusRing}" />
+        <Setter Property="Margin" Value="0,0,0,4" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Grid>
+                        <Border x:Name="Back" CornerRadius="4" Background="Transparent" MinHeight="40" Padding="12,8">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <Border x:Name="Bar" Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left" Margin="0,0,0,0"
+                                Background="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Hidden" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Back" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Back" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            <Setter TargetName="Bar" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A notice at the top of General: a problem or another mouse tool. -->
+    <Style x:Key="Notice" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="16,12" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+</ResourceDictionary>

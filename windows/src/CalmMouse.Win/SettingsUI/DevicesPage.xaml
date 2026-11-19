@@ -1,0 +1,92 @@
+<!-- Devices: a card per connected mouse, each wheel mouse with its own settings. -->
+<UserControl x:Class="CalmMouse.Win.SettingsUI.DevicesPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:CalmMouse.Win.Localization"
+             xmlns:ui="clr-namespace:CalmMouse.Win.SettingsUI">
+    <UserControl.Resources>
+        <ResourceDictionary Source="SettingsStyles.xaml" />
+    </UserControl.Resources>
+    <StackPanel>
+        <TextBlock Text="{loc:L Devices}" Style="{StaticResource PageTitle}" />
+
+        <TextBlock Text="{loc:L 'No mouse found yet.'}" Style="{StaticResource Secondary}"
+                   Visibility="{Binding HasNoDevices, Converter={StaticResource BoolToVisibility}}" />
+
+        <ItemsControl ItemsSource="{Binding Devices}" Focusable="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type ui:DeviceCardViewModel}">
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <!-- Which mouse -->
+                            <Grid Margin="16,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="&#xE962;" FontFamily="{StaticResource IconFont}" FontSize="20" Margin="0,0,14,0"
+                                           VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource BodyStrongTextBlockStyle}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                               ToolTip="{Binding Name}" />
+                                    <TextBlock Text="{Binding KindLabel}" Style="{StaticResource CaptionTextBlockStyle}"
+                                               Visibility="{Binding HasKindLabel, Converter={StaticResource BoolToVisibility}}"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- A wheel mouse: its own settings -->
+                            <StackPanel Visibility="{Binding IsWheelMouse, Converter={StaticResource BoolToVisibility}}">
+                                <Border Style="{StaticResource NextRow}"
+                                        ui:Explain.Text="{loc:L 'The page glides instead of jumping.&#10;Zooming stays one step per notch.'}">
+                                    <CheckBox Style="{StaticResource Switch}" Content="{loc:L 'Smooth scrolling'}" IsChecked="{Binding Smooth}"
+                                              AutomationProperties.Name="{loc:L 'Smooth scrolling'}" AutomationProperties.HelpText="{Binding Name}" />
+                                </Border>
+                                <Border Style="{StaticResource NextRow}"
+                                        Visibility="{Binding Smooth, Converter={StaticResource BoolToVisibility}}"
+                                        ui:Explain.Text="{loc:L 'How far the page moves&#10;for each notch of the wheel.'}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" MinWidth="80" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{loc:L 'Scrolling speed'}" Style="{StaticResource RowTitle}" Margin="0,0,12,0" />
+                                        <TextBlock Grid.Column="1" Text="{loc:L Slow}" Style="{StaticResource Secondary}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <Slider Grid.Column="2" Width="150" VerticalAlignment="Center"
+                                                Minimum="{x:Static ui:DeviceCardViewModel.MinimumSpeed}" Maximum="{x:Static ui:DeviceCardViewModel.MaximumSpeed}"
+                                                SmallChange="0.5" LargeChange="1"
+                                                Value="{Binding Speed}"
+                                                AutomationProperties.Name="{loc:L 'Scrolling speed'}" AutomationProperties.HelpText="{Binding Name}" />
+                                        <TextBlock Grid.Column="3" Text="{loc:L Fast}" Style="{StaticResource Secondary}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource NextRow}"
+                                        ui:Explain.Text="{loc:L 'Flips only the wheel\'s direction.&#10;Other devices stay as they are.'}">
+                                    <CheckBox Style="{StaticResource Switch}" Content="{loc:L 'Reverse direction'}" IsChecked="{Binding Reverse}"
+                                              AutomationProperties.Name="{loc:L 'Reverse direction'}" AutomationProperties.HelpText="{Binding Name}" />
+                                </Border>
+                                <Border Style="{StaticResource NextRow}"
+                                        ui:Explain.Text="{loc:L 'Pressing a wheel often turns it too.&#10;That won\'t scroll the page.'}">
+                                    <CheckBox Style="{StaticResource Switch}" Content="{loc:L 'Don\'t scroll while pressed'}" IsChecked="{Binding BlockWhilePressed}"
+                                              AutomationProperties.Name="{loc:L 'Don\'t scroll while pressed'}" AutomationProperties.HelpText="{Binding Name}" />
+                                </Border>
+                            </StackPanel>
+
+                            <!-- A touchpad, or something CalmMouse doesn't know: one line -->
+                            <Border Style="{StaticResource NextRow}" MinHeight="44"
+                                    Visibility="{Binding IsTouchpad, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="{loc:L 'CalmMouse leaves the touchpad alone.'}" Style="{StaticResource Secondary}" VerticalAlignment="Center" />
+                            </Border>
+                            <Border Style="{StaticResource NextRow}" MinHeight="44"
+                                    Visibility="{Binding IsUnknown, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="{loc:L 'CalmMouse has nothing to change on this mouse.'}" Style="{StaticResource Secondary}" VerticalAlignment="Center" />
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

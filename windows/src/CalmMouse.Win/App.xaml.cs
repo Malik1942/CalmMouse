@@ -210,17 +210,23 @@ public partial class App : Application
     private void UpdateTray()
     {
         if (_tray == null || _store == null || _engine == null) { return; }
-        bool paused = _store.Current.Paused;
-        TrayView view = _problem switch
+        TrayView view = CurrentTrayView(_store, _engine);
+        if (view != _tray.View) { _tray.Show(view); }
+    }
+
+    /// <summary>What the tray shows now; Settings shows its problem line too.</summary>
+    private TrayView CurrentTrayView(SettingsStore store, InputThread engine)
+    {
+        bool paused = store.Current.Paused;
+        return _problem switch
         {
             EngineProblem.CouldNotStart when !paused => new(TrayState.Problem, L("CalmMouse couldn't start. Your mouse scrolls as usual."), CanRetry: true),
             EngineProblem.Faulted when !paused => new(TrayState.Problem, L("CalmMouse stopped because of a problem. Your mouse scrolls as usual."), CanRetry: true),
             _ when paused => new(TrayState.Paused, null, false),
-            _ when _engine.Status.BreakerOpen =>
+            _ when engine.Status.BreakerOpen =>
                 new(TrayState.Problem, L("Something on this PC is blocking CalmMouse, so your mouse scrolls as usual for now. It will try again soon."), CanRetry: false),
             _ => new(TrayState.Normal, null, false),
         };
-        if (view != _tray.View) { _tray.Show(view); }
     }
 
     // MARK: Windows
@@ -230,7 +236,10 @@ public partial class App : Application
         if (_quitting) { return; }
         if (_settingsWindow == null)
         {
-            _settingsWindow = new SettingsWindow();
+            if (_store == null || _engine == null) { return; }
+            var model = new SettingsUI.SettingsViewModel(_store, new SettingsHost(this), new SettingsUI.WindowsAppCatalog(),
+                                                         action => Dispatcher.BeginInvoke(action));
+            _settingsWindow = new SettingsWindow(model);
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
             _settingsWindow.Show();
         }

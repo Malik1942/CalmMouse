@@ -1,0 +1,102 @@
+<!-- App rules: apps where wheel mice scroll differently. Each rule follows the window under the pointer. -->
+<UserControl x:Class="CalmMouse.Win.SettingsUI.AppRulesPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:CalmMouse.Win.Localization"
+             xmlns:ui="clr-namespace:CalmMouse.Win.SettingsUI">
+    <UserControl.Resources>
+        <ResourceDictionary Source="SettingsStyles.xaml" />
+    </UserControl.Resources>
+    <StackPanel>
+        <TextBlock Text="{loc:L 'App rules'}" Style="{StaticResource PageTitle}" Margin="0,0,0,8" />
+        <TextBlock Text="{Binding AppRulesSubtitle}" Style="{StaticResource Secondary}" Margin="0,0,0,16" />
+
+        <Border Background="Transparent" HorizontalAlignment="Left" Margin="0,0,0,16"
+                ui:Explain.Text="{loc:L 'Pick an app that\'s open now,&#10;or choose a program file.'}">
+            <Button x:Name="AddButton" Click="OnAddClicked" Style="{StaticResource AccentButtonStyle}"
+                    AutomationProperties.Name="{loc:L 'Add an app…'}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE710;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock Text="{loc:L 'Add an app…'}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </Border>
+
+        <TextBlock Text="{loc:L 'No app rules yet.'}" Style="{StaticResource Secondary}"
+                   Visibility="{Binding HasNoRules, Converter={StaticResource BoolToVisibility}}" />
+
+        <ItemsControl x:Name="RuleList" ItemsSource="{Binding Rules}" Focusable="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type ui:AppRuleViewModel}">
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <!-- Which app -->
+                            <Grid Margin="16,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Width="24" Height="24" Margin="0,0,14,0" VerticalAlignment="Center">
+                                    <Image Source="{Binding Icon}" RenderOptions.BitmapScalingMode="HighQuality"
+                                           Visibility="{Binding HasIcon, Converter={StaticResource BoolToVisibility}}" />
+                                    <TextBlock Text="&#xECAA;" FontFamily="{StaticResource IconFont}" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               Visibility="{Binding HasIcon, Converter={StaticResource BoolToVisibility}, ConverterParameter=not}" />
+                                </Grid>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding DisplayName}" Style="{StaticResource BodyStrongTextBlockStyle}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                               ToolTip="{Binding DisplayName}" />
+                                    <TextBlock Text="{Binding ExeName}" Style="{StaticResource CaptionTextBlockStyle}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Command="{Binding RemoveCommand}" Margin="12,0,0,0" VerticalAlignment="Center"
+                                        AutomationProperties.Name="{loc:L Remove}" AutomationProperties.HelpText="{Binding DisplayName}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE74D;" FontFamily="{StaticResource IconFont}" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <TextBlock Text="{loc:L Remove}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+
+                            <Border Style="{StaticResource NextRow}"
+                                    ui:Explain.Text="{loc:L 'Turn a rule off to keep it&#10;without using it for now.'}">
+                                <CheckBox Style="{StaticResource Switch}" Content="{loc:L 'Rule enabled'}" IsChecked="{Binding Enabled}"
+                                          AutomationProperties.Name="{loc:L 'Rule enabled'}" AutomationProperties.HelpText="{Binding DisplayName}" />
+                            </Border>
+
+                            <!-- One choice or the other; dimmed (but still open to change) while the rule is off. -->
+                            <Border Style="{StaticResource NextRow}" Padding="16,4">
+                                <StackPanel>
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Enabled}" Value="False">
+                                                    <Setter Property="Opacity" Value="0.6" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                    <Border Background="Transparent" Padding="0,8"
+                                            ui:Explain.Text="{loc:L 'Every mouse scrolls a notch at a time here.&#10;For older apps that miss small steps.'}">
+                                        <RadioButton IsChecked="{Binding NoSmoothing}" GroupName="{Binding ExeName}"
+                                                     AutomationProperties.Name="{loc:L 'Don\'t smooth scrolling in this app'}" AutomationProperties.HelpText="{Binding DisplayName}">
+                                            <TextBlock Text="{loc:L 'Don\'t smooth scrolling in this app'}" TextWrapping="Wrap" />
+                                        </RadioButton>
+                                    </Border>
+                                    <Border Background="Transparent" Padding="0,8"
+                                            ui:Explain.Text="{loc:L 'CalmMouse doesn\'t touch scrolling here:&#10;no smoothing, no reversing, nothing held back.'}">
+                                        <RadioButton IsChecked="{Binding LeaveAlone}" GroupName="{Binding ExeName}"
+                                                     AutomationProperties.Name="{loc:L 'Leave scrolling alone in this app'}" AutomationProperties.HelpText="{Binding DisplayName}">
+                                            <TextBlock Text="{loc:L 'Leave scrolling alone in this app'}" TextWrapping="Wrap" />
+                                        </RadioButton>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>
