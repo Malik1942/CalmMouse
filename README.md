@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/hero-loop.gif" width="720" alt="A menu with Save above Delete. Without CalmMouse the page shifts under the click and Delete fires. With CalmMouse on, the same click lands on Save.">
+  <img src="docs/images/hero-loop.gif" width="720" alt="CalmMouse Settings: pointing at Don't scroll while clicking plays its demo on the rendered Magic Mouse, then the switch turns on.">
 </p>
 
 <p align="center">
@@ -51,8 +51,8 @@ Then allow it once: **System Settings → Privacy & Security → Accessibility �
 It starts working within two seconds, no relaunch.
 
 <p align="center">
-  <img src="docs/images/welcome-presets.png" width="560" alt="The welcome tour's preset step: Just fix clicking, Extra steady, Trackpad feel">
-  <br><sub>First launch: pick a starting point, then try the fix live. It counts the accidental scrolls it just caught.</sub>
+  <img src="docs/images/welcome-devices.png" width="560" alt="The welcome tour's first page: CalmMouse makes these work better, with a rendered Magic Mouse, scroll-wheel mouse and game controller">
+  <br><sub>First launch: the tour finds the mouse or controller you have and walks you through only its steps. With a Magic Mouse, you pick a starting point and try the fix live.</sub>
 </p>
 
 ## What it fixes
@@ -97,8 +97,8 @@ Most of this is for the **Magic Mouse**. Wheel mice and game controllers get opt
 </p>
 
 Pause CalmMouse from the menu bar; everything else is in Settings (⌘,). Devices lists each mouse and
-controller with its own settings. Point at a setting and the rendered mouse on the left acts out what
-it does; drag the mouse to turn it.
+controller with its own settings, each drawn as a rendered model you can drag to turn; right-click it
+to pick White or Black. Point at a Magic Mouse setting and the mouse on the left acts out what it does.
 
 <details>
 <summary><b>Full feature reference</b></summary>
