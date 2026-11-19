@@ -45,7 +45,7 @@ struct SupportedDevicesStep: View {
             Text(L("CalmMouse makes these work better"))
                 .font(.title).fontWeight(.semibold)
             HStack(alignment: .top, spacing: 12) {
-                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                ForEach(items, id: \.0) { item in
                     VStack(spacing: 6) {
                         DeviceArt(model: item.0, side: 190)
                         Text(item.0.accessibilityName).font(.headline)
@@ -55,9 +55,9 @@ struct SupportedDevicesStep: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(width: 190)
+                    // Malik (2026-11-18): the tour's entrances fade, nothing flies in.
                     .opacity(shown || reduceMotion ? 1 : 0)
-                    .offset(y: shown || reduceMotion ? 0 : 10)
-                    .animation(reduceMotion ? nil : .easeOut(duration: 0.5).delay(0.12 * Double(index)), value: shown)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.4), value: shown)
                 }
             }
             Text(L("Trackpads aren't affected."))
@@ -141,7 +141,7 @@ struct DetectStep: View {
             status(device)
         }
         .frame(width: side)
-        .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: 10)))
+        .transition(.opacity)
     }
 
     private func status(_ device: DetectedDevice) -> some View {
