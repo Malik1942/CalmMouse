@@ -222,6 +222,12 @@ public sealed class ScrollRouter
         return rule is { NoSmoothing: true } ? _anyDiscreteFeature : _anyFeature;
     }
 
+    /// <summary>
+    /// False when no wheel event can be swallowed whatever window it is aimed at (paused, or no
+    /// wheel mouse has a feature on), so the hook can skip working out the target.
+    /// </summary>
+    public bool MightSwallow => !_paused && _anyFeature;
+
     /// <summary>True while a glide is running or a swallowed event waits for its device: keep calling Tick.</summary>
     public bool NeedsTicks
     {
@@ -418,6 +424,44 @@ public sealed class ScrollRouter
             Fault(ex);
         }
     }
+
+    /// <summary>
+    /// Sends the rest of every running glide at once, whole, and stops the glides: for shutting
+    /// down (Stop, or a fault), so the scrolling the user already asked for isn't lost. Swallowed
+    /// events still waiting for their device are left to <see cref="SetPaused"/>, which resends them.
+    /// </summary>
+    public void Flush()
+    {
+        try
+        {
+            foreach (Device d in _devices.Values)
+            {
+                if (!d.IsGliding) { continue; }
+                try
+                {
+                    // What the remaining frames would pay out: the owed distance, its fraction
+                    // settled to the nearest pixel as the smoother's last frame does.
+                    (double ox, double oy) = d.Smoother.Owed;
+                    int y = d.Y.Add(WholePixels(oy));
+                    int x = d.X.Add(WholePixels(ox));
+                    if (y != 0) { Send(y, horizontal: false); }
+                    if (x != 0) { Send(x, horizontal: true); }
+                }
+                catch (Exception ex)
+                {
+                    Fault(ex);
+                }
+                d.CancelGlide();
+            }
+        }
+        catch (Exception ex)
+        {
+            Fault(ex);
+        }
+    }
+
+    private static long WholePixels(double pixels) =>
+        double.IsFinite(pixels) ? (long)Math.Round(pixels, MidpointRounding.AwayFromZero) : 0;
 
     // MARK: Inputs: state
 

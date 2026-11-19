@@ -1,102 +1,78 @@
 namespace CalmMouse.Win.Input;
 
-/// <summary>What the watchdog wants done now.</summary>
-public enum WatchdogAction
-{
-    None,
-    /// <summary>
-    /// Inject a marked no-op event and see whether the hook gets it. (A move to where the cursor
-    /// already is: Windows drops zero-delta wheels and zero relative moves before any hook sees them.)
-    /// </summary>
-    Ping,
-    /// <summary>The ping didn't come through: the hook is gone. Remove it and install it again.</summary>
-    Reinstall,
-}
-
 /// <summary>
-/// Notices when Windows has quietly removed the low-level hook (it does that to a hook that once
-/// took longer than LowLevelHooksTimeout, without telling anyone). Pure logic; the input thread
-/// does the pinging. Seconds on the input thread's clock.
+/// Notices when Windows has quietly removed the low-level hook (it does that to a hook that took
+/// longer than LowLevelHooksTimeout, without telling anyone). Pure logic; seconds on the input
+/// thread's clock.
 /// </summary>
 /// <remarks>
-/// Any hook call proves the hook is there, and the mouse moving calls it constantly, so a ping is
-/// only needed when the user is busy (keyboard, say) and the hook has heard nothing since the last
-/// check. When nobody uses the PC there is no ping at all: an injected event counts as input, and
-/// pinging an idle PC would keep its screen from ever turning off. (If the hook died while the PC
-/// sat idle, the first check after the user is back finds out.)
+/// It injects nothing. Raw Input keeps arriving whatever happens to the hook, and every physical
+/// mouse event Raw Input reports (a device handle, not 0) also goes through the hook. So when
+/// physical Raw Input keeps coming for <see cref="SilenceLimit"/> while the hook hears nothing,
+/// the hook is gone and is reinstalled. Reinstalls are at least <see cref="MinimumGap"/> apart, and
+/// the gap doubles (up to <see cref="MaximumGap"/>) while the hook stays silent after one, so a
+/// case where the hook is legitimately silent can't make it reinstall over and over.
+/// (An earlier version injected a marked no-op move as a ping, but injected input reaches every
+/// Raw Input reader, so a game reading raw deltas would have seen a jump every few seconds.)
 /// </remarks>
-public sealed class HookWatchdog(double interval = HookWatchdog.DefaultInterval, double pingTimeout = HookWatchdog.DefaultPingTimeout)
+public sealed class HookWatchdog(
+    double silenceLimit = HookWatchdog.DefaultSilenceLimit,
+    double minimumGap = HookWatchdog.DefaultMinimumGap,
+    double maximumGap = HookWatchdog.DefaultMaximumGap)
 {
-    public const double DefaultInterval = 3.0;
-    public const double DefaultPingTimeout = 0.5;
+    public const double DefaultSilenceLimit = 0.75;
+    public const double DefaultMinimumGap = 2.0;
+    public const double DefaultMaximumGap = 60.0;
 
-    /// <summary>
-    /// The MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK coordinate (0–65535 across the virtual
-    /// screen) that lands on pixel <paramref name="pixel"/>, for a virtual screen starting at
-    /// <paramref name="origin"/> and <paramref name="size"/> pixels wide (or high). Windows maps a
-    /// coordinate n to origin + n × size / 65536 rounded down, so this is the smallest n that gives
-    /// the pixel back: the ping moves the cursor exactly where it already is.
-    /// </summary>
-    public static int AbsoluteCoordinate(int pixel, int origin, int size)
-    {
-        if (size <= 1) { return 0; }
-        long offset = Math.Clamp((long)pixel - origin, 0, size - 1);
-        return (int)((offset * 65536 + size - 1) / size);
-    }
+    private double _silentSince = double.NaN;   // first physical Raw Input the hook hasn't answered
+    private double _lastPhysical = double.NegativeInfinity;
+    private double _lastReinstall = double.NegativeInfinity;
+    private double _gap = minimumGap;
 
-    private double _lastActivity = double.NegativeInfinity;
-    private double _lastCheck = double.NegativeInfinity;
-    private double _pingAt = double.NaN;
+    public double SilenceLimit { get; } = silenceLimit;
+    public double MinimumGap { get; } = minimumGap;
+    public double MaximumGap { get; } = maximumGap;
 
-    public double Interval { get; } = interval;
-    public double PingTimeout { get; } = pingTimeout;
+    /// <summary>The wait before another reinstall may happen.</summary>
+    public double CurrentGap => _gap;
 
-    public bool PingOutstanding => !double.IsNaN(_pingAt);
-
-    /// <summary>The hook was (re)installed at <paramref name="t"/>.</summary>
+    /// <summary>The hook was installed at <paramref name="t"/>.</summary>
     public void Started(double t)
     {
-        _lastCheck = t;
-        _lastActivity = t;
-        _pingAt = double.NaN;
+        _silentSince = double.NaN;
+        _lastReinstall = t;
     }
 
     /// <summary>The hook was called (any message). Cheap: called for every mouse move.</summary>
-    public void HookActivity(double t) => _lastActivity = t;
-
-    /// <summary>A ping went out at <paramref name="t"/>.</summary>
-    public void PingSent(double t) => _pingAt = t;
-
-    /// <summary>The ping couldn't be sent (SendInput refused: a locked or secure desktop). Nothing to wait for.</summary>
-    public void PingNotSent() => _pingAt = double.NaN;
-
-    /// <summary>When <see cref="Check"/> next has something to decide.</summary>
-    public double NextCheckAt => PingOutstanding ? _pingAt + PingTimeout : _lastCheck + Interval;
-
-    /// <param name="userActive">Whether someone used the keyboard or mouse lately (not counting our own pings).</param>
-    public WatchdogAction Check(double now, bool userActive)
+    public void HookActivity(double t)
     {
-        if (PingOutstanding)
-        {
-            if (_lastActivity >= _pingAt)
-            {
-                _pingAt = double.NaN;
-                _lastCheck = now;
-                return WatchdogAction.None;
-            }
-            if (now - _pingAt >= PingTimeout)
-            {
-                _pingAt = double.NaN;
-                _lastCheck = now;
-                return WatchdogAction.Reinstall;
-            }
-            return WatchdogAction.None;
-        }
-
-        if (now - _lastCheck < Interval) { return WatchdogAction.None; }
-        double previous = _lastCheck;
-        _lastCheck = now;
-        if (_lastActivity > previous) { return WatchdogAction.None; }   // heard from since the last check
-        return userActive ? WatchdogAction.Ping : WatchdogAction.None;
+        _silentSince = double.NaN;
+        _gap = MinimumGap;
     }
+
+    /// <summary>Raw Input reported a physical mouse event (any: move, button or wheel).</summary>
+    public void PhysicalInput(double t)
+    {
+        if (double.IsNaN(_silentSince)) { _silentSince = t; }
+        _lastPhysical = t;
+    }
+
+    /// <summary>When <see cref="Check"/> could next say Reinstall; infinity while the hook isn't silent.</summary>
+    public double NextCheckAt =>
+        double.IsNaN(_silentSince) ? double.PositiveInfinity : Math.Max(_silentSince + SilenceLimit, _lastReinstall + _gap);
+
+    /// <summary>True: the hook has been silent through <see cref="SilenceLimit"/> of physical input. Reinstall it now.</summary>
+    public bool Check(double now)
+    {
+        if (double.IsNaN(_silentSince)) { return false; }
+        if (_lastPhysical - _silentSince < SilenceLimit) { return false; }   // input must have kept coming
+        if (now - _lastReinstall < _gap) { return false; }
+        _lastReinstall = now;
+        _silentSince = double.NaN;
+        _gap = Math.Min(_gap * 2, MaximumGap);   // reset by the next hook call
+        return true;
+    }
+
+    /// <summary>Forget the silence so far (the input went somewhere our hook isn't asked about, such as an elevated window).</summary>
+    public void Excuse() => _silentSince = double.NaN;
 }

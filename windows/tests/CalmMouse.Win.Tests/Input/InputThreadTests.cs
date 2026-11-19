@@ -15,46 +15,60 @@ public sealed class InputThreadCollection
 /// <summary>
 /// The real input thread on a real desktop. Safe while someone uses the PC: every feature of every
 /// real mouse stays off, so physical scrolling passes (at worst it is resent unchanged), and the
-/// tests only inject 1/120-notch wheels and moves to where the cursor already is, which the witness
-/// hook (installed before the engine's, so it tells passed from swallowed) swallows before any app.
-/// Every test disposes the engine and the witness in `using`, so no hook outlives a failing test
-/// (and Windows removes hooks with their thread anyway).
+/// tests only inject wheels of a few 1/120ths of a notch, which the witness hook (installed before
+/// the engine's, so it tells passed from swallowed) swallows before any app sees them. Every test
+/// disposes the engine and the witness in `using`, so no hook outlives a failing test (and Windows
+/// removes hooks with their thread anyway).
 /// </summary>
 /// <remarks>
 /// On the Phase 0 PC an injected event now and then (about one in a hundred) reached Raw Input but
 /// neither of our hooks: something in front of both, most likely another program's low-level
-/// hook, ate it. So an
-/// injection that neither hook saw is tried again; one that the engine's hook saw but the witness
-/// didn't is a failure (the engine swallowed it).
+/// hook, ate it. So an injection that neither hook saw is tried again; one that the engine's hook
+/// saw but the witness didn't is a failure (the engine swallowed it).
 /// </remarks>
 [Collection(InputThreadCollection.Name)]
 public sealed class InputThreadTests
 {
-    /// <summary>A Raw Input handle no real device has, with reverse on.</summary>
+    /// <summary>A Raw Input handle no real device has.</summary>
     private const long FakeMouse = 0x7FFF_0001;
 
     private const int Attempts = 3;
 
     private static readonly WheelTarget Notepad = new("notepad.exe", Elevated: false);
 
-    private static RoutedDevice FakeReversingMouse() =>
-        new(FakeMouse, DeviceKind.WheelMouse, "FFFF:FFFF:Fake mouse") { Wheel = new WheelSettings(reverse: true) };
+    private static RoutedDevice FakeMouseWith(WheelSettings wheel) =>
+        new(FakeMouse, DeviceKind.WheelMouse, "FFFF:FFFF:Fake mouse") { Wheel = wheel };
+
+    private static readonly WheelSettings Reverse = new(reverse: true);
+
+    /// <summary>
+    /// One physical tick of the made-up mouse, as the hook and Raw Input would report it, straight
+    /// into the engine's router on its thread. Its sends are injected right after, for real.
+    /// </summary>
+    private static int TurnFakeMouse(InputThread engine, int delta) => engine.WithRouter(r =>
+    {
+        double t = InputThread.ClockNow();
+        r.HookWheel(t, delta, false, WinModifiers.None, false, Notepad);
+        r.RawWheel(t + 0.0001, FakeMouse, delta, false);
+        return r.PendingSendCount;
+    });
 
     [Fact]
-    public void StartsWithTheHookInstalledAndSeesItsOwnPingWhichNobodyElseGets()
+    public void StartsWithTheHookInstalledAndItSwallowsWhatItShould()
     {
         using var witness = WitnessHook.Start();
         witness.RequireInjectedInputReachesHooks();
-        using var engine = new InputThread();
+        nuint swallow = WitnessHook.NewMarker();
+        using var engine = new InputThread(new InputThreadOptions { SwallowMarker = (uint)swallow });
         engine.Start();
 
         Assert.True(engine.IsRunning);
         Assert.True(engine.Status.HookInstalled);
-        Assert.True(engine.PingAndWait());
-        // The ping is swallowed by the engine's hook: a wheel sent after it reaches the witness,
-        // the ping before it never does.
+        // The engine's hook eats the test marker: a wheel sent after it reaches the witness, the
+        // one before it never does.
+        Assert.True(engine.InjectWheel(1, swallow));
         AssertWheelPasses(engine, witness, WitnessHook.NewMarker());
-        Assert.False(witness.Saw(engine.PingExtraInfo));
+        Assert.False(witness.Saw(swallow));
     }
 
     [Fact]
@@ -65,7 +79,7 @@ public sealed class InputThreadTests
         using var engine = new InputThread(new InputThreadOptions { RecordWheelLog = true });
         engine.Start();
 
-        Assert.False(engine.WithRouter(r => r.Swallows(Notepad)));
+        Assert.False(engine.WithRouter(r => r.Swallows(Notepad) || r.MightSwallow));
         nuint marker = WitnessHook.NewMarker();
         AssertWheelPasses(engine, witness, marker);
         Assert.True(WaitForLog(engine, e => e.Kind == WheelLogKind.InjectedWheel && e.ExtraInfo == marker, out WheelLogEntry entry));
@@ -84,7 +98,7 @@ public sealed class InputThreadTests
         // mouse's, all off, are resent unchanged), but injected ones must still pass.
         Assert.True(engine.WithRouter(r =>
         {
-            r.SetDevice(FakeReversingMouse());
+            r.SetDevice(FakeMouseWith(Reverse));
             return r.Swallows(Notepad);
         }));
         AssertWheelPasses(engine, witness, WitnessHook.NewMarker());
@@ -92,6 +106,119 @@ public sealed class InputThreadTests
         // Our own resend marker too: those are what the router itself injects.
         witness.Absorb(ScrollRouter.ResendMarker);
         AssertWheelPasses(engine, witness, ScrollRouter.ResendMarker);
+    }
+
+    [Fact]
+    public void AResendGoesOutWithTheMarkerPassesTheHookAndComesBackThroughRawInput()
+    {
+        using var witness = WitnessHook.Start();
+        witness.RequireInjectedInputReachesHooks();
+        witness.Absorb(ScrollRouter.ResendMarker);
+        using var engine = new InputThread();
+        engine.Start();
+        engine.WithRouter(r =>
+        {
+            r.SetDevice(FakeMouseWith(Reverse));
+            return true;
+        });
+
+        for (int attempt = 0; attempt < Attempts && !witness.Saw(ScrollRouter.ResendMarker); attempt++)
+        {
+            long echoes = engine.CountersNow().ResendEchoes;
+            Assert.Equal(1, TurnFakeMouse(engine, 1));
+            // Raw Input sees every resend, whatever happens to it at the hooks.
+            Assert.True(SpinUntil(() => engine.CountersNow().ResendEchoes > echoes, 1000));
+            witness.WaitFor(ScrollRouter.ResendMarker, 500);
+        }
+        // Reversed, and let through by the engine's own hook.
+        Assert.Contains(-1, witness.DeltasOf(ScrollRouter.ResendMarker));
+        EngineCounters c = engine.CountersNow();
+        Assert.True(c.Sends >= 1);
+        Assert.Equal(0, c.SendFailures);
+        Assert.False(engine.Status.BreakerOpen);
+    }
+
+    [Fact]
+    public void TheGlideTimerRunsOnlyWhileAGlidePlays()
+    {
+        using var witness = WitnessHook.Start();
+        witness.RequireInjectedInputReachesHooks();
+        witness.Absorb(ScrollRouter.ResendMarker, maxDelta: 4);
+        using var engine = new InputThread(new InputThreadOptions { RecordWheelLog = true });
+        engine.Start();
+        engine.WithRouter(r =>
+        {
+            r.SetDevice(FakeMouseWith(new WheelSettings(smooth: true, speed: 12)));
+            return true;
+        });
+        Assert.False(engine.TickingForTest);
+
+        // One 1/120 tick at the top speed glides 4 units over a fraction of a second.
+        Assert.Equal(0, TurnFakeMouse(engine, 1));
+        Assert.True(SpinUntil(() => engine.TickingForTest, 500));
+        Assert.True(SpinUntil(() => !engine.TickingForTest, 2000));
+        Assert.Equal(4, SentTotal(engine));
+    }
+
+    [Fact]
+    public void StopSendsTheRestOfAGlideBeforeItGoes()
+    {
+        using var witness = WitnessHook.Start();
+        witness.RequireInjectedInputReachesHooks();
+        witness.Absorb(ScrollRouter.ResendMarker, maxDelta: 16);
+        using var engine = new InputThread(new InputThreadOptions { RecordWheelLog = true });
+        engine.Start();
+        engine.WithRouter(r =>
+        {
+            r.SetDevice(FakeMouseWith(new WheelSettings(smooth: true, speed: 12)));
+            return true;
+        });
+
+        // 4/120 at the top speed: 16 units over about a third of a second. Stop at once.
+        TurnFakeMouse(engine, 4);
+        engine.Stop();
+        Assert.Equal(16, SentTotal(engine));
+    }
+
+    [Fact]
+    public void RefusedResendsTripTheBreakerAndEverythingPasses()
+    {
+        // Only the test's 1/120 ticks are "refused"; anything of the owner's (resent unchanged
+        // while the made-up mouse has a feature on) still goes out for real.
+        using var engine = new InputThread(new InputThreadOptions { ResendOverride = (delta, _) => Math.Abs(delta) <= 1 ? false : null });
+        engine.Start();
+        engine.WithRouter(r =>
+        {
+            r.SetDevice(FakeMouseWith(Reverse));
+            return true;
+        });
+
+        for (int i = 0; i < ResendBreaker.DefaultTripAfter; i++) { TurnFakeMouse(engine, 1); }
+        Assert.True(engine.BreakerOpenForTest);
+        Assert.Equal(1, engine.CountersNow().BreakerTrips);
+        Assert.False(engine.WithRouter(r => r.Swallows(Notepad) || r.MightSwallow));
+        Assert.Contains(engine.TakeMessages(), m => m.Contains("aren't getting through", StringComparison.Ordinal));
+        // The user's own pause and resume don't override it.
+        engine.SetPaused(true);
+        engine.SetPaused(false);
+        Assert.False(engine.WithRouter(r => r.MightSwallow));
+    }
+
+    [Fact]
+    public void ResendsThatNeverComeBackTripTheBreakerToo()
+    {
+        // "Accepted" but never injected, so no echo ever comes through Raw Input.
+        using var engine = new InputThread(new InputThreadOptions { ResendOverride = (delta, _) => Math.Abs(delta) <= 1 ? true : null });
+        engine.Start();
+        engine.WithRouter(r =>
+        {
+            r.SetDevice(FakeMouseWith(Reverse));
+            return true;
+        });
+
+        for (int i = 0; i < ResendBreaker.DefaultTripAfter; i++) { TurnFakeMouse(engine, 1); }
+        Assert.True(SpinUntil(() => engine.BreakerOpenForTest, 1500));
+        Assert.False(engine.WithRouter(r => r.MightSwallow));
     }
 
     [Fact]
@@ -103,7 +230,7 @@ public sealed class InputThreadTests
         engine.Start();
         engine.WithRouter(r =>
         {
-            r.SetDevice(FakeReversingMouse());
+            r.SetDevice(FakeMouseWith(Reverse));
             return true;
         });
 
@@ -123,22 +250,16 @@ public sealed class InputThreadTests
     {
         using var witness = WitnessHook.Start();
         witness.RequireInjectedInputReachesHooks();
-        using var engine = new InputThread();
+        nuint swallow = WitnessHook.NewMarker();
+        using var engine = new InputThread(new InputThreadOptions { SwallowMarker = (uint)swallow });
         engine.Start();
-        engine.WithRouter(r =>
-        {
-            r.SetDevice(FakeReversingMouse());
-            return true;
-        });
-        nuint ping = engine.PingExtraInfo;
-        witness.Absorb(ping);
 
         engine.Stop();
         Assert.False(engine.IsRunning);
         Assert.False(engine.Status.HookInstalled);
         Assert.False(engine.HookHandlePresent);
-        // Nobody swallows the ping any more: it reaches the witness.
-        AssertReachesWitness(witness, ping, () => WitnessHook.InjectMoveToCursor(ping));
+        // Nobody swallows the marker any more: it reaches the witness.
+        AssertReachesWitness(witness, swallow);
         engine.Stop();   // twice is fine
     }
 
@@ -147,14 +268,12 @@ public sealed class InputThreadTests
     {
         using var witness = WitnessHook.Start();
         witness.RequireInjectedInputReachesHooks();
-        nuint ping;
-        using (var engine = new InputThread())
+        nuint swallow = WitnessHook.NewMarker();
+        using (var engine = new InputThread(new InputThreadOptions { SwallowMarker = (uint)swallow }))
         {
             engine.Start();
-            ping = engine.PingExtraInfo;
-            witness.Absorb(ping);
         }
-        AssertReachesWitness(witness, ping, () => WitnessHook.InjectMoveToCursor(ping));
+        AssertReachesWitness(witness, swallow);
 
         using var next = new InputThread();
         next.Start();
@@ -176,7 +295,8 @@ public sealed class InputThreadTests
     {
         using var witness = WitnessHook.Start();
         witness.RequireInjectedInputReachesHooks();
-        using var engine = new InputThread();
+        nuint swallow = WitnessHook.NewMarker();
+        using var engine = new InputThread(new InputThreadOptions { SwallowMarker = (uint)swallow });
         using var reported = new ManualResetEventSlim();
         bool hookGoneWhenReported = false;
         engine.Faulted += (_, _) =>
@@ -185,8 +305,6 @@ public sealed class InputThreadTests
             reported.Set();
         };
         engine.Start();
-        nuint ping = engine.PingExtraInfo;
-        witness.Absorb(ping);
 
         engine.FaultForTest();
         Assert.True(reported.Wait(1000, TestContext.Current.CancellationToken));
@@ -194,27 +312,45 @@ public sealed class InputThreadTests
         Assert.True(SpinUntil(() => !engine.IsRunning, 1000));
         Assert.False(engine.Status.HookInstalled);
         Assert.Contains(engine.TakeMessages(), m => m.Contains("FAULT", StringComparison.Ordinal));
-        AssertReachesWitness(witness, ping, () => WitnessHook.InjectMoveToCursor(ping));
+        AssertReachesWitness(witness, swallow);
     }
 
     [Fact]
-    public void TheWatchdogReinstallsAHookWindowsRemoved()
+    public void ItStartsAgainAfterAFault()
     {
         using var witness = WitnessHook.Start();
         witness.RequireInjectedInputReachesHooks();
-        using var engine = new InputThread(new InputThreadOptions
-        {
-            WatchdogInterval = 0.2,
-            PingTimeout = 0.2,
-            UserActiveOverride = () => true,
-        });
+        using var engine = new InputThread();
         engine.Start();
-        witness.Absorb(engine.PingExtraInfo);
+        int devices = engine.Devices.Count;
+
+        engine.FaultForTest();
+        Assert.True(SpinUntil(() => !engine.IsRunning, 1000));
+        engine.Start();
+        Assert.True(engine.IsRunning);
+        Assert.True(engine.Status.HookInstalled);
+        Assert.Equal(devices, engine.Devices.Count);
+        AssertHookAlive(engine, witness);
+    }
+
+    [Fact]
+    public void TheWatchdogReinstallsAHookThatHearsNothingWhileTheMouseIsUsed()
+    {
+        using var witness = WitnessHook.Start();
+        witness.RequireInjectedInputReachesHooks();
+        using var engine = new InputThread(new InputThreadOptions { HookSilenceLimit = 0.2, HookReinstallGap = 0.2 });
+        engine.Start();
 
         engine.LoseHookForTest();
-        Assert.True(SpinUntil(() => engine.CountersNow().HookReinstalls >= 1, 1500));
+        // Raw Input keeps reporting the mouse (as moving a real one would) while the hook is silent.
+        Assert.True(SpinUntil(() =>
+        {
+            engine.PhysicalInputForTest();
+            return engine.CountersNow().HookReinstalls >= 1;
+        }, 1500));
         Assert.True(engine.HookHandlePresent);
-        Assert.True(engine.PingAndWait());
+        AssertHookAlive(engine, witness);
+        Assert.Contains(engine.TakeMessages(), m => m.Contains("reinstalled", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -231,7 +367,21 @@ public sealed class InputThreadTests
             Assert.NotEqual(0, d.DeviceId);
         }
         // The in-memory settings have every feature off, so nothing is swallowed anywhere.
-        Assert.False(engine.WithRouter(r => r.Swallows(Notepad)));
+        Assert.False(engine.WithRouter(r => r.MightSwallow));
+    }
+
+    [Fact]
+    public void TheSettingsKeyIsTheSameEveryTime()
+    {
+        using var engine = new InputThread();
+        engine.Start();
+        Dictionary<long, string> first = engine.Devices.ToDictionary(d => d.DeviceId, d => d.StableKey);
+        engine.Stop();
+        engine.Start();
+        foreach (MouseDeviceInfo d in engine.Devices)
+        {
+            Assert.Equal(first[d.DeviceId], d.StableKey);
+        }
     }
 
     // MARK: Helpers
@@ -254,14 +404,33 @@ public sealed class InputThreadTests
         Assert.Fail($"0x{marker:X} reached neither hook in {Attempts} tries.");
     }
 
-    private static void AssertReachesWitness(WitnessHook witness, nuint marker, Func<bool> inject)
+    /// <summary>The engine's hook is installed and called: an injected wheel goes through it.</summary>
+    private static void AssertHookAlive(InputThread engine, WitnessHook witness)
+    {
+        long before = engine.CountersNow().InjectedWheels;
+        AssertWheelPasses(engine, witness, WitnessHook.NewMarker());
+        Assert.True(SpinUntil(() => engine.CountersNow().InjectedWheels > before, 500));
+    }
+
+    private static void AssertReachesWitness(WitnessHook witness, nuint marker)
     {
         for (int attempt = 0; attempt < Attempts; attempt++)
         {
-            Assert.True(inject());
+            Assert.True(WitnessHook.InjectTinyWheel(marker));
             if (witness.WaitFor(marker, 500)) { return; }
         }
         Assert.Fail($"0x{marker:X} never reached the witness in {Attempts} tries.");
+    }
+
+    /// <summary>The total of everything the engine has injected for the router so far (from its wheel log).</summary>
+    private static int SentTotal(InputThread engine)
+    {
+        int total = 0;
+        while (engine.WheelLog!.TryRead(out WheelLogEntry e))
+        {
+            if (e.Kind == WheelLogKind.Sent && !e.Swallowed) { total += e.Delta; }
+        }
+        return total;
     }
 
     private static bool WaitForLog(InputThread engine, Func<WheelLogEntry, bool> match, out WheelLogEntry found)

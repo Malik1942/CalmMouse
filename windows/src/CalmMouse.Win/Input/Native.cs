@@ -56,13 +56,8 @@ internal static unsafe class Native
     // MARK: SendInput and keys
 
     public const uint INPUT_MOUSE = 0;
-    public const uint MOUSEEVENTF_MOVE = 0x0001;
     public const uint MOUSEEVENTF_WHEEL = 0x0800;
     public const uint MOUSEEVENTF_HWHEEL = 0x1000;
-    public const uint MOUSEEVENTF_VIRTUALDESK = 0x4000;
-    public const uint MOUSEEVENTF_ABSOLUTE = 0x8000;
-
-    public const int SM_XVIRTUALSCREEN = 76, SM_YVIRTUALSCREEN = 77, SM_CXVIRTUALSCREEN = 78, SM_CYVIRTUALSCREEN = 79;
 
     public const int VK_MBUTTON = 0x04;
     public const int VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12;
@@ -73,6 +68,8 @@ internal static unsafe class Native
     public const uint GA_ROOT = 2;
     public const uint SPI_GETMOUSEWHEELROUTING = 0x201C;
     public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+    /// <summary>QueryFullProcessImageName: the native \Device\HarddiskVolumeN\… path, which needs no drive-letter lookup.</summary>
+    public const uint PROCESS_NAME_NATIVE = 0x1;
     public const uint TOKEN_QUERY = 0x0008;
     public const int TokenElevation = 20;
     public const int TokenIntegrityLevel = 25;
@@ -286,9 +283,6 @@ internal static unsafe class Native
 
     [DllImport("user32.dll")]
     public static extern int GetCursorPos(POINT* lpPoint);
-
-    [DllImport("user32.dll")]
-    public static extern int GetSystemMetrics(int nIndex);
 
     [DllImport("user32.dll")]
     public static extern nint WindowFromPoint(POINT point);

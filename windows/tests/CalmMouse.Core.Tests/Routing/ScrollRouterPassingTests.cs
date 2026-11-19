@@ -16,6 +16,23 @@ public sealed class ScrollRouterPassingTests
     // MARK: Nothing enabled
 
     [Fact]
+    public void MightSwallowOnlyWithAFeatureOnAndNotPaused()
+    {
+        var off = new RouterHarness();
+        Assert.False(off.Router.MightSwallow);
+        var on = new RouterHarness(a: Reverse);
+        Assert.True(on.Router.MightSwallow);
+        on.Router.SetPaused(true);
+        Assert.False(on.Router.MightSwallow);
+        on.Router.SetPaused(false);
+        Assert.True(on.Router.MightSwallow);
+        // A touchpad's settings never count.
+        var pad = new RouterHarness();
+        pad.Router.SetDevice(new RoutedDevice(Pad, DeviceKind.Touchpad, "pad") { Wheel = Reverse });
+        Assert.False(pad.Router.MightSwallow);
+    }
+
+    [Fact]
     public void WithNothingOnEveryEventPasses()
     {
         var h = new RouterHarness();

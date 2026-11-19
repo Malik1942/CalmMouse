@@ -2,7 +2,7 @@ using CalmMouse.Win.Input;
 
 namespace CalmMouse.Win.Tests.Input;
 
-/// <summary>The input thread's pure parts: glide frame rate, the watchdog's decisions, the wheel log ring.</summary>
+/// <summary>The input thread's pure parts: glide frame rate, the watchdog's and the resend breaker's decisions, the wheel log ring.</summary>
 public sealed class EnginePartsTests
 {
     // MARK: Frame timing
@@ -43,90 +43,145 @@ public sealed class EnginePartsTests
     // MARK: Watchdog
 
     [Fact]
-    public void HookActivityMeansNoPing()
+    public void AHookThatAnswersIsNeverReinstalled()
     {
-        var w = new HookWatchdog(interval: 3, pingTimeout: 0.5);
+        var w = new HookWatchdog(silenceLimit: 0.75, minimumGap: 2);
         w.Started(0);
-        w.HookActivity(1);
-        Assert.Equal(WatchdogAction.None, w.Check(3, userActive: true));
-        w.HookActivity(4);
-        Assert.Equal(WatchdogAction.None, w.Check(6, userActive: true));
+        for (double t = 0; t < 10; t += 0.01)
+        {
+            w.PhysicalInput(t);
+            w.HookActivity(t + 0.0001);
+            Assert.False(w.Check(t + 0.001));
+        }
+        Assert.Equal(double.PositiveInfinity, w.NextCheckAt);
     }
 
     [Fact]
-    public void ChecksOnlyEveryInterval()
+    public void PhysicalInputTheHookNeverHearsMeansReinstall()
     {
-        var w = new HookWatchdog(interval: 3, pingTimeout: 0.5);
+        var w = new HookWatchdog(silenceLimit: 0.75, minimumGap: 2);
         w.Started(0);
-        Assert.Equal(WatchdogAction.None, w.Check(2.9, userActive: true));
-        Assert.Equal(3, w.NextCheckAt);
-        Assert.Equal(WatchdogAction.Ping, w.Check(3, userActive: true));
+        for (int i = 0; i <= 70; i++)
+        {
+            double t = 5 + i * 0.01;
+            w.PhysicalInput(t);
+            Assert.False(w.Check(t));
+        }
+        w.PhysicalInput(5.76);
+        Assert.Equal(5.75, w.NextCheckAt, 9);
+        Assert.True(w.Check(5.76));
+        Assert.False(w.Check(5.77));   // once
     }
 
     [Fact]
-    public void AnIdlePCIsNeverPinged()
+    public void OneStrayRawEventIsNotEnough()
     {
-        var w = new HookWatchdog(interval: 3, pingTimeout: 0.5);
+        var w = new HookWatchdog(silenceLimit: 0.75, minimumGap: 2);
         w.Started(0);
-        for (double t = 3; t < 60; t += 3) { Assert.Equal(WatchdogAction.None, w.Check(t, userActive: false)); }
+        w.PhysicalInput(5);
+        // Input has to keep coming through the whole limit, not just once at its start.
+        Assert.False(w.Check(10));
     }
 
     [Fact]
-    public void ASilentHookWhileTheUserIsBusyGetsPingedAndASeenPingIsEnough()
+    public void ReinstallsBackOffWhileTheHookStaysSilentAndResetWhenItAnswers()
     {
-        var w = new HookWatchdog(interval: 3, pingTimeout: 0.5);
+        var w = new HookWatchdog(silenceLimit: 0.5, minimumGap: 2, maximumGap: 8);
         w.Started(0);
-        Assert.Equal(WatchdogAction.Ping, w.Check(3, userActive: true));
-        w.PingSent(3);
-        Assert.True(w.PingOutstanding);
-        Assert.Equal(3.5, w.NextCheckAt);
-        w.HookActivity(3.001);   // the ping came through
-        Assert.Equal(WatchdogAction.None, w.Check(3.2, userActive: true));
-        Assert.False(w.PingOutstanding);
+        var reinstalls = new List<double>();
+        for (int i = 0; i < 640; i++)
+        {
+            double t = i * 0.0625;   // exact in binary, so the gaps compare exactly
+            w.PhysicalInput(t);
+            if (w.Check(t)) { reinstalls.Add(Math.Round(t, 2)); }
+        }
+        // 2, then 4, then 8, then 8 apart: a hook that is silent for a good reason isn't hammered.
+        Assert.Equal([2, 6, 14, 22, 30, 38], reinstalls);
+        w.HookActivity(40);
+        Assert.Equal(2, w.CurrentGap);
     }
 
     [Fact]
-    public void AMissedPingMeansReinstall()
+    public void AnExcusedSilenceStartsOver()
     {
-        var w = new HookWatchdog(interval: 3, pingTimeout: 0.5);
+        var w = new HookWatchdog(silenceLimit: 0.5, minimumGap: 0);
         w.Started(0);
-        Assert.Equal(WatchdogAction.Ping, w.Check(3, userActive: true));
-        w.PingSent(3);
-        Assert.Equal(WatchdogAction.None, w.Check(3.4, userActive: true));
-        Assert.Equal(WatchdogAction.Reinstall, w.Check(3.5, userActive: true));
-        w.Started(3.5);
-        Assert.False(w.PingOutstanding);
-        Assert.Equal(WatchdogAction.None, w.Check(4, userActive: true));
+        w.PhysicalInput(1);
+        w.PhysicalInput(1.6);
+        w.Excuse();
+        Assert.False(w.Check(1.6));
+        w.PhysicalInput(1.7);
+        Assert.False(w.Check(1.7));
+    }
+
+    // MARK: Resend breaker
+
+    [Fact]
+    public void ResendsThatComeBackKeepTheBreakerClosed()
+    {
+        var b = new ResendBreaker(tripAfter: 3, echoTimeout: 0.25);
+        for (int i = 0; i < 100; i++)
+        {
+            double t = i * 0.01;
+            Assert.False(b.Sent(t, accepted: true));
+            b.Echo(t + 0.001);
+            Assert.Equal(0, b.Check(t + 0.002));
+        }
+        Assert.False(b.IsOpen);
+        Assert.Equal(100, b.Echoes);
     }
 
     [Fact]
-    public void APingThatCouldNotBeSentIsNotWaitedFor()
+    public void RefusedResendsInARowTripItAndItTriesAgainLater()
     {
-        var w = new HookWatchdog(interval: 3, pingTimeout: 0.5);
-        w.Started(0);
-        Assert.Equal(WatchdogAction.Ping, w.Check(3, userActive: true));
-        w.PingNotSent();   // a locked desktop: SendInput refused
-        Assert.Equal(WatchdogAction.None, w.Check(3.6, userActive: true));
-        Assert.Equal(WatchdogAction.Ping, w.Check(6, userActive: true));
+        var b = new ResendBreaker(tripAfter: 3, firstPause: 30, maximumPause: 100);
+        Assert.False(b.Sent(1, accepted: false));
+        Assert.False(b.Sent(1, accepted: false));
+        Assert.True(b.Sent(1, accepted: false));
+        Assert.True(b.IsOpen);
+        Assert.Equal(31, b.OpenUntil);
+        Assert.Equal(0, b.Check(30.9));
+        Assert.Equal(-1, b.Check(31));
+        Assert.False(b.IsOpen);
+        // Still broken: open again, for longer.
+        b.Sent(32, false);
+        b.Sent(32, false);
+        Assert.True(b.Sent(32, false));
+        Assert.Equal(32 + 60, b.OpenUntil);
+        Assert.Equal(2, b.Trips);
     }
 
-    [Theory]
-    [InlineData(0, 0, 1920)]
-    [InlineData(1, 0, 1920)]
-    [InlineData(959, 0, 1920)]
-    [InlineData(1919, 0, 1920)]
-    [InlineData(-1280, -1280, 3200)]   // a monitor left of the main one
-    [InlineData(1919, -1280, 3200)]
-    [InlineData(1079, 0, 1080)]
-    public void ThePingLandsOnTheCursorsOwnPixel(int pixel, int origin, int size)
+    [Fact]
+    public void ResendsThatNeverComeBackTripItToo()
     {
-        int n = HookWatchdog.AbsoluteCoordinate(pixel, origin, size);
-        Assert.InRange(n, 0, 65535);
-        // Windows: origin + n × size / 65536, rounded down.
-        Assert.Equal(pixel, origin + (int)((long)n * size / 65536));
+        var b = new ResendBreaker(tripAfter: 3, echoTimeout: 0.25);
+        b.Sent(1.0, true);
+        b.Sent(1.1, true);
+        b.Sent(1.2, true);
+        Assert.Equal(0, b.Check(1.2));
+        Assert.Equal(1.25, b.NextCheckAt, 9);
+        Assert.Equal(1, b.Check(1.5));
+        Assert.True(b.IsOpen);
     }
 
-        // MARK: Wheel log
+    [Fact]
+    public void AnEchoInBetweenStartsTheCountAgainAndResetsThePause()
+    {
+        var b = new ResendBreaker(tripAfter: 3, firstPause: 30);
+        b.Sent(1, false);
+        b.Sent(1, false);
+        b.Sent(1.1, true);
+        b.Echo(1.11);
+        Assert.False(b.Sent(2, false));
+        Assert.False(b.Sent(2, false));
+        Assert.True(b.Sent(2, false));
+        Assert.Equal(-1, b.Check(40));
+        b.Sent(41, true);
+        b.Echo(41.01);
+        Assert.Equal(30, b.CurrentPause);
+    }
+
+    // MARK: Wheel log
 
     [Fact]
     public void TheWheelLogKeepsOrderAndDropsWhenFull()

@@ -243,6 +243,37 @@ public sealed class ScrollRouterWheelTests
         Assert.False(h.Router.NeedsTicks);
     }
 
+    [Fact]
+    public void FlushSendsTheRestOfAGlideWholeAndStopsIt()
+    {
+        var h = new RouterHarness(a: Smooth, b: Smooth);
+        h.Turn(MouseA);
+        h.Turn(MouseA);
+        h.Turn(MouseB, horizontal: true);
+        h.Run(40);
+        List<WheelSend> early = h.Sends();
+        Assert.True(h.Router.NeedsTicks);
+        Assert.True(early.Where(s => !s.Horizontal).Sum(s => s.Delta) < 2 * Notch);
+
+        h.Router.Flush();
+        List<WheelSend> sent = early.Concat(h.Sends()).ToList();
+        Assert.False(h.Router.NeedsTicks);
+        Assert.Empty(h.RunToIdle());
+        // The same distance as letting the glides play out: nothing lost to the shutdown.
+        Assert.Equal(2 * Notch, sent.Where(s => !s.Horizontal).Sum(s => s.Delta));
+        Assert.Equal(Notch, sent.Where(s => s.Horizontal).Sum(s => s.Delta));
+    }
+
+    [Fact]
+    public void FlushWithNothingGlidingSendsNothing()
+    {
+        var h = new RouterHarness(a: Reverse);
+        h.Turn(MouseA);
+        h.Sends();
+        h.Router.Flush();
+        Assert.Empty(h.Sends());
+    }
+
     // MARK: Smoothing: modifiers
 
     [Theory]

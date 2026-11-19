@@ -4,4 +4,3 @@
 GetForegroundWindow
 DwmGetCompositionTimingInfo
 EnumDisplaySettings
-GetLastInputInfo

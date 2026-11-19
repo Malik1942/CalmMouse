@@ -1,27 +1,32 @@
 // The input thread: spec 1.1 design A on a real PC. One dedicated background thread owns all of it:
 //
 //   - the WH_MOUSE_LL hook. Windows calls it on this thread, from inside PeekMessage in the loop
-//     below. For a physical wheel event it resolves the window under the cursor (WheelTargets.cs),
-//     reads the keys held and asks the ScrollRouter: Swallow returns 1, Pass calls CallNextHookEx.
-//     Injected wheel events always pass (except our own watchdog ping, which only we want).
-//     Buttons and moves are only looked at, never swallowed. The callback never calls SendInput.
+//     below. For a physical wheel event it resolves the window the event scrolls (WheelTargets.cs;
+//     skipped when nothing could be swallowed anyway), reads the keys held and asks the
+//     ScrollRouter: Swallow returns 1, Pass calls CallNextHookEx. Injected wheel events always
+//     pass. Buttons and moves are only looked at, never swallowed. The callback never calls SendInput.
 //   - a message-only window registered for Raw Input mice (RIDEV_INPUTSINK | RIDEV_DEVNOTIFY):
-//     WM_INPUT feeds RawWheel / RawButton, WM_INPUT_DEVICE_CHANGE adds and removes mice.
+//     WM_INPUT feeds RawWheel / RawButton, the watchdog and the resend breaker;
+//     WM_INPUT_DEVICE_CHANGE adds and removes mice.
 //   - the ScrollRouter. Nothing else touches it; other threads post work through Post().
 //   - SendInput. The loop drains the router's sends after every batch of messages and every tick,
-//     so injection happens outside the hook callback, in the order the router asked.
+//     so injection happens outside the hook callback, in the order the router asked. A batch of
+//     messages is bounded (count and time), so a very fast mouse can't starve ticks and resends.
 //   - one high-resolution waitable timer for glide frames at the display's refresh rate, armed
 //     only while the router NeedsTicks (and for its NextDeadline), so an idle engine sleeps.
-//   - the watchdog (HookWatchdog.cs), which reinstalls the hook if Windows removed it.
+//   - the watchdog (HookWatchdog.cs), which reinstalls the hook if Windows removed it, judged from
+//     Raw Input alone: it injects nothing.
+//   - the resend breaker (ResendBreaker.cs): if our resends stop getting through, stop swallowing.
 //
-// Safety: an exception anywhere on this thread removes the hook first, then resends whatever the
-// router still holds, and only then reports (Faulted). Windows also removes the hook by itself if
-// the thread or process dies. Raw Input registration is per process, so only one InputThread may
-// run at a time.
+// Safety: an exception anywhere on this thread removes the hook first, then sends the rest of any
+// glide and resends whatever the router still holds, and only then reports (Faulted). Windows also
+// removes the hook by itself if the thread or process dies. Raw Input registration is per process,
+// so only one InputThread may run at a time.
 
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using CalmMouse.Core;
@@ -37,11 +42,28 @@ public sealed class InputThreadOptions
     /// <summary>Record every wheel event and decision in <see cref="InputThread.WheelLog"/> (the --engine-test switch).</summary>
     public bool RecordWheelLog { get; init; }
 
-    public double WatchdogInterval { get; init; } = HookWatchdog.DefaultInterval;
-    public double PingTimeout { get; init; } = HookWatchdog.DefaultPingTimeout;
+    /// <summary>How long physical Raw Input may go unanswered by the hook before it is reinstalled.</summary>
+    public double HookSilenceLimit { get; init; } = HookWatchdog.DefaultSilenceLimit;
 
-    /// <summary>Tests: answers "has someone used the PC lately" instead of GetLastInputInfo.</summary>
-    internal Func<bool>? UserActiveOverride { get; init; }
+    /// <summary>The least time between two reinstalls (doubling while the hook stays silent).</summary>
+    public double HookReinstallGap { get; init; } = HookWatchdog.DefaultMinimumGap;
+
+    // Tests only.
+
+    /// <summary>Replaces SendInput for some of the router's resends: (delta, horizontal) → accepted, or null to send it for real.</summary>
+    internal Func<int, bool, bool?>? ResendOverride { get; init; }
+
+    /// <summary>Replaces the target lookup in the hook.</summary>
+    internal Func<WheelTarget>? TargetOverride { get; init; }
+
+    /// <summary>Replaces the clock the hook reads.</summary>
+    internal Func<double>? ClockOverride { get; init; }
+
+    /// <summary>Replaces GetAsyncKeyState for the modifiers and the middle button.</summary>
+    internal Func<(WinModifiers Held, bool MiddleDown)>? KeysOverride { get; init; }
+
+    /// <summary>An injected event with this dwExtraInfo is swallowed by the hook (0: off), so tests can see whether the hook is there.</summary>
+    internal uint SwallowMarker { get; init; }
 }
 
 /// <summary>The input thread's own counts, next to the router's.</summary>
@@ -52,15 +74,17 @@ public readonly record struct EngineCounters(
     long RawWheels,
     long Sends,
     long SendFailures,
-    long PingsSent,
-    long PingsSeen,
+    long ResendEchoes,
+    long BreakerTrips,
     long HookReinstalls);
 
 /// <summary>A snapshot of the engine, refreshed by the input thread about twice a second.</summary>
+/// <param name="BreakerOpen">Resends stopped getting through: everything passes untouched until it tries again.</param>
 public sealed record EngineStatus(
     bool Running,
     bool HookInstalled,
     bool Paused,
+    bool BreakerOpen,
     double GlideHz,
     WheelRouting Routing,
     RouterStats Router,
@@ -69,17 +93,13 @@ public sealed record EngineStatus(
 
 public sealed unsafe class InputThread : IDisposable
 {
-    /// <summary>
-    /// dwExtraInfo of the watchdog's ping, a no-op absolute move: "CMP" and, in the low byte, which
-    /// InputThread of this process sent it. Only 32 bits: Windows hands LL hooks the low 32 bits
-    /// of dwExtraInfo, even on 64-bit.
-    /// </summary>
-    public const uint PingMarker = 0x434D_5000;
-
     private const uint WM_APP_INVOKE = Native.WM_APP + 1;
     private const double HousekeepingInterval = 0.5;
     private const double RoutingReadInterval = 2.0;
     private const double DisplayReadInterval = 5.0;
+    /// <summary>A batch of messages ends after this many, or <see cref="PumpBudget"/>, so ticks and resends get their turn.</summary>
+    private const int PumpMaxMessages = 64;
+    private const double PumpBudget = 0.002;
     private const string WindowClassName = "CalmMouse.InputThread";
 
     private static readonly double s_secondsPerTick = 1.0 / Stopwatch.Frequency;
@@ -87,7 +107,6 @@ public sealed unsafe class InputThread : IDisposable
     private static bool s_classRegistered;
     private static readonly Lock s_activeLock = new();
     private static InputThread? s_active;
-    private static int s_instances;
 
     [ThreadStatic] private static InputThread? t_current;
 
@@ -95,14 +114,15 @@ public sealed unsafe class InputThread : IDisposable
     private readonly IWheelSettingsProvider _settings;
     private readonly ScrollRouter _router = new();
     private readonly WheelTargetResolver _targets = new();
-    private readonly HookWatchdog _watchdog;
     private readonly ConcurrentQueue<Action> _invokes = new();
     private readonly ConcurrentQueue<string> _messages = new();
     private readonly Dictionary<long, MouseDeviceInfo> _devices = [];
     private readonly Dictionary<long, int> _describing = [];
     private readonly ManualResetEventSlim _ready = new();
-    private readonly nuint _pingExtra;
+    private readonly Lock _startLock = new();
 
+    private HookWatchdog _watchdog;
+    private ResendBreaker _breaker = new();
     private Thread? _thread;
     private nint _hwnd;
     private nint _hook;
@@ -111,6 +131,7 @@ public sealed unsafe class InputThread : IDisposable
     private volatile bool _paused;
     private Exception? _startError;
     private Exception? _fault;
+    private int _run;
     private int _describeGeneration;
 
     // Timing (input thread only).
@@ -121,13 +142,11 @@ public sealed unsafe class InputThread : IDisposable
     private double _nextHousekeeping;
     private double _nextRoutingRead;
     private double _nextDisplayRead;
-    private uint _lastPingTick;
     private double _lastPointerCheck = double.NegativeInfinity;
     private WheelTarget _lastPointerTarget;
 
     // Counters (written on the input thread only).
-    private long _hookCalls, _physicalWheels, _injectedWheels, _rawWheels, _sends, _sendFailures;
-    private long _pingsSent, _pingsSeen, _hookReinstalls;
+    private long _hookCalls, _physicalWheels, _injectedWheels, _rawWheels, _sends, _sendFailures, _hookReinstalls;
 
     private EngineStatus _status;
     private IReadOnlyList<MouseDeviceInfo> _deviceSnapshot = [];
@@ -136,12 +155,12 @@ public sealed unsafe class InputThread : IDisposable
     {
         _options = options ?? new InputThreadOptions();
         _settings = _options.Settings ?? new InMemoryWheelSettingsProvider();
-        _watchdog = new HookWatchdog(_options.WatchdogInterval, _options.PingTimeout);
+        _watchdog = NewWatchdog();
         WheelLog = _options.RecordWheelLog ? new WheelLog() : null;
-        int instance = Interlocked.Increment(ref s_instances);
-        _pingExtra = PingMarker | (uint)(instance & 0xFF);
-        _status = new EngineStatus(false, false, false, FrameTiming.DefaultHz, WheelRouting.Hover, default, default, null);
+        _status = new EngineStatus(false, false, false, false, FrameTiming.DefaultHz, WheelRouting.Hover, default, default, null);
     }
+
+    private HookWatchdog NewWatchdog() => new(_options.HookSilenceLimit, _options.HookReinstallGap);
 
     // MARK: Public surface (any thread)
 
@@ -162,15 +181,12 @@ public sealed unsafe class InputThread : IDisposable
 
     /// <summary>
     /// The input thread hit an exception and stopped. By the time this is raised the hook is
-    /// already removed and anything held has been resent: the mouse scrolls as if CalmMouse
-    /// weren't running. Raised on a thread-pool thread.
+    /// already removed and anything held has been sent: the mouse scrolls as if CalmMouse weren't
+    /// running. Raised on a thread-pool thread. <see cref="Start"/> may be called again afterwards.
     /// </summary>
     public event EventHandler<Exception>? Faulted;
 
-    /// <summary>The ping marker this instance puts in dwExtraInfo (tests).</summary>
-    internal nuint PingExtraInfo => _pingExtra;
-
-    /// <summary>Takes the engine's log lines (hook installed, devices, reinstalls, faults), oldest first.</summary>
+    /// <summary>Takes the engine's log lines (hook installed, devices, reinstalls, breaker, faults), oldest first.</summary>
     public List<string> TakeMessages()
     {
         var lines = new List<string>();
@@ -178,52 +194,84 @@ public sealed unsafe class InputThread : IDisposable
         return lines;
     }
 
-    /// <summary>Starts the thread and returns once the hook and Raw Input are in place. Throws if they can't be.</summary>
+    /// <summary>
+    /// Starts the thread and returns once the hook and Raw Input are in place. Throws if they can't
+    /// be. Calling it while running does nothing; after a fault (or Stop) it starts afresh.
+    /// </summary>
     public void Start()
     {
-        lock (s_activeLock)
+        lock (_startLock)
         {
-            if (_thread != null) { return; }
-            if (s_active != null) { throw new InvalidOperationException("Another InputThread is running: Raw Input registration is per process, so only one may run at a time."); }
-            s_active = this;
-        }
-        _stopRequested = false;
-        _startError = null;
-        _fault = null;
-        _ready.Reset();
-        var thread = new Thread(ThreadMain) { IsBackground = true, Name = "CalmMouse input", Priority = ThreadPriority.Highest };
-        _thread = thread;
-        thread.Start();
-        if (!_ready.Wait(TimeSpan.FromSeconds(10)))
-        {
-            Stop();
-            throw new TimeoutException("The input thread didn't start within 10 seconds.");
-        }
-        if (_startError is { } error)
-        {
-            thread.Join(TimeSpan.FromSeconds(5));
-            _thread = null;
-            throw new InvalidOperationException($"The input thread couldn't start: {error.Message}", error);
+            if (_thread is { } previous)
+            {
+                if (previous.IsAlive) { return; }
+                previous.Join();   // ended by a fault: clear it away
+                _thread = null;
+            }
+            lock (s_activeLock)
+            {
+                if (s_active != null) { throw new InvalidOperationException("Another InputThread is running: Raw Input registration is per process, so only one may run at a time."); }
+                s_active = this;
+            }
+
+            // A fresh run: nothing from the last one carries over (its thread is gone, so this is safe).
+            _run++;
+            _devices.Clear();
+            _describing.Clear();
+            while (_invokes.TryDequeue(out _)) { }
+            _watchdog = NewWatchdog();
+            _breaker = new ResendBreaker();
+            _ticking = false;
+            _armedFor = double.NaN;
+            _stopRequested = false;
+            _startError = null;
+            _fault = null;
+            _ready.Reset();
+
+            var thread = new Thread(ThreadMain) { IsBackground = true, Name = "CalmMouse input", Priority = ThreadPriority.Highest };
+            _thread = thread;
+            thread.Start();
+            if (!_ready.Wait(TimeSpan.FromSeconds(10)))
+            {
+                StopThread();
+                throw new TimeoutException("The input thread didn't start within 10 seconds.");
+            }
+            if (_startError is { } error)
+            {
+                thread.Join(TimeSpan.FromSeconds(5));
+                _thread = null;
+                throw new InvalidOperationException($"The input thread couldn't start: {error.Message}", error);
+            }
         }
     }
 
     /// <summary>
-    /// Stops the thread: wheel events stop being swallowed, anything held is resent, then the hook and
-    /// Raw Input are removed. Safe to call more than once, and from any thread.
+    /// Stops the thread: the hook is removed first (from then on every wheel event passes), then
+    /// the rest of any glide and anything still held is sent, then Raw Input and the window go.
+    /// Safe to call more than once, and from any thread.
     /// </summary>
     public void Stop()
+    {
+        if (Thread.CurrentThread == _thread)
+        {
+            _stopRequested = true;   // the loop sees the flag when this returns
+            return;
+        }
+        lock (_startLock) { StopThread(); }
+    }
+
+    private void StopThread()
     {
         Thread? thread = _thread;
         if (thread == null) { return; }
         _stopRequested = true;
-        if (Thread.CurrentThread == thread) { return; }   // the loop sees the flag when this returns
         nint hwnd = _hwnd;
         if (hwnd != 0) { Native.PostMessageW(hwnd, WM_APP_INVOKE, 0, 0); }
         if (!thread.Join(TimeSpan.FromSeconds(5))) { Message("the input thread didn't stop within 5 seconds"); }
         _thread = null;
     }
 
-    /// <summary>Same as <see cref="Stop"/>. (After <see cref="Faulted"/>, Stop or Dispose before starting again.)</summary>
+    /// <summary>Same as <see cref="Stop"/>.</summary>
     public void Dispose() => Stop();
 
     /// <summary>Paused: every wheel event passes untouched (the hook stays, so resuming is instant).</summary>
@@ -232,7 +280,7 @@ public sealed unsafe class InputThread : IDisposable
         _paused = paused;
         Post(() =>
         {
-            _router.SetPaused(paused);
+            ApplyPause();
             Message(paused ? "paused" : "resumed");
         });
     }
@@ -255,28 +303,17 @@ public sealed unsafe class InputThread : IDisposable
         return done.Task.Result;
     }
 
-    /// <summary>Asks a router question on the input thread.</summary>
+    /// <summary>Works with the router on the input thread (its sends are drained right after).</summary>
     internal T WithRouter<T>(Func<ScrollRouter, T> func) => Invoke(() => func(_router));
 
-    /// <summary>
-    /// Sends a watchdog ping now and waits until the hook has seen it, trying up to
-    /// <paramref name="attempts"/> times (another program's hook can make Windows lose an event now and then).
-    /// </summary>
-    internal bool PingAndWait(int attempts = 3, int timeoutMs = 500)
-    {
-        for (int attempt = 0; attempt < attempts; attempt++)
-        {
-            long before = Volatile.Read(ref _pingsSeen);
-            if (!Invoke(() => SendPing(Now()))) { return false; }
-            var clock = Stopwatch.StartNew();
-            while (clock.ElapsedMilliseconds < timeoutMs)
-            {
-                if (Volatile.Read(ref _pingsSeen) > before) { return true; }
-                Thread.Sleep(2);
-            }
-        }
-        return false;
-    }
+    /// <summary>The router itself, for tests that drive an engine that isn't running.</summary>
+    internal ScrollRouter RouterForTest => _router;
+
+    /// <summary>The engine's clock (seconds), as the router sees it.</summary>
+    internal static double ClockNow() => Now();
+
+    /// <summary>Calls the hook's logic directly (no Windows hook), as for one hook message. True = swallow.</summary>
+    internal bool HookForTest(uint msg, Native.MSLLHOOKSTRUCT s) => OnHook(msg, &s);
 
     /// <summary>Injects a wheel event with <paramref name="extraInfo"/>, from the input thread. False if SendInput refused.</summary>
     internal bool InjectWheel(int delta, nuint extraInfo, bool horizontal = false) =>
@@ -285,10 +322,22 @@ public sealed unsafe class InputThread : IDisposable
     /// <summary>Removes the hook the way Windows does: quietly, leaving the handle in place.</summary>
     internal void LoseHookForTest() => Invoke(() => Native.UnhookWindowsHookEx(_hook));
 
+    /// <summary>Tells the watchdog Raw Input saw physical mouse input now, as moving a real mouse would.</summary>
+    internal void PhysicalInputForTest() => Invoke(() =>
+    {
+        _watchdog.PhysicalInput(Now());
+        return true;
+    });
+
     /// <summary>Throws on the input thread, as a bug would.</summary>
     internal void FaultForTest() => Post(() => throw new InvalidOperationException("test fault"));
 
     internal bool HookHandlePresent => Volatile.Read(ref _hook) != 0;
+
+    /// <summary>Whether the glide timer is armed right now.</summary>
+    internal bool TickingForTest => Invoke(() => _ticking);
+
+    internal bool BreakerOpenForTest => Invoke(() => _breaker.IsOpen);
 
     /// <summary>The counters right now (the published status lags by up to half a second).</summary>
     internal EngineCounters CountersNow() => Invoke(Counters);
@@ -296,6 +345,8 @@ public sealed unsafe class InputThread : IDisposable
     // MARK: The thread
 
     private static double Now() => Stopwatch.GetTimestamp() * s_secondsPerTick;
+
+    private double HookClock() => _options.ClockOverride is { } clock ? clock() : Now();
 
     private void ThreadMain()
     {
@@ -321,12 +372,15 @@ public sealed unsafe class InputThread : IDisposable
             RemoveHook();
             try
             {
+                // Then nothing already asked for is lost: the rest of each glide, whole, and every
+                // swallowed event still waiting for its device (pausing resends those).
+                _router.Flush();
                 _router.SetPaused(true);
                 Drain();
             }
             catch (Exception ex)
             {
-                Message($"couldn't resend what was held: {ex.Message}");
+                Message($"couldn't send what was held: {ex.Message}");
             }
             Teardown();
             t_current = null;
@@ -385,13 +439,51 @@ public sealed unsafe class InputThread : IDisposable
         }
         ApplySettingsNow();
         PublishDevices();
-        _router.SetPaused(_paused);
+        ApplyPause();
         _settings.Changed += OnSettingsChanged;
 
+        WarmUp();
         InstallHook();
         _watchdog.Started(Now());
         Message($"started: hook installed, Raw Input registered, glide {FrameTiming.GlideHz(1 / _frameInterval):0.#} Hz, wheel routing {_targets.Routing}, " +
                 $"integrity 0x{ProcessDescriber.OwnIntegrityLevel:X}");
+    }
+
+    /// <summary>
+    /// Compiles and runs the hook's code paths once before the hook exists, so its first real call
+    /// isn't slowed by the JIT (Windows drops a hook that is slow even once). Uses a throwaway router.
+    /// </summary>
+    private void WarmUp()
+    {
+        try
+        {
+            foreach (string name in new[] { nameof(OnHook), nameof(OnRawInput), nameof(Drain), nameof(TickIfDue), nameof(ScheduleTicks), nameof(Housekeeping) })
+            {
+                if (typeof(InputThread).GetMethod(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic) is { } method)
+                {
+                    RuntimeHelpers.PrepareMethod(method.MethodHandle);
+                }
+            }
+            var router = new ScrollRouter();
+            router.SetDevice(new RoutedDevice(1, DeviceKind.WheelMouse, "warm-up") { Wheel = new WheelSettings(reverse: true, smooth: true) });
+            Native.POINT cursor;
+            WheelTarget target = Native.GetCursorPos(&cursor) != 0 ? _targets.Resolve(cursor, Now()) : WheelTargetResolver.Unknown;
+            target = target with { Elevated = false };
+            double t = Now();
+            router.HookWheel(t, 120, false, ReadModifiers(), MiddleDown(), target);
+            router.RawWheel(t, 1, 120, false);
+            router.RawButton(t, 1, RawMouseButton.Middle, false);
+            router.Tick(t + 0.01, WinModifiers.None);
+            router.PointerTargetChanged(target);
+            router.Flush();
+            while (router.TryTakeSend(out _)) { }
+            _ = router.NeedsTicks;
+            _ = router.NextDeadline;
+        }
+        catch (Exception ex)
+        {
+            Message($"warm-up failed (harmless): {ex.Message}");
+        }
     }
 
     private void Teardown()
@@ -476,22 +568,30 @@ public sealed unsafe class InputThread : IDisposable
         }
     }
 
-    /// <summary>Handles everything waiting: hook calls (inside PeekMessage), Raw Input, posted work. False to stop.</summary>
+    /// <summary>
+    /// Handles what is waiting: hook calls (inside PeekMessage), Raw Input, posted work. At most
+    /// <see cref="PumpMaxMessages"/> messages or <see cref="PumpBudget"/> per batch: an 8 kHz mouse
+    /// floods the queue with WM_INPUT, and glide frames and resends must still go out on time (the
+    /// wait returns at once while messages remain). False to stop.
+    /// </summary>
     private bool Pump()
     {
         Native.MSG msg;
-        while (Native.PeekMessageW(&msg, 0, 0, 0, Native.PM_REMOVE) != 0)
+        double end = Now() + PumpBudget;
+        for (int count = 0; count < PumpMaxMessages; count++)
         {
+            if (Native.PeekMessageW(&msg, 0, 0, 0, Native.PM_REMOVE) == 0) { break; }
             if (msg.message == Native.WM_QUIT) { return false; }
             Native.DispatchMessageW(&msg);
             if (_stopRequested || _fault != null) { return !_stopRequested; }
+            if (Now() >= end) { break; }
         }
         return !_stopRequested;
     }
 
     private uint WaitMilliseconds(double now)
     {
-        double next = Math.Min(_nextHousekeeping, _watchdog.NextCheckAt);
+        double next = Math.Min(_nextHousekeeping, Math.Min(_watchdog.NextCheckAt, _breaker.NextCheckAt));
         double ms = Math.Ceiling((next - now) * 1000);
         return (uint)Math.Clamp(double.IsFinite(ms) ? ms : 1000, 0, 1000);
     }
@@ -561,18 +661,13 @@ public sealed unsafe class InputThread : IDisposable
     /// <summary>True to swallow. Keep it short: Windows drops a hook that is slow even once.</summary>
     private bool OnHook(uint msg, Native.MSLLHOOKSTRUCT* s)
     {
-        double t = Now();
+        double t = HookClock();
         _hookCalls++;
         _watchdog.HookActivity(t);
         if (_fault != null) { return false; }
 
         bool injected = (s->flags & Native.LLMHF_INJECTED) != 0;
-        // Our own watchdog ping has done its job by reaching us; no app needs to see it.
-        if (injected && (uint)s->dwExtraInfo == _pingExtra)
-        {
-            Volatile.Write(ref _pingsSeen, _pingsSeen + 1);
-            return true;
-        }
+        if (injected && _options.SwallowMarker != 0 && (uint)s->dwExtraInfo == _options.SwallowMarker) { return true; }
 
         if (msg == Native.WM_MOUSEWHEEL || msg == Native.WM_MOUSEHWHEEL)
         {
@@ -586,10 +681,13 @@ public sealed unsafe class InputThread : IDisposable
             }
 
             _physicalWheels++;
-            WheelTarget target = _targets.Resolve(s->pt, t);
+            // Nothing can be swallowed anywhere (paused, nothing on, the breaker open): the window
+            // doesn't matter, so don't spend time finding it.
+            WheelTarget target = _router.MightSwallow ? ResolveTarget(s) : WheelTargetResolver.Unknown;
             _lastPointerTarget = target;
             _lastPointerCheck = t;
-            HookAnswer answer = _router.HookWheel(t, delta, horizontal, ReadModifiers(), MiddleDown(), target);
+            (WinModifiers held, bool middleDown) = Keys();
+            HookAnswer answer = _router.HookWheel(t, delta, horizontal, held, middleDown, target);
             bool swallow = answer == HookAnswer.Swallow;
             WheelLog?.Write(new WheelLogEntry(WheelLogKind.HookWheel, t, delta, horizontal, 0, s->dwExtraInfo, target, swallow));
             return swallow;
@@ -600,7 +698,7 @@ public sealed unsafe class InputThread : IDisposable
         if (msg == Native.WM_MOUSEMOVE && t - _lastPointerCheck >= _frameInterval && _router.NeedsTicks)
         {
             _lastPointerCheck = t;
-            WheelTarget target = _targets.Resolve(s->pt, t);
+            WheelTarget target = ResolveTarget(s);
             if (!ReferenceEquals(target.ExeName, _lastPointerTarget.ExeName) || target.Elevated != _lastPointerTarget.Elevated)
             {
                 _lastPointerTarget = target;
@@ -609,6 +707,12 @@ public sealed unsafe class InputThread : IDisposable
         }
         return false;
     }
+
+    private WheelTarget ResolveTarget(Native.MSLLHOOKSTRUCT* s) =>
+        _options.TargetOverride is { } target ? target() : _targets.Resolve(s->pt, HookClock());
+
+    private (WinModifiers Held, bool MiddleDown) Keys() =>
+        _options.KeysOverride is { } keys ? keys() : (ReadModifiers(), MiddleDown());
 
     private static WinModifiers ReadModifiers()
     {
@@ -663,16 +767,20 @@ public sealed unsafe class InputThread : IDisposable
         var header = (Native.RAWINPUTHEADER*)buffer;
         if (header->dwType != Native.RIM_TYPEMOUSE) { return; }
         var mouse = (Native.RAWMOUSE*)(buffer + headerSize);
+        double t = Now();
+        long device = header->hDevice;
+        // Any physical mouse event, moves included, also goes through the hook: the watchdog's evidence.
+        if (device != 0) { _watchdog.PhysicalInput(t); }
         ushort flags = mouse->usButtonFlags;
         if (flags == 0) { return; }   // movement only
 
-        double t = Now();
-        long device = header->hDevice;
         if ((flags & (Native.RI_MOUSE_WHEEL | Native.RI_MOUSE_HWHEEL)) != 0)
         {
             bool horizontal = (flags & Native.RI_MOUSE_WHEEL) == 0;
             int delta = (short)mouse->usButtonData;
             _rawWheels++;
+            // One of our resends back again: it got through.
+            if (mouse->ulExtraInformation == ScrollRouter.ResendMarker) { _breaker.Echo(t); }
             _router.RawWheel(t, device, delta, horizontal, mouse->ulExtraInformation);
             WheelLog?.Write(new WheelLogEntry(WheelLogKind.RawWheel, t, delta, horizontal, device, mouse->ulExtraInformation, default, false));
         }
@@ -699,12 +807,13 @@ public sealed unsafe class InputThread : IDisposable
             // Registration announces every mouse already there: those are known from Setup.
             if (_devices.ContainsKey(id) || _describing.ContainsKey(id)) { return; }
             int generation = ++_describeGeneration;
+            int run = _run;
             _describing[id] = generation;
             // Opening the device can take a while: not on this thread, whose hook must stay quick.
             ThreadPool.QueueUserWorkItem(_ =>
             {
                 MouseDeviceInfo? info = MouseDevices.Describe(handle);
-                Post(() => DeviceDescribed(id, generation, info));
+                Post(() => DeviceDescribed(run, id, generation, info));
             });
         }
         else if (change == Native.GIDC_REMOVAL)
@@ -719,10 +828,10 @@ public sealed unsafe class InputThread : IDisposable
         }
     }
 
-    private void DeviceDescribed(long id, int generation, MouseDeviceInfo? info)
+    private void DeviceDescribed(int run, long id, int generation, MouseDeviceInfo? info)
     {
-        // Removed (or arrived again) while it was being looked at.
-        if (!_describing.TryGetValue(id, out int current) || current != generation) { return; }
+        // From an earlier run, or removed (or arrived again) while it was being looked at.
+        if (run != _run || !_describing.TryGetValue(id, out int current) || current != generation) { return; }
         _describing.Remove(id);
         if (info == null) { return; }
         _devices[id] = info;
@@ -759,9 +868,11 @@ public sealed unsafe class InputThread : IDisposable
         while (_router.TryTakeSend(out WheelSend send))
         {
             double t = Now();
-            bool ok = Inject(send.Delta, send.Horizontal, ScrollRouter.ResendMarker);
+            bool ok = _options.ResendOverride?.Invoke(send.Delta, send.Horizontal)
+                      ?? Inject(send.Delta, send.Horizontal, ScrollRouter.ResendMarker);
             if (ok) { _sends++; } else { _sendFailures++; }
             WheelLog?.Write(new WheelLogEntry(WheelLogKind.Sent, t, send.Delta, send.Horizontal, 0, ScrollRouter.ResendMarker, default, !ok));
+            if (_breaker.Sent(t, ok)) { BreakerTripped(); }
         }
     }
 
@@ -780,86 +891,56 @@ public sealed unsafe class InputThread : IDisposable
         return Native.SendInput(1, &input, sizeof(Native.INPUT)) == 1;
     }
 
-    private static bool InjectMoveToCursor(nuint extraInfo)
+    // MARK: Pause and the breaker
+
+    /// <summary>The router passes everything while the user paused it or the breaker is open.</summary>
+    private void ApplyPause() => _router.SetPaused(_paused || _breaker.IsOpen);
+
+    private void BreakerTripped()
     {
-        Native.POINT cursor;
-        if (Native.GetCursorPos(&cursor) == 0) { return false; }
-        int x = HookWatchdog.AbsoluteCoordinate(cursor.X, Native.GetSystemMetrics(Native.SM_XVIRTUALSCREEN), Native.GetSystemMetrics(Native.SM_CXVIRTUALSCREEN));
-        int y = HookWatchdog.AbsoluteCoordinate(cursor.Y, Native.GetSystemMetrics(Native.SM_YVIRTUALSCREEN), Native.GetSystemMetrics(Native.SM_CYVIRTUALSCREEN));
-        var input = new Native.INPUT
-        {
-            type = Native.INPUT_MOUSE,
-            mi = new Native.MOUSEINPUT
-            {
-                dx = x,
-                dy = y,
-                dwFlags = Native.MOUSEEVENTF_MOVE | Native.MOUSEEVENTF_ABSOLUTE | Native.MOUSEEVENTF_VIRTUALDESK,
-                dwExtraInfo = extraInfo,
-            },
-        };
-        return Native.SendInput(1, &input, sizeof(Native.INPUT)) == 1;
+        ApplyPause();
+        Message($"resends aren't getting through ({_breaker.TripAfter} in a row refused or never came back): " +
+                $"passing every wheel event untouched for {_breaker.OpenUntil - Now():0} s, then trying again");
     }
 
     // MARK: Housekeeping
 
     private void Housekeeping(double now)
     {
-        if (now < _nextHousekeeping && now < _watchdog.NextCheckAt) { return; }
-        _nextHousekeeping = now + HousekeepingInterval;
-
-        switch (_watchdog.Check(now, UserActive()))
+        switch (_breaker.Check(now))
         {
-            case WatchdogAction.Ping:
-                SendPing(now);
+            case 1:
+                BreakerTripped();
                 break;
-            case WatchdogAction.Reinstall:
+            case -1:
+                ApplyPause();
+                Message("trying resends again");
+                break;
+        }
+
+        if (now >= _watchdog.NextCheckAt)
+        {
+            // Input aimed at an elevated window may not reach our hook at all: not a dead hook.
+            if (ForegroundIsElevated(now)) { _watchdog.Excuse(); }
+            else if (_watchdog.Check(now))
+            {
                 RemoveHook();
                 InstallHook();
                 _hookReinstalls++;
                 _watchdog.Started(Now());
-                Message($"the hook was gone (the ping didn't come through): reinstalled, {_hookReinstalls} so far");
-                break;
+                Message($"the hook heard nothing while the mouse was in use: reinstalled ({_hookReinstalls} so far)");
+            }
         }
 
+        if (now < _nextHousekeeping) { return; }
+        _nextHousekeeping = now + HousekeepingInterval;
         if (now >= _nextRoutingRead) { ReadRouting(now); }
         if (now >= _nextDisplayRead) { ReadDisplay(now, inBackground: true); }
         PublishStatus(running: true);
     }
 
-    /// <summary>
-    /// The watchdog's ping: a marked move to where the cursor already is, which our hook swallows.
-    /// (Windows drops zero-delta wheels and zero relative moves before any hook sees them, so a
-    /// "nothing" event has to be an absolute move.) If the hook is gone, nobody swallows it and the
-    /// cursor stays put anyway.
-    /// </summary>
-    private bool SendPing(double now)
-    {
-        _lastPingTick = (uint)Environment.TickCount;
-        if (InjectMoveToCursor(_pingExtra))
-        {
-            _pingsSent++;
-            _watchdog.PingSent(now);
-            return true;
-        }
-        _sendFailures++;
-        _watchdog.PingNotSent();
-        return false;
-    }
-
-    /// <summary>Whether someone used the keyboard or mouse lately, not counting our own ping.</summary>
-    private bool UserActive()
-    {
-        if (_options.UserActiveOverride is { } answer) { return answer(); }
-        var info = new Windows.Win32.UI.Input.KeyboardAndMouse.LASTINPUTINFO
-        {
-            cbSize = (uint)sizeof(Windows.Win32.UI.Input.KeyboardAndMouse.LASTINPUTINFO),
-        };
-        if (!Windows.Win32.PInvoke.GetLastInputInfo(ref info)) { return true; }
-        uint idleMs = unchecked((uint)Environment.TickCount - info.dwTime);
-        if (idleMs > (uint)(_watchdog.Interval * 1000) + 1000) { return false; }
-        uint sincePing = unchecked(info.dwTime - _lastPingTick);
-        return !(_lastPingTick != 0 && sincePing <= 50);   // the last input was our ping
-    }
+    private bool ForegroundIsElevated(double now) =>
+        _targets.ForWindow((nint)Windows.Win32.PInvoke.GetForegroundWindow().Value, now).Elevated;
 
     private void ReadRouting(double now)
     {
@@ -898,19 +979,19 @@ public sealed unsafe class InputThread : IDisposable
 
     private EngineCounters Counters() =>
         new(_hookCalls, _physicalWheels, _injectedWheels, _rawWheels, _sends, _sendFailures,
-            _pingsSent, Volatile.Read(ref _pingsSeen), _hookReinstalls);
+            _breaker.Echoes, _breaker.Trips, _hookReinstalls);
 
     private void PublishStatus(bool running)
     {
-        EngineCounters counters = Counters();
         Volatile.Write(ref _status, new EngineStatus(
             running,
             HookInstalled: running && Volatile.Read(ref _hook) != 0,
             Paused: _paused,
+            BreakerOpen: _breaker.IsOpen,
             GlideHz: 1 / _frameInterval,
             Routing: _targets.Routing,
             Router: _router.Stats,
-            Counters: counters,
+            Counters: Counters(),
             LastRouterFault: _router.LastFault?.Message));
     }
 

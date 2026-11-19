@@ -10,23 +10,23 @@ namespace CalmMouse.Win.Tests.Input;
 /// is how the tests tell "passed" from "swallowed".
 /// </summary>
 /// <remarks>
-/// It also keeps the tests from touching the owner's PC: injected events carrying one of its
-/// markers (and at most a 1-unit wheel delta) are recorded and then swallowed, so no app ever
-/// sees them. Everything else passes. Windows drops zero-delta wheels and zero relative moves
-/// before any hook, so the tests inject 1/120-notch wheels and moves to where the cursor already is.
+/// It also keeps the tests from touching the owner's PC: injected wheel events carrying one of its
+/// markers (with at most a 1-unit delta), or a marker a test asked it to absorb (up to the delta
+/// given), are recorded and then swallowed, so no app ever sees them. Everything else passes.
+/// Windows drops zero-delta wheels before any hook, so the tests inject 1/120-notch wheels.
 /// </remarks>
 internal sealed class WitnessHook : IDisposable
 {
     private const int WH_MOUSE_LL = 14;
-    private const uint WM_QUIT = 0x0012, WM_MOUSEMOVE = 0x0200, WM_MOUSEWHEEL = 0x020A, WM_MOUSEHWHEEL = 0x020E;
+    private const uint WM_QUIT = 0x0012, WM_MOUSEWHEEL = 0x020A, WM_MOUSEHWHEEL = 0x020E;
     private const uint LLMHF_INJECTED = 1;
     // "TS" in the high half. Markers are 32 bits: LL hooks only get dwExtraInfo's low 32 bits.
     private const uint TestPrefix = 0x5453_0000;
 
     private static int s_nextMarker;
 
-    private readonly ConcurrentQueue<ulong> _seen = new();
-    private readonly ConcurrentDictionary<ulong, bool> _absorb = new();
+    private readonly ConcurrentQueue<(ulong Extra, int Delta)> _seen = new();
+    private readonly ConcurrentDictionary<ulong, int> _absorb = new();
     private readonly ManualResetEventSlim _ready = new();
     private readonly Thread _thread;
     private readonly HookProc _proc;
@@ -47,10 +47,16 @@ internal sealed class WitnessHook : IDisposable
     /// <summary>A marker no other test or program uses.</summary>
     public static nuint NewMarker() => TestPrefix | (uint)(Interlocked.Increment(ref s_nextMarker) & 0xFFFF);
 
-    /// <summary>Also swallow (after recording) injected events with this marker that reach the witness.</summary>
-    public void Absorb(nuint extraInfo) => _absorb[extraInfo] = true;
+    /// <summary>
+    /// Also swallow (after recording) injected wheels with this marker and at most this delta that
+    /// reach the witness. The owner's own resends (whole notches of 120) still pass.
+    /// </summary>
+    public void Absorb(nuint extraInfo, int maxDelta = 1) => _absorb[extraInfo] = maxDelta;
 
-    public bool Saw(nuint extraInfo) => _seen.Contains(extraInfo);
+    public bool Saw(nuint extraInfo) => _seen.Any(e => e.Extra == extraInfo);
+
+    /// <summary>The wheel deltas seen with this marker, in order.</summary>
+    public List<int> DeltasOf(nuint extraInfo) => _seen.Where(e => e.Extra == extraInfo).Select(e => e.Delta).ToList();
 
     public bool WaitFor(nuint extraInfo, int timeoutMs = 1000)
     {
@@ -66,15 +72,6 @@ internal sealed class WitnessHook : IDisposable
     /// <summary>Injects a 1/120-notch wheel event with <paramref name="extraInfo"/>. False if SendInput refused.</summary>
     public static bool InjectTinyWheel(nuint extraInfo, bool horizontal = false) =>
         Send(new MOUSEINPUT { mouseData = 1, dwFlags = horizontal ? 0x1000u : 0x0800u, dwExtraInfo = extraInfo });
-
-    /// <summary>Injects a move to where the cursor already is, with <paramref name="extraInfo"/>.</summary>
-    public static bool InjectMoveToCursor(nuint extraInfo)
-    {
-        if (!GetCursorPos(out POINT p)) { return false; }
-        int x = CalmMouse.Win.Input.HookWatchdog.AbsoluteCoordinate(p.x, GetSystemMetrics(76), GetSystemMetrics(78));
-        int y = CalmMouse.Win.Input.HookWatchdog.AbsoluteCoordinate(p.y, GetSystemMetrics(77), GetSystemMetrics(79));
-        return Send(new MOUSEINPUT { dx = x, dy = y, dwFlags = 0x0001 | 0x4000 | 0x8000, dwExtraInfo = extraInfo });
-    }
 
     /// <summary>
     /// Skips the test where injected input never reaches low-level hooks (a CI machine without an
@@ -115,18 +112,18 @@ internal sealed class WitnessHook : IDisposable
 
     private nint Callback(int nCode, nint wParam, nint lParam)
     {
-        if (nCode >= 0 && (uint)wParam is WM_MOUSEWHEEL or WM_MOUSEHWHEEL or WM_MOUSEMOVE)
+        if (nCode >= 0 && (uint)wParam is WM_MOUSEWHEEL or WM_MOUSEHWHEEL)
         {
             MSLLHOOKSTRUCT s = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
             if ((s.flags & LLMHF_INJECTED) != 0)
             {
                 ulong extra = (uint)s.dwExtraInfo;
-                bool ours = (extra & 0xFFFF_0000) == TestPrefix || _absorb.ContainsKey(extra);
-                bool tiny = (uint)wParam == WM_MOUSEMOVE || Math.Abs((short)(s.mouseData >> 16)) <= 1;
-                if (ours)
+                int delta = (short)(s.mouseData >> 16);
+                int limit = (extra & 0xFFFF_0000) == TestPrefix ? 1 : _absorb.TryGetValue(extra, out int max) ? max : -1;
+                if (limit >= 0)
                 {
-                    _seen.Enqueue(extra);
-                    if (tiny) { return 1; }
+                    _seen.Enqueue((extra, delta));
+                    if (Math.Abs(delta) <= limit) { return 1; }
                 }
             }
         }
@@ -174,12 +171,6 @@ internal sealed class WitnessHook : IDisposable
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint count, INPUT[] inputs, int size);
-
-    [DllImport("user32.dll")]
-    private static extern bool GetCursorPos(out POINT p);
-
-    [DllImport("user32.dll")]
-    private static extern int GetSystemMetrics(int index);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern nint SetWindowsHookExW(int idHook, HookProc lpfn, nint hmod, uint dwThreadId);

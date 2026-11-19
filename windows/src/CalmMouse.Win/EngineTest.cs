@@ -185,7 +185,8 @@ internal sealed class EngineTest
               $"hook calls={c.HookCalls} physical wheels={c.PhysicalWheels} injected wheels={c.InjectedWheels} raw wheels={c.RawWheels} | " +
               $"router passed={r.HooksPassed} swallowed={r.HooksSwallowed} unclaimed resends={r.UnclaimedResends} unmatched raw={r.UnmatchedRaws} " +
               $"ignored raw={r.IgnoredRaws} inexact pairs={r.InexactPairs} stuck releases={r.StuckWheelReleases} faults={r.Faults} | " +
-              $"sends={c.Sends} send failures={c.SendFailures} pings sent={c.PingsSent} seen={c.PingsSeen} hook reinstalls={c.HookReinstalls} " +
+              $"sends={c.Sends} send failures={c.SendFailures} resend echoes={c.ResendEchoes} breaker trips={c.BreakerTrips} breaker open={Yes(s.BreakerOpen)} " +
+              $"hook reinstalls={c.HookReinstalls} " +
               $"log dropped={_engine.WheelLog?.Dropped ?? 0}{(s.LastRouterFault is { } f ? $" last router fault: {f}" : "")}");
     }
 

@@ -40,9 +40,12 @@ public static partial class HidPath
     }
 
     /// <summary>
-    /// What a mouse's settings are stored under: vendor ID, product ID and product name, so it
-    /// survives reconnects and another USB port (the Raw Input handle doesn't). Two mice of the same
-    /// model share it, and so their settings. <c>?</c> stands for an ID the device doesn't give.
+    /// What a mouse's settings are stored under: vendor ID, product ID and a name, so it survives
+    /// reconnects and another USB port (the Raw Input handle doesn't). Two mice of the same model
+    /// share it, and so their settings. <c>?</c> stands for an ID the device doesn't give. The
+    /// caller must take the name from one deterministic source (MouseDevices uses the device tree,
+    /// never a request to the device that can fail now and then), or the key changes and the
+    /// mouse's settings seem lost.
     /// </summary>
     public static string StableKey(ushort? vid, ushort? pid, string? name)
     {

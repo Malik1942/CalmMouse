@@ -17,8 +17,13 @@ namespace CalmMouse.Win.Input;
 
 /// <summary>A mouse as the settings window shows it.</summary>
 /// <param name="DeviceId">The Raw Input handle (hDevice); changes on every reconnect.</param>
-/// <param name="StableKey">What its settings are stored under (<see cref="HidPath.StableKey"/>).</param>
-/// <param name="DisplayName">Its product name, or the best name Windows has for it.</param>
+/// <param name="StableKey">
+/// What its settings are stored under (<see cref="HidPath.StableKey"/>): vendor and product ID (from
+/// the device path, else the HID attributes Windows keeps) and the parent device's bus-reported
+/// description from the device tree, else empty. The same mouse gets the same key every time, even
+/// when asking the device fails or the display language changes.
+/// </param>
+/// <param name="DisplayName">Its product name, or the best name Windows has for it. May differ from the key's name.</param>
 public sealed record MouseDeviceInfo(long DeviceId, DeviceKind Kind, string StableKey, string DisplayName)
 {
     public ushort? Vid { get; init; }
@@ -96,16 +101,26 @@ internal static unsafe class MouseDevices
                 source = "path match";
             }
 
+            string? parentBus = parent != 0 ? DevNodeString(parent, Native.DEVPKEY_Device_BusReportedDeviceDesc) : null;
+            string? parentDesc = parent != 0 ? DevNodeString(parent, Native.DEVPKEY_Device_DeviceDesc) : null;
+
+            // The settings key's name is the bus-reported description Windows keeps in the device
+            // tree (the product string from the device's USB or Bluetooth descriptor, read once when
+            // it was connected), else nothing. Never the HID product string, which is a request to the
+            // device that a sleepy Bluetooth or I2C device can fail now and then, and never a
+            // driver's description, which is translated into the Windows display language.
+            // See HidPath.StableKey.
+            string keyName = FirstName(parentBus) ?? "";
             string name = FirstName(
                 product,
-                parent != 0 ? DevNodeString(parent, Native.DEVPKEY_Device_BusReportedDeviceDesc) : null,
+                parentBus,
                 self != 0 ? DevNodeString(self, Native.DEVPKEY_Device_BusReportedDeviceDesc) : null,
                 parent != 0 ? DevNodeString(parent, Native.DEVPKEY_Device_FriendlyName) : null,
                 self != 0 ? DevNodeString(self, Native.DEVPKEY_Device_FriendlyName) : null,
-                parent != 0 ? DevNodeString(parent, Native.DEVPKEY_Device_DeviceDesc) : null)
+                parentDesc)
                 ?? (kind == DeviceKind.Touchpad ? "Touchpad" : "Mouse");
 
-            return new MouseDeviceInfo((long)handle, kind, HidPath.StableKey(vid, pid, name), name)
+            return new MouseDeviceInfo((long)handle, kind, HidPath.StableKey(vid, pid, keyName), name)
             {
                 Vid = vid,
                 Pid = pid,
@@ -172,7 +187,9 @@ internal static unsafe class MouseDevices
 
     /// <summary>
     /// The HID attributes and product string. Windows opens mice exclusively, but a handle with no
-    /// access at all still answers these. Fails quietly for devices that aren't HID.
+    /// access at all still answers these. Fails quietly for devices that aren't HID. The attributes
+    /// (vendor and product ID) are kept by Windows and always answer; the product string is asked
+    /// of the device, so it is only used for the display name.
     /// </summary>
     private static void ReadHid(string path, ref ushort? vid, ref ushort? pid, out string? product)
     {

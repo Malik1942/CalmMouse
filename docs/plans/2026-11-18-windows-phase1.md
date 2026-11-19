@@ -153,17 +153,23 @@ A, with no Windows calls, so every rule is a unit test:
 `SendInput` calls (marker in `dwExtraInfo`). The hook callback only asks the router and
 returns: no allocation, no locks held across calls. Smoothing frames come from a
 high-resolution waitable timer at the main display's refresh rate, running only while a
-glide is in progress. A watchdog reinstalls the hook if Windows silently removed it: when the
-user is active but the hook has heard nothing for a few seconds, it injects a marked move to
-where the cursor already is and checks the hook got it. (Not a zero-delta wheel: Windows drops
-zero-delta wheels and zero moves before any hook sees them. Markers are 32 bits: LL hooks only
-get the low half of `dwExtraInfo`.) An
-unhandled exception on this thread removes the hook first, then reports, so a crash never
+glide is in progress. A watchdog reinstalls the hook if Windows silently removed it, judged
+from Raw Input alone and injecting nothing: physical mouse input (a device handle) keeps
+arriving for about 0.75 s while the hook hears nothing (not while an elevated window is in
+front), rate-limited with a doubling gap. (A ping can't work: Windows drops zero-delta wheels
+before any hook, and anything injected reaches every Raw Input reader, games included. Markers
+are 32 bits: LL hooks only get the low half of `dwExtraInfo`.) A circuit breaker stops
+swallowing for a while when resends keep being refused or never come back through Raw Input
+(a security tool dropping injected input would otherwise break scrolling everywhere). An
+unhandled exception on this thread, or Stop, removes the hook first, then sends the rest of any
+glide and everything held (the router's `Flush`, then pause), then reports, so a crash never
 leaves the mouse unable to scroll.
 
 **12. Devices and the target window.** Raw Input device list with change notifications
 (`RIDEV_DEVNOTIFY`); each mouse gets a stable key (VID, PID, product name) and a display
-name, and precision touchpads are recognised and marked "left alone". App rules and the
+name, and precision touchpads are recognised and marked "left alone". The key's name comes
+from the device tree only (never from asking the device, which can fail now and then), so it
+is the same every time. App rules and the
 elevated check apply to the window the wheel event will scroll, resolved per event in the
 hook: Windows scrolls the window **under the cursor** by default ("Scroll inactive windows"),
 so `WindowFromPoint` on the hook's point → top-level window → process (cached per process for

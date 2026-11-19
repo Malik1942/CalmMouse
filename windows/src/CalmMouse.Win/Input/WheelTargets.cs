@@ -125,7 +125,9 @@ internal static unsafe class ProcessDescriber
             string? name = null;
             char* path = stackalloc char[1024];
             uint length = 1024;
-            if (Native.QueryFullProcessImageNameW(process, 0, path, &length) != 0)
+            // Only the file name is wanted, so the native path does: cheaper, and it works where a
+            // drive letter can't be found (network or unmounted volumes).
+            if (Native.QueryFullProcessImageNameW(process, Native.PROCESS_NAME_NATIVE, path, &length) != 0)
             {
                 name = System.IO.Path.GetFileName(new string(path, 0, (int)length));
             }
