@@ -384,6 +384,9 @@ public sealed class DeviceCardViewModel : Observable
 
     public bool HasKindLabel => Device.Kind != DeviceKind.Unknown;
 
+    /// <summary>What a screen reader calls the card (otherwise it reads out this class's name).</summary>
+    public override string ToString() => Name;
+
     /// <summary>Segoe Fluent Icons: a touchpad for a touchpad, a mouse for the rest.</summary>
     public string Glyph => Device.Kind == DeviceKind.Touchpad ? "\uEFA5" : "\uE962";
 

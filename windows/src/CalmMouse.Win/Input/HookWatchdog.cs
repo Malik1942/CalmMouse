@@ -57,9 +57,18 @@ public sealed class HookWatchdog(
         _lastPhysical = t;
     }
 
-    /// <summary>When <see cref="Check"/> could next say Reinstall; infinity while the hook isn't silent.</summary>
+    /// <summary>
+    /// When <see cref="Check"/> could next say Reinstall. Infinity while the hook isn't silent, and
+    /// while the silence hasn't yet lasted through <see cref="SilenceLimit"/> of input: only more
+    /// physical input can change that, and it wakes the input thread anyway. (A time in the past
+    /// here makes the input thread's wait return at once, over and over: the last Raw Input event
+    /// of every movement arrives after its hook call, so this is the usual state when the mouse
+    /// stops.)
+    /// </summary>
     public double NextCheckAt =>
-        double.IsNaN(_silentSince) ? double.PositiveInfinity : Math.Max(_silentSince + SilenceLimit, _lastReinstall + _gap);
+        double.IsNaN(_silentSince) || _lastPhysical - _silentSince < SilenceLimit
+            ? double.PositiveInfinity
+            : Math.Max(_silentSince + SilenceLimit, _lastReinstall + _gap);
 
     /// <summary>True: the hook has been silent through <see cref="SilenceLimit"/> of physical input. Reinstall it now.</summary>
     public bool Check(double now)

@@ -84,6 +84,33 @@ public sealed class EnginePartsTests
     }
 
     [Fact]
+    public void ARawEventAfterItsHookCallDoesNotKeepTheEngineAwake()
+    {
+        // Windows calls the hook first and delivers the Raw Input after, so when the mouse stops
+        // the last event leaves the watchdog "silent" with nothing more coming. A check time in
+        // the past would make the input thread spin; it must wait for more input instead.
+        var w = new HookWatchdog(silenceLimit: 0.75, minimumGap: 2);
+        w.Started(0);
+        for (double t = 5; t < 6; t += 0.01)
+        {
+            w.HookActivity(t);
+            w.PhysicalInput(t + 0.0001);
+        }
+        Assert.Equal(double.PositiveInfinity, w.NextCheckAt);
+        Assert.False(w.Check(60));
+        Assert.Equal(double.PositiveInfinity, w.NextCheckAt);
+    }
+
+    [Fact]
+    public void AStrayRawEventDoesNotKeepTheEngineAwake()
+    {
+        var w = new HookWatchdog(silenceLimit: 0.75, minimumGap: 2);
+        w.Started(0);
+        w.PhysicalInput(5);
+        Assert.Equal(double.PositiveInfinity, w.NextCheckAt);
+    }
+
+    [Fact]
     public void ReinstallsBackOffWhileTheHookStaysSilentAndResetWhenItAnswers()
     {
         var w = new HookWatchdog(silenceLimit: 0.5, minimumGap: 2, maximumGap: 8);
