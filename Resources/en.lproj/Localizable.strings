@@ -280,3 +280,10 @@
 "Right-click" = "Right-click";
 "Holding Options and Create for half a second turns it on or off too (Xbox: ≡ and ⧉). It steps aside while a game is in front." = "Holding Options and Create for half a second turns it on or off too (Xbox: ≡ and ⧉). It steps aside while a game is in front.";
 "Every device has its own settings in Settings → Devices." = "Every device has its own settings in Settings → Devices.";
+
+/* Settings → General: the app's own language */
+"Language" = "Language";
+"System" = "System";
+"System follows the language macOS uses." = "System follows the language macOS uses.";
+"Relaunch to switch the language" = "Relaunch to switch the language";
+"Relaunch" = "Relaunch";

@@ -315,6 +315,7 @@ private struct GeneralPane: View {
     @ObservedObject var mice: MouseEnvironment
     @State private var launchAtLogin = SettingsHelpers.launchAtLoginEnabled()
     @State private var trusted = AXIsProcessTrusted()
+    @State private var language = AppLanguage.current
     private let timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -344,6 +345,22 @@ private struct GeneralPane: View {
                     Text("Off").tag(0)
                     Divider()
                     ForEach(lowBatteryLevels, id: \.self) { Text(L("Below %ld%%", $0)).tag($0) }
+                }
+                // Names stay in their own language (verbatim), so the list reads the same whatever
+                // the window is currently shown in.
+                Picker("Language", selection: Binding(
+                    get: { language },
+                    set: { language = $0; AppLanguage.set($0) })) {
+                    Text("System").tag("")
+                    Divider()
+                    ForEach(AppLanguage.choices, id: \.code) { Text(verbatim: $0.name).tag($0.code) }
+                }
+                .help("System follows the language macOS uses.")
+                // Only while a new choice is waiting: the bundle took its language at launch.
+                if language != AppLanguage.atLaunch {
+                    LabeledContent("Relaunch to switch the language") {
+                        Button("Relaunch") { AppLanguage.relaunch() }
+                    }
                 }
             }
 
