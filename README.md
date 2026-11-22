@@ -90,7 +90,7 @@ Most of this is for the **Magic Mouse**. Wheel mice and game controllers get opt
 - **Per-app rules**: no scrolling in Figma, no sideways scroll in Excel, no momentum in your editor.
 - **Modifier + scroll**: hold ⌘ ⌥ ⌃ or ⇧ to scroll sideways, invert, or zoom.
 - **Each device its own settings**, from tracking speed to scrolling, all on one Devices page.
-- **Presets** to start from, a **low-battery warning** for every mouse, **in-app updates**, and English / 简体中文 / 繁體中文.
+- **Presets** to start from, a **low-battery warning** for every mouse, **in-app updates**, and English / Türkçe / 简体中文 / 繁體中文.
 
 <p align="center">
   <img src="docs/images/settings-devices.png" width="720" alt="CalmMouse Settings, Devices: a rendered Magic Mouse on the left; presets, tracking speed and scrolling options on the right">
@@ -126,7 +126,7 @@ to pick White or Black. Point at a Magic Mouse setting and the mouse on the left
 | **Other mouse apps** | Devices says so when Mac Mouse Fix, LinearMouse, Mos, Scroll Reverser, BetterTouchTool, SteerMouse, Logi Options+ or a similar app is changing the same thing as CalmMouse, so a doubled reverse or glide doesn't go unexplained. |
 | **Presets** | Three one-click starting points at the top of Settings → Devices (*Just fix clicking*, *Extra steady*, *Trackpad feel*) that set the Scrolling and Clicking options in one go. Everything stays tweakable afterwards, and **Save as Preset…** keeps your own setup. Per-app rules and shortcuts are never touched. |
 | **In-app updates** | CalmMouse checks the releases feed twice a day; a new version shows up as a menu-bar item and in Settings → General with its release notes. One click downloads, verifies the signature is ours, swaps the app in place, and relaunches. |
-| **Speaks your language** | English, 简体中文 and 繁體中文, following the system language setting; no in-app switch needed. |
+| **Speaks your language** | English, Türkçe, 简体中文 and 繁體中文. Follows the system language by default; Settings → General → Language picks one for CalmMouse alone (applies after a relaunch). |
 
 Clicks that land in the middle of a scroll are handled gracefully: the app that was scrolling gets a
 clean zero-delta `ended` event instead of a gesture that never finishes, and the momentum tail is

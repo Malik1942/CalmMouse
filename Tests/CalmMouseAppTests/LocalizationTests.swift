@@ -1,4 +1,5 @@
 import XCTest
+@testable import CalmMouse
 
 /// Every string the app looks up with `L("…")` must be in each language's Localizable.strings,
 /// or a Chinese Mac shows that line in English.
@@ -33,12 +34,28 @@ final class LocalizationTests: XCTestCase {
         })
     }
 
+    /// Every Resources/*.lproj, so a new language is checked the moment its folder exists.
+    private func bundledLanguages() throws -> Set<String> {
+        let resources = root.appendingPathComponent("Resources")
+        return Set(try FileManager.default.contentsOfDirectory(at: resources, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "lproj" }
+            .map { $0.deletingPathExtension().lastPathComponent })
+    }
+
     func testEveryLookedUpStringIsTranslated() throws {
         let keys = try lookedUpKeys()
         XCTAssertGreaterThan(keys.count, 50, "the scan should find the app's captions")
-        for language in ["en", "zh-Hans", "zh-Hant"] {
+        let languages = try bundledLanguages()
+        XCTAssertTrue(languages.isSuperset(of: ["en", "zh-Hans", "zh-Hant", "tr"]))
+        for language in languages.sorted() {
             let missing = keys.subtracting(try definedKeys(language)).sorted()
             XCTAssertEqual(missing, [], "\(language) is missing \(missing.count) string(s)")
         }
+    }
+
+    /// The language picker in Settings → General offers exactly the bundled localizations:
+    /// a new .lproj without a picker entry (or an entry without its .lproj) fails here.
+    func testLanguagePickerListsEveryBundledLanguage() throws {
+        XCTAssertEqual(Set(AppLanguage.choices.map(\.code)), try bundledLanguages())
     }
 }

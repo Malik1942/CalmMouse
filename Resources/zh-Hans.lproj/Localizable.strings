@@ -279,3 +279,10 @@
 "Right-click" = "右键点按";
 "Holding Options and Create for half a second turns it on or off too (Xbox: ≡ and ⧉). It steps aside while a game is in front." = "同时按住 Options 和 Create 半秒也能开关（Xbox：≡ 和 ⧉）。游戏在前台时会自动停用。";
 "Every device has its own settings in Settings → Devices." = "每个设备的设置都在设置 → 设备里。";
+
+/* Settings → General: the app's own language */
+"Language" = "语言";
+"System" = "跟随系统";
+"System follows the language macOS uses." = "“跟随系统”使用 macOS 当前的语言。";
+"Relaunch to switch the language" = "重新启动以切换语言";
+"Relaunch" = "重新启动";
